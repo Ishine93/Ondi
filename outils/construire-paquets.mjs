@@ -2,8 +2,9 @@
 //   Ondi-Windows-<v>.zip, Ondi-Mac-<v>.zip (+ .sha256, utilisés par la mise à jour automatique) ;
 //   Ondi-TV-Samsung-<v>.zip, -LG-, -AndroidTV-, -FireTV-, -Autres- (l'appli, son mode d'emploi, ses scripts, un prompt IA) ;
 //   Ondi.wgt / .ipk / .apk sous un nom fixe (liens directs « dernière version », ex. pour Downloader sur Fire TV) ;
-//   et sous l'ancien nom (Débrideur, jusqu'à la 2.0.3) : Debrideur-Windows-<v>.zip, Debrideur-Mac-<v>.zip (+ .sha256),
-//   que les anciennes installations cherchent pour se mettre à jour, et Debrideur.apk (anciens liens de Downloader).
+//   jusqu'à la 2.1.x seulement, les mêmes sous l'ancien nom (Débrideur, jusqu'à la 2.0.3) : Debrideur-Windows-<v>.zip,
+//   Debrideur-Mac-<v>.zip (+ .sha256), que les anciennes installations cherchent pour se mettre à jour, et Debrideur.apk
+//   (anciens liens de Downloader). Plus à partir de la 2.2.0 (voir avecCopiesAncienNom).
 // Seuls les fichiers suivis par git entrent dans les paquets : rien de personnel (réglages, clés, historique).
 //   node outils/construire-paquets.mjs
 import crypto from 'node:crypto';
@@ -12,10 +13,12 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { ecrireZip } from '../src/zip.mjs';
+import { avecCopiesAncienNom } from '../src/miseajour.mjs';
 
 const RACINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = path.join(RACINE, 'dist');
 const VERSION = JSON.parse(fs.readFileSync(path.join(RACINE, 'package.json'), 'utf8')).version;
+const ANCIEN_NOM = avecCopiesAncienNom(VERSION);
 
 function fichiersSuivis() {
   try {
@@ -45,7 +48,7 @@ const pourMac = communs.filter((f) => !/\.(bat|vbs|ps1)$/.test(f));
 for (const [systeme, liste] of [['Windows', pourWindows], ['Mac', pourMac]]) {
   ecrire(`Ondi-${systeme}-${VERSION}.zip`, liste.map((f) => ({ nom: `Ondi/${f}`, donnees: lire(f) })), { empreinte: true });
   // Même contenu sous l'ancien nom : une installation d'avant le changement de nom le cherche pour se mettre à jour.
-  ecrire(`Debrideur-${systeme}-${VERSION}.zip`, liste.map((f) => ({ nom: `Debrideur/${f}`, donnees: lire(f) })), { empreinte: true });
+  if (ANCIEN_NOM) ecrire(`Debrideur-${systeme}-${VERSION}.zip`, liste.map((f) => ({ nom: `Debrideur/${f}`, donnees: lire(f) })), { empreinte: true });
 }
 
 // ---------- télés ----------
@@ -74,5 +77,5 @@ for (const [nom, dossier, appli, nomAppli] of TELES) {
   ecrire(`Ondi-TV-${nom}-${VERSION}.zip`, entrees);
 }
 // Ancien lien direct de l'appli Android TV / Fire TV (…/releases/latest/download/Debrideur.apk).
-if (fs.existsSync(path.join(DIST, 'Ondi.apk'))) fs.copyFileSync(path.join(DIST, 'Ondi.apk'), path.join(DIST, 'Debrideur.apk'));
+if (ANCIEN_NOM && fs.existsSync(path.join(DIST, 'Ondi.apk'))) fs.copyFileSync(path.join(DIST, 'Ondi.apk'), path.join(DIST, 'Debrideur.apk'));
 console.log(`\nVersion ${VERSION} prête dans ${DIST}`);

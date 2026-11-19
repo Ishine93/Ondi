@@ -26,6 +26,10 @@ export function comparerVersions(a, b) {
   return 0;
 }
 
+// Copies sous l'ancien nom (Debrideur-Windows/Mac-<v>.zip, Debrideur.apk) : les installations d'avant le changement
+// de nom (2.0.x) ne cherchent que ces noms. Publiées jusqu'à la 2.1.x, le temps que tout le monde passe en 2.1.
+export const avecCopiesAncienNom = (version) => comparerVersions(version, '2.2.0') < 0;
+
 // Versions des applications télé fournies avec ce serveur (pour dire à une télé qu'il faut la réinstaller).
 export function versionsApplisTele() {
   const lire = (f, extraire) => {

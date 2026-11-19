@@ -35,8 +35,7 @@ Install the **server first** (Windows or Mac), then the apps for your screens.
 
 - **`.apk`, `.wgt`, `.ipk`** are the TV apps themselves, ready to install directly (handy with the *Downloader* app or if you already know how).
 - **`Ondi-TV-….zip`** packages contain the same app **plus** a step-by-step guide (`README.md`), an install script for Windows and Mac, and `PROMPT-IA.md`, a ready-made message to paste into an AI assistant (Claude, ChatGPT…) to be guided step by step.
-- **`.sha256`** files are fingerprints used by the automatic update: you can ignore them.
-- **`Debrideur-….zip`** and **`Debrideur.apk`** are the same files under Ondi's former name (Débrideur), so that older installations keep updating on their own: you can ignore them too.
+- **`.sha256`** files are fingerprints used by the automatic update: you can ignore them.{{ANCIEN_NOM_EN}}
 - TV app version: **{{TELE}}**. The TV screens come from your server, so they already include everything in Ondi {{VERSION}}.
 
 ### 🪟 Windows
@@ -161,8 +160,7 @@ Installe **d'abord le serveur** (Windows ou Mac), puis les applis de tes écrans
 
 - **`.apk`, `.wgt`, `.ipk`** : les applis télé elles-mêmes, à installer directement (pratique avec l'appli *Downloader* ou si tu sais déjà faire).
 - **Les paquets `Ondi-TV-….zip`** contiennent la même appli **plus** un guide pas à pas (`README.md`), un script d'installation pour Windows et Mac, et `PROMPT-IA.md`, un message tout prêt à coller dans un assistant IA (Claude, ChatGPT…) pour être guidé étape par étape.
-- **Les fichiers `.sha256`** sont des empreintes utilisées par la mise à jour automatique : tu peux les ignorer.
-- **`Debrideur-….zip`** et **`Debrideur.apk`** sont les mêmes fichiers sous l'ancien nom d'Ondi (Débrideur), pour que les anciennes installations continuent de se mettre à jour toutes seules : tu peux les ignorer aussi.
+- **Les fichiers `.sha256`** sont des empreintes utilisées par la mise à jour automatique : tu peux les ignorer.{{ANCIEN_NOM_FR}}
 - Version de l'appli télé : **{{TELE}}**. Les écrans de la télé viennent de ton serveur : ils ont déjà tout ce qu'apporte Ondi {{VERSION}}.
 
 ### 🪟 Windows

@@ -1,7 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { comparerVersions, versionsApplisTele, VERSION } from '../src/miseajour.mjs';
+import { avecCopiesAncienNom, comparerVersions, versionsApplisTele, VERSION } from '../src/miseajour.mjs';
 import { ecrireZip, lireZip } from '../src/zip.mjs';
+
+// Fichiers sous l'ancien nom (Debrideur-…) : publiés jusqu'à la 2.1.x, plus à partir de la 2.2.0.
+test('mises à jour : copies sous l\'ancien nom seulement avant la 2.2.0', () => {
+  for (const v of ['2.1.0', '2.1.9', 'v2.1.12']) assert.equal(avecCopiesAncienNom(v), true, v);
+  for (const v of ['2.2.0', '2.10.0', '3.0.0']) assert.equal(avecCopiesAncienNom(v), false, v);
+});
 
 test('mises à jour : comparaison des numéros de version', () => {
   assert.equal(comparerVersions('2.0.1', '2.0.0'), 1);

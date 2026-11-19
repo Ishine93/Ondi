@@ -6,7 +6,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { versionsApplisTele } from '../src/miseajour.mjs';
+import { avecCopiesAncienNom, versionsApplisTele } from '../src/miseajour.mjs';
 
 const RACINE = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const paquet = JSON.parse(fs.readFileSync(path.join(RACINE, 'package.json'), 'utf8'));
@@ -36,6 +36,13 @@ const remplacer = {
   TELE: versionTele,
   NOUVEAUTES_EN: en,
   NOUVEAUTES_FR: fr,
+  // Copies sous l'ancien nom (jusqu'à la 2.1.x) : une ligne pour dire qu'on peut les ignorer.
+  ANCIEN_NOM_EN: avecCopiesAncienNom(version)
+    ? "\n- **`Debrideur-….zip`** and **`Debrideur.apk`** are the same files under Ondi's former name (Débrideur), so that older installations keep updating on their own: you can ignore them too."
+    : '',
+  ANCIEN_NOM_FR: avecCopiesAncienNom(version)
+    ? "\n- **`Debrideur-….zip`** et **`Debrideur.apk`** sont les mêmes fichiers sous l'ancien nom d'Ondi (Débrideur), pour que les anciennes installations continuent de se mettre à jour toutes seules : tu peux les ignorer aussi."
+    : '',
 };
 const modele = fs.readFileSync(path.join(RACINE, '.github', 'modele-release.md'), 'utf8').replace(/\r/g, '');
 const texte = modele.replace(/\{\{([A-Z_]+)\}\}/g, (tout, cle) => (cle in remplacer ? remplacer[cle] : tout));

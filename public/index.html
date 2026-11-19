@@ -747,11 +747,11 @@
   body.grand .rangee-piste { padding-top: 18px; padding-bottom: 18px; }
   body.grand .affiche:focus-visible .affiche-image { transform: scale(1.09); box-shadow: 0 0 0 4px #fff, 0 18px 40px #000e; }
   /* Télé : rien qui se recalcule à chaque image pendant un défilement. Le flou d'arrière-plan (barre du haut,
-     boutons sur la fiche, menus) se refait à chaque image ; l'aimantation des rangées corrige la position en route.
-     Les zones qui défilent ont leur propre calque : la télé les déplace sans tout redessiner. */
+     boutons sur la fiche, menus) se refait à chaque image. Les fiches et fenêtres (une seule à la fois) ont leur
+     propre calque : la télé les fait défiler sans tout redessiner. Pas les rangées de l'accueil : une vingtaine de
+     calques à recréer à chaque changement de rubrique, c'est trop pour une télé. */
   body.grand *, body.grand *::backdrop { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
-  body.grand .rangee-piste { scroll-snap-type: none; }
-  body.grand .detail-defilement, body.grand .fm-defilement, body.grand .rangee-piste, body.grand .dlg-corps { will-change: scroll-position; }
+  body.grand .detail-defilement, body.grand .fm-defilement, body.grand .dlg-corps { will-change: scroll-position; }
   /* ---------- tri (bouton + puces, comme les filtres) ---------- */
   #btnTri[aria-expanded="true"] { border-color: var(--bleu); background: #1a98ff24; }
   .tri-actuel { color: #8ccaff; font-weight: 600; }
@@ -805,7 +805,8 @@
   .intro-fond { position: absolute; inset: 0; background: #05070d; }
   .intro:not(.joue) *, .intro:not(.joue) { animation-play-state: paused !important; }
   .intro-centre, .intro-logo { grid-area: 1 / 1; position: relative; width: 1.3em; height: 1.3em; }
-  .intro-logo svg { position: relative; display: block; width: 100%; height: 100%; overflow: visible; }
+  .intro-moitie { position: absolute; inset: 0; }
+  .intro-moitie svg { display: block; width: 100%; height: 100%; overflow: visible; }
   .intro-haut { animation: intro-haut .7s cubic-bezier(.2, .85, .25, 1.12) .15s both; }
   .intro-bas { animation: intro-bas .7s cubic-bezier(.2, .85, .25, 1.12) .15s both; }
   .intro-lueur {
@@ -827,25 +828,23 @@
     65% { transform: rotate(-29.6deg) scaleX(1); opacity: .9; }
     100% { transform: rotate(-29.6deg) scaleX(1); opacity: 0; }
   }
-  /* Les deux moitiés glissent le long de la coupe (unités du dessin : l'orbe fait 100 de large). */
-  @keyframes intro-haut { from { transform: translate(56px, -31.8px); opacity: 0; } 40% { opacity: 1; } to { transform: none; opacity: 1; } }
-  @keyframes intro-bas { from { transform: translate(-56px, 31.8px); opacity: 0; } 40% { opacity: 1; } to { transform: none; opacity: 1; } }
+  /* Les deux moitiés glissent le long de la coupe (en % de l'orbe). */
+  @keyframes intro-haut { from { transform: translate(56%, -31.8%); opacity: 0; } 40% { opacity: 1; } to { transform: none; opacity: 1; } }
+  @keyframes intro-bas { from { transform: translate(-56%, 31.8%); opacity: 0; } 40% { opacity: 1; } to { transform: none; opacity: 1; } }
   @keyframes intro-lueur { from { transform: scale(.5); opacity: 0; } 30% { opacity: 1; } to { transform: scale(1.35); opacity: 0; } }
   @keyframes intro-onde { from { transform: scale(.9); opacity: 0; } 8% { opacity: .75; } to { transform: scale(3); opacity: 0; } }
   @keyframes intro-fin { to { opacity: 0; visibility: hidden; } }
-  /* L'écran qui suit l'intro arrive en douceur : profils un à un, ou l'accueil qui se pose. */
+  /* Une fois l'orbe posée, le fond s'efface ; sur « Qui regarde ? », les profils montent un à un. Rien de plus :
+     sur une télé, faire bouger toute la page en même temps saccade. */
   body.intro-revele .ep-boite > :not(.ep-logo):not(.ep-liste), body.intro-revele .ep-logo span, body.intro-revele .ep-profil,
-  body.intro-revele .as-boite > :not(.ep-logo), body.intro-revele #logoAccueil span, body.intro-revele .nav > :not(#logoAccueil) {
-    animation: intro-apparait .6s cubic-bezier(.2, .8, .2, 1) .1s both;
+  body.intro-revele .as-boite > :not(.ep-logo) {
+    animation: intro-apparait .5s cubic-bezier(.2, .8, .2, 1) both;
   }
-  body.intro-revele .ep-profil:nth-child(2) { animation-delay: .16s; }
-  body.intro-revele .ep-profil:nth-child(3) { animation-delay: .22s; }
-  body.intro-revele .ep-profil:nth-child(4) { animation-delay: .28s; }
-  body.intro-revele .ep-profil:nth-child(n+5) { animation-delay: .34s; }
-  body.intro-revele .ep-actions { animation-delay: .3s; }
-  body.intro-revele .page { animation: intro-page .8s cubic-bezier(.2, .8, .2, 1) both; }
-  @keyframes intro-apparait { from { opacity: 0; transform: translateY(18px); } }
-  @keyframes intro-page { from { opacity: 0; transform: scale(1.04); } }
+  body.intro-revele .ep-profil:nth-child(2) { animation-delay: .06s; }
+  body.intro-revele .ep-profil:nth-child(3) { animation-delay: .12s; }
+  body.intro-revele .ep-profil:nth-child(n+4) { animation-delay: .18s; }
+  body.intro-revele .ep-actions { animation-delay: .15s; }
+  @keyframes intro-apparait { from { opacity: 0; transform: translateY(12px); } }
 
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
@@ -862,8 +861,10 @@
   <div class="intro-fond"></div>
   <span class="intro-trait"></span>
   <div class="intro-centre"><span class="intro-lueur"></span><span class="intro-onde"></span><span class="intro-onde"></span></div>
+  <!-- Deux moitiés en éléments séparés : la télé les déplace sans les redessiner (pas possible à l'intérieur d'un SVG). -->
   <div class="intro-logo">
-    <svg viewBox="0 0 100 100"><defs><linearGradient id="ondiIntro" x1="16.1" y1="16.1" x2="83.9" y2="83.9" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#00d8ff"/><stop offset=".2" stop-color="#1965fb"/><stop offset=".44" stop-color="#6f19fb"/><stop offset=".56" stop-color="#8f12fc"/><stop offset=".68" stop-color="#b50bf3"/><stop offset=".92" stop-color="#fd0fd1"/><stop offset="1" stop-color="#ff10cc"/></linearGradient></defs><path class="intro-haut" fill="url(#ondiIntro)" d="M8.1 73.42L91.57 26A48 48 0 0 0 8.1 73.42Z"/><path class="intro-bas" fill="url(#ondiIntro)" d="M10.21 76.85L93.44 29.57A48 48 0 0 1 10.21 76.85Z"/></svg>
+    <div class="intro-moitie intro-haut"><svg viewBox="0 0 100 100"><defs><linearGradient id="ondiIntroH" x1="16.1" y1="16.1" x2="83.9" y2="83.9" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#00d8ff"/><stop offset=".2" stop-color="#1965fb"/><stop offset=".44" stop-color="#6f19fb"/><stop offset=".56" stop-color="#8f12fc"/><stop offset=".68" stop-color="#b50bf3"/><stop offset=".92" stop-color="#fd0fd1"/><stop offset="1" stop-color="#ff10cc"/></linearGradient></defs><path fill="url(#ondiIntroH)" d="M8.1 73.42L91.57 26A48 48 0 0 0 8.1 73.42Z"/></svg></div>
+    <div class="intro-moitie intro-bas"><svg viewBox="0 0 100 100"><defs><linearGradient id="ondiIntroB" x1="16.1" y1="16.1" x2="83.9" y2="83.9" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#00d8ff"/><stop offset=".2" stop-color="#1965fb"/><stop offset=".44" stop-color="#6f19fb"/><stop offset=".56" stop-color="#8f12fc"/><stop offset=".68" stop-color="#b50bf3"/><stop offset=".92" stop-color="#fd0fd1"/><stop offset="1" stop-color="#ff10cc"/></linearGradient></defs><path fill="url(#ondiIntroB)" d="M10.21 76.85L93.44 29.57A48 48 0 0 1 10.21 76.85Z"/></svg></div>
   </div>
 </div>
 <script>
@@ -937,22 +938,32 @@
       el = logoSuivant();
     }
     el ||= document.querySelector('#logoAccueil svg');
-    document.body.classList.add('intro-revele');
     const depart = logo.getBoundingClientRect();
     const r = visible(el) ? rectReel(el) : null;
-    const duree = 760;
+    const pause = (ms) => new Promise((ok) => setTimeout(ok, ms));
+    intro.querySelector('.intro-centre').animate([{ opacity: 1 }, { opacity: 0 }], { duration: 250, fill: 'forwards' });
+    // 1. Sur fond noir, l'orbe va se poser exactement sur le logo de l'écran suivant (caché en attendant).
     if (r) {
       cible = el;
       el.style.visibility = 'hidden';
       const dx = r.left + r.width / 2 - (depart.left + depart.width / 2);
       const dy = r.top + r.height / 2 - (depart.top + depart.height / 2);
-      logo.animate([{ transform: 'none' }, { transform: `translate(${dx}px, ${dy}px) scale(${r.width / depart.width})` }], { duration: duree, easing: 'cubic-bezier(.65, 0, .25, 1)', fill: 'forwards' });
+      logo.animate([{ transform: 'none' }, { transform: `translate(${dx}px, ${dy}px) scale(${r.width / depart.width})` }], { duration: 700, easing: 'cubic-bezier(.6, 0, .2, 1)', fill: 'forwards' });
+      await pause(720);
+      if (etat !== 'envol') return;
+      // Le vrai logo reprend sa place sous l'orbe : en s'effaçant, l'intro le laisse apparaître au même endroit.
+      el.style.visibility = '';
+      cible = null;
     } else {
-      logo.animate([{ transform: 'none', opacity: 1 }, { transform: 'scale(1.5)', opacity: 0 }], { duration: 500, easing: 'ease-in', fill: 'forwards' });
+      logo.animate([{ transform: 'none', opacity: 1 }, { transform: 'scale(1.4)', opacity: 0 }], { duration: 450, easing: 'ease-in', fill: 'forwards' });
+      await pause(200);
+      if (etat !== 'envol') return;
     }
-    intro.querySelector('.intro-centre').animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: 'forwards' });
-    intro.querySelector('.intro-fond').animate([{ opacity: 1 }, { opacity: 0 }], { duration: 620, delay: 120, easing: 'ease-in-out', fill: 'forwards' });
-    setTimeout(terminer, duree + 40);
+    // 2. Puis seulement, l'écran suivant se dévoile : l'intro entière s'efface (un seul calque, rien à redessiner).
+    document.body.classList.add('intro-revele');
+    intro.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 450, easing: 'ease-out', fill: 'forwards' });
+    await pause(470);
+    terminer();
   };
   const jouer = () => {
     if (etat !== 'attente') return;
@@ -2988,16 +2999,15 @@ function defiler(c, axe, cible) {
 }
 function amenerALaVue(el, vertical) {
   if (el.closest('#clavier, #formRecherche, .lecteur')) return; // toujours à l'écran
-  const grand = document.body.classList.contains('grand');
   // En haut de l'accueil (affiche, barre du haut), on remonte tout en haut ; sinon la ligne choisie vient au centre.
-  if (el.closest('.hero, #nav') && !detailOuvert && !el.closest('.modal-plein')) {
-    if (grand) defiler(document.scrollingElement, 'y', 0);
-    else window.scrollTo({ top: 0, behavior: 'smooth' });
-    return;
-  }
+  if (el.closest('.hero, #nav') && !detailOuvert && !el.closest('.modal-plein')) return window.scrollTo({ top: 0, behavior: 'smooth' });
   const zone = zoneDe(el);
   const placement = { block: vertical ? 'center' : 'nearest', inline: 'nearest' };
-  if (!grand) return zone.scrollIntoView({ ...placement, behavior: 'smooth' });
+  // Défilement maison seulement à la télé, dans les fiches et fenêtres (listes d'épisodes) : il y reste fluide.
+  // Sur les pages (accueil, rubriques, bibliothèque), celui du navigateur tourne à part et ne saccade pas quand
+  // la page travaille (affiches qui arrivent, liens vérifiés) ; le nôtre, image par image, en souffrait.
+  const dansFenetre = zone.closest('.detail-defilement, .fm-defilement, dialog, .modal-plein, .tiroir-corps');
+  if (!document.body.classList.contains('grand') || !dansFenetre) return zone.scrollIntoView({ ...placement, behavior: 'smooth' });
   // Le navigateur calcule où amener l'élément (zoom de la télé, rangées, fiche) ; on remet tout en place et on y
   // va en douceur. Rien n'est dessiné entre les deux : pas de saut visible.
   const conteneurs = [document.scrollingElement];
