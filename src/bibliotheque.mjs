@@ -8,7 +8,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { estVideo, estEchantillon, estSousTitre, nettoyerNom, analyserEpisode, extension } from './classer.mjs';
 import { normaliser } from './titres.mjs';
-import { sonder, resumeVideo, nomLangue } from './video.mjs';
+import { sonder, resumeVideo, nomLangue, libellesSousTitres, VERSION_SONDE } from './video.mjs';
 import { infosFilm, infosSerie, episodesSaison } from './metadonnees.mjs';
 
 const VERSION_CACHE = 1;
@@ -123,7 +123,8 @@ export class Bibliotheque {
           const a = anciens[id];
           const memeFichier = a && a.taille === f.taille && a.mtime === f.mtime && a.chemin === f.chemin;
           nouveau[id] = { ...f, ajoute: a?.ajoute || Date.now(), sonde: memeFichier ? a.sonde : null };
-          if (!nouveau[id].sonde) aSonder.push(id);
+          // Lu avec une version plus ancienne (pistes vides…) : relu, l'ancienne lecture servant en attendant.
+          if (!nouveau[id].sonde || nouveau[id].sonde.version !== VERSION_SONDE) aSonder.push(id);
         }
         const partis = Object.keys(anciens).filter((id) => !nouveau[id]).length;
         this.fichiers = nouveau;
@@ -235,6 +236,24 @@ export class Bibliotheque {
     this.sauver();
   }
 
+  // Fichier téléchargé → où le lire : { cle, cleLecture, versionId }, ou null s'il n'est pas (encore) rangé.
+  lectureDeChemin(chemin) {
+    const { films, series } = this.regrouper();
+    // Index chemin → fichier, refait quand la bibliothèque change (la page le demande chaque seconde).
+    if (this.indexChemins?.vue !== this.vue) {
+      this.indexChemins = { vue: this.vue, map: new Map(Object.values(this.fichiers).map((x) => [path.resolve(x.chemin).toLowerCase(), x])) };
+    }
+    const f = this.indexChemins.map.get(path.resolve(String(chemin || '')).toLowerCase());
+    if (!f) return null;
+    for (const g of films.values()) if (g.fichiers.includes(f.id)) return { cle: g.cle, cleLecture: g.cle, versionId: f.id };
+    for (const g of series.values()) {
+      for (const [n, eps] of g.saisons) {
+        for (const [ep, ids] of eps) if (ids.includes(f.id)) return { cle: g.cle, cleLecture: `e:${g.cle.slice(2)}:${n}:${ep}`, versionId: f.id };
+      }
+    }
+    return null;
+  }
+
   // ---------- ce que voit la page ----------
 
   version(id) {
@@ -251,7 +270,11 @@ export class Bibliotheque {
       duree: s?.duree || 0,
       video: s?.video || null,
       audios: s?.audios || [],
-      sousTitres: [...(s?.sousTitres || []), ...(f.externes || []).map((x, i) => ({ externe: i, nom: `${x.nom} · fichier`, langue: x.langue, force: x.force, texte: true }))],
+      // Pistes vides retirées ; noms distincts (langue, variante, forcés / SDH, image, numéro si besoin).
+      sousTitres: libellesSousTitres([
+        ...(s?.sousTitres || []).filter((x) => !x.vide),
+        ...(f.externes || []).map((x, i) => ({ externe: i, nom: `${x.nom} · fichier`, langue: x.langue, force: x.force, texte: true })),
+      ]),
       debit: s?.debit || 0,
       ajoute: f.ajoute,
     };
@@ -268,6 +291,8 @@ export class Bibliotheque {
       cle: g.cle,
       type: g.type,
       titre: infos?.titre || g.titreFichier,
+      // Autres noms du même contenu : la recherche s'en sert pour signaler « déjà dans ta bibliothèque ».
+      autresTitres: [...new Set([g.titreFichier, infos?.titreOriginal].filter((x) => x && x !== (infos?.titre || g.titreFichier)))],
       annee: infos?.annee || g.annee || null,
       affiche: infos?.affiche || '',
       fond: infos?.fond || '',

@@ -606,11 +606,13 @@ function lireEpisode(f, cleLecture, position) {
 }
 
 // Depuis une vignette « Reprendre » ou l'affiche à la une : on lit la fiche puis on lance.
-async function lireDepuisFiche(cle, cleLecture, { depuis } = {}) {
+async function lireDepuisFiche(cle, cleLecture, { depuis, versionId } = {}) {
   try {
     const [f] = await Promise.all([api(`/api/bibliotheque/element?cle=${encodeURIComponent(cle)}&langue=${LANGUE}`), chargerHistorique()]);
     const h = f.historique || {};
-    if (f.type === 'film') return lireFilm(f, f.versions[0]?.id, h[f.cleLecture]?.vu ? 0 : h[f.cleLecture]?.position || 0);
+    // Version précise demandée (le fichier qu'on vient de télécharger), sinon la meilleure.
+    const version = f.type === 'film' && f.versions.some((v) => v.id === versionId) ? versionId : f.versions?.[0]?.id;
+    if (f.type === 'film') return lireFilm(f, version, h[f.cleLecture]?.vu ? 0 : h[f.cleLecture]?.position || 0);
     const cible = cleLecture || episodeAProposer(f)?.cleLecture;
     lireEpisode(f, cible, h[cible]?.vu ? 0 : h[cible]?.position || 0);
   } catch (e) {

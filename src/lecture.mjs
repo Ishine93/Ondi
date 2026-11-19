@@ -42,6 +42,19 @@ function hauteurPour(debitMbps, hauteurSource) {
   return Math.min(h, hauteurSource || h);
 }
 
+// Sous-titres image (PGS…) : leur toile est souvent en 16:9 (1920 × 1080) alors que l'image d'un film en
+// 2.39 est rognée (3840 × 1608). La toile est agrandie pour tenir dans l'image sans être déformée, puis
+// centrée : les sous-titres restent dans l'image, à leur place relative.
+export function echelleSousTitres(v, H) {
+  const W = 2 * Math.round((H * (v.largeur || 16)) / (v.hauteur || 9) / 2);
+  return `scale=w=${W}:h=${H}:force_original_aspect_ratio=decrease:force_divisible_by=2`;
+}
+
+// Extraction des sous-titres texte à la demande : à partir de la position regardée, d'abord une avance
+// rapide (90 s), puis 4 fois plus vite que la lecture, pour ne pas disputer le disque au flux vidéo.
+const AVANCE_INITIALE = 90;
+const VITESSE_FENETRE = 4;
+
 export class Lecture {
   constructor({ bibliotheque, dossierCache, journal = () => {} }) {
     this.bibliotheque = bibliotheque;
@@ -49,6 +62,8 @@ export class Lecture {
     this.dossierSousTitres = path.join(dossierCache, 'sous-titres');
     this.sessions = new Map(); // id → session
     this.extractions = new Map(); // fichierId → promesse
+    this.fenetres = new Map(); // `${fichierId}:${index}` → extraction à la demande depuis la position regardée
+    this.processusExtraction = new Map(); // fichierId → ffmpeg de l'extraction complète en arrière-plan
     this.echecs = new Map(); // fichierId → extractions ratées (le préparatif en arrière-plan abandonne après 2)
     this.actifs = new Set(); // processus ffmpeg en cours
     // Restes d'une extraction coupée (Débrideur arrêté pendant) : à refaire.
@@ -64,6 +79,8 @@ export class Lecture {
   menage() {
     const limite = Date.now() - 6 * 3600e3;
     for (const [id, s] of this.sessions) if (s.cree < limite && !s.processus) this.sessions.delete(id);
+    // Sous-titres à la demande que plus personne ne demande (lecteur fermé) : arrêtés et effacés.
+    for (const w of [...this.fenetres.values()]) if (Date.now() - w.vu > 3 * 60_000) this.fermerFenetre(w);
   }
 
   arreterTout() {
@@ -79,6 +96,8 @@ export class Lecture {
     const v = s.video;
     const pisteAudio = s.audios.find((a) => a.ordre === Number(audio)) || s.audios.find((a) => a.defaut) || s.audios[0] || null;
     const raisons = [];
+    // Sous-titres image à incruster (une piste vide est ignorée : ffmpeg attendrait sa première image jusqu'à la fin du fichier).
+    const pisteImage = sousTitreImage == null ? null : s.sousTitres.find((x) => x.ordre === Number(sousTitreImage) && !x.vide) || null;
 
     // L'image peut-elle être recopiée telle quelle ?
     let videoOk =
@@ -114,7 +133,7 @@ export class Lecture {
       cible = Number(caps.debitMax);
       raisons.push(`fichier trop lourd pour la connexion (${Math.round(debitSource)} Mbit/s)`);
     }
-    if (sousTitreImage != null) {
+    if (pisteImage) {
       if (videoOk) raisons.push('sous-titres image incrustés');
       videoOk = false;
     }
@@ -127,7 +146,7 @@ export class Lecture {
     const ext = path.extname(f.chemin).slice(1).toLowerCase();
     const premiereAudio = s.audios[0];
     const mode =
-      videoOk && audioOk && TYPES_DIRECTS[ext] && (!pisteAudio || pisteAudio === premiereAudio) && sousTitreImage == null ? 'direct' : videoOk ? 'remux' : 'conversion';
+      videoOk && audioOk && TYPES_DIRECTS[ext] && (!pisteAudio || pisteAudio === premiereAudio) && !pisteImage ? 'direct' : videoOk ? 'remux' : 'conversion';
 
     const id = crypto.randomBytes(9).toString('base64url');
     if (mode === 'direct') {
@@ -153,7 +172,7 @@ export class Lecture {
       encodeur,
       sortieHevc,
       garderHdr,
-      sousTitreImage: sousTitreImage == null ? null : s.sousTitres.find((x) => x.ordre === Number(sousTitreImage)) || null,
+      sousTitreImage: pisteImage,
       cree: Date.now(),
     };
     this.sessions.set(id, session);
@@ -196,14 +215,14 @@ export class Lecture {
         if (sdr) chaine.push('tonemap_cuda=format=yuv420p:p=bt709:t=bt709:m=bt709:tonemap=bt2390:peak=100:desat=0');
         filtres = chaine.join(',');
         if (s.sousTitreImage) {
-          complexe = `[0:${s.sousTitreImage.index}]scale=w=${W === -2 ? `trunc(${H}*iw/ih/2)*2` : W}:h=${H},format=yuva420p,hwupload=derive_device=cuda[st];[0:${v.index}]${filtres}[img];[img][st]overlay_cuda=eof_action=pass:repeatlast=0[sortie]`;
+          complexe = `[0:${s.sousTitreImage.index}]${echelleSousTitres(v, H)},format=yuva420p,hwupload=derive_device=cuda[st];[0:${v.index}]${filtres}[img];[img][st]overlay_cuda=x=(W-w)/2:y=(H-h)/2:eof_action=pass:repeatlast=0[sortie]`;
         }
       } else {
         const chaine = [];
         if (sdr) chaine.push('tonemapx=tonemap=bt2390:desat=0:peak=100:t=bt709:m=bt709:p=bt709:format=yuv420p');
         chaine.push(`scale=w=${W}:h=${H}:flags=bicubic`, `format=${s.garderHdr ? 'p010le' : 'yuv420p'}`);
         filtres = chaine.join(',');
-        if (s.sousTitreImage) complexe = `[0:${v.index}]${filtres}[img];[0:${s.sousTitreImage.index}]scale=w=trunc(${H}*iw/ih/2)*2:h=${H}[st];[img][st]overlay=eof_action=pass:repeatlast=0[sortie]`;
+        if (s.sousTitreImage) complexe = `[0:${v.index}]${filtres}[img];[0:${s.sousTitreImage.index}]${echelleSousTitres(v, H)}[st];[img][st]overlay=x=(W-w)/2:y=(H-h)/2:eof_action=pass:repeatlast=0[sortie]`;
       }
       if (complexe) a.push('-filter_complex', complexe, '-map', '[sortie]', ...audio);
       else a.push('-map', `0:${v.index}`, ...audio, '-vf', filtres);
@@ -239,6 +258,7 @@ export class Lecture {
     }
     // Une seule lecture par session : un nouvel appel (le navigateur qui relance) arrête l'ancienne.
     if (s.processus) s.processus.kill('SIGKILL');
+    this.arreterExtractions();
     const args = this.arguments(s);
     const p = spawn(OUTILS.ffmpeg, args, { windowsHide: true });
     s.processus = p;
@@ -289,8 +309,10 @@ export class Lecture {
   }
 
   // ---------- sous-titres texte → WebVTT ----------
-  // Toutes les pistes texte d'un fichier sont extraites d'un coup (un seul passage sur le disque) et gardées
-  // en cache. Pendant l'extraction, la page reçoit déjà le début et redemande la suite.
+  // En arrière-plan (quand rien n'est lu), toutes les pistes texte d'un fichier sont extraites d'un coup (un
+  // seul passage sur le disque) et gardées en cache. Pendant une lecture, la piste choisie est extraite à la
+  // demande à partir de la position regardée (« fenêtre ») : la page a ses sous-titres en une seconde, même
+  // au milieu d'un film de 50 Go pas encore préparé.
 
   cheminVtt(fichierId, cle) {
     return path.join(this.dossierSousTitres, `${fichierId}-${cle}.vtt`);
@@ -298,20 +320,32 @@ export class Lecture {
 
   extraire(fichierId) {
     if (this.extractions.has(fichierId)) return this.extractions.get(fichierId);
+    // Une extraction à la demande lit déjà ce fichier pour la lecture en cours : pas deux à la fois.
+    if ([...this.fenetres.values()].some((w) => w.fichierId === fichierId && !w.fini)) return Promise.resolve();
     const f = this.bibliotheque.fichier(fichierId);
-    const pistes = (f?.sonde?.sousTitres || []).filter((x) => x.texte);
+    fs.mkdirSync(this.dossierSousTitres, { recursive: true });
+    // Piste texte vide : un WebVTT vide en cache, pour que la préparation en arrière-plan passe au fichier suivant.
+    for (const x of (f?.sonde?.sousTitres || []).filter((y) => y.texte && y.vide)) {
+      try {
+        if (!fs.existsSync(this.cheminVtt(fichierId, x.index))) fs.writeFileSync(this.cheminVtt(fichierId, x.index), 'WEBVTT\n\n');
+      } catch {}
+    }
+    const pistes = (f?.sonde?.sousTitres || []).filter((x) => x.texte && !x.vide);
     const manquantes = pistes.filter((x) => !fs.existsSync(this.cheminVtt(fichierId, x.index)));
     if (!manquantes.length) return Promise.resolve();
-    fs.mkdirSync(this.dossierSousTitres, { recursive: true });
-    const args = ['-hide_banner', '-v', 'error', '-nostdin', '-i', f.chemin];
-    for (const x of manquantes) args.push('-map', `0:${x.index}`, '-c:s', 'webvtt', '-f', 'webvtt', `${this.cheminVtt(fichierId, x.index)}.partiel`);
+    const args = ['-hide_banner', '-v', 'error', '-nostdin', '-y', '-i', f.chemin];
+    for (const x of manquantes) args.push('-map', `0:${x.index}`, '-c:s', 'webvtt', '-flush_packets', '1', '-f', 'webvtt', `${this.cheminVtt(fichierId, x.index)}.partiel`);
     const promesse = new Promise((ok) => {
       const p = spawn(OUTILS.ffmpeg, args, { windowsHide: true });
       this.actifs.add(p);
+      this.processusExtraction.set(fichierId, p);
       let erreurs = '';
       p.stderr.on('data', (d) => (erreurs += d));
       p.on('close', (code) => {
         this.actifs.delete(p);
+        this.processusExtraction.delete(fichierId);
+        // Arrêtée pour laisser le disque à une lecture : refaite plus tard, ce n'est pas un échec.
+        if (p.interrompue) code = -1;
         let vides = 0;
         for (const x of manquantes) {
           const partiel = `${this.cheminVtt(fichierId, x.index)}.partiel`;
@@ -325,7 +359,7 @@ export class Lecture {
             }
           } catch {}
         }
-        if (code || vides) {
+        if ((code && !p.interrompue) || vides) {
           this.echecs.set(fichierId, (this.echecs.get(fichierId) || 0) + 1);
           this.journal(`Sous-titres : extraction ratée${vides ? ` (${vides} piste(s) vide(s))` : ''} ${erreurs.trim().slice(-300)}`);
         }
@@ -335,6 +369,87 @@ export class Lecture {
     });
     this.extractions.set(fichierId, promesse);
     return promesse;
+  }
+
+  // Une lecture commence : les extractions complètes en arrière-plan s'arrêtent (elles reprendront quand rien
+  // n'est lu), pour ne pas faire attendre le flux vidéo sur le même disque.
+  arreterExtractions() {
+    for (const p of this.processusExtraction.values()) {
+      p.interrompue = true;
+      p.kill('SIGKILL');
+    }
+  }
+
+  // Extraction à la demande d'une piste texte à partir de « depuis » (secondes), horodatage d'origine gardé.
+  // Une par piste ; relancée si la page demande une position qu'elle ne couvre pas (retour en arrière, saut
+  // loin devant ce qui est déjà lu). Partie du début et allée jusqu'au bout, elle devient le cache de la piste.
+  fenetre(fichierId, index, depuis) {
+    const cle = `${fichierId}:${index}`;
+    let w = this.fenetres.get(cle);
+    if (w) {
+      const lu = w.debut + AVANCE_INITIALE + VITESSE_FENETRE * ((Date.now() - w.t0) / 1000);
+      const hors = depuis < w.debut - 1 || (!w.fini && depuis > lu + 60);
+      const ratee = w.fini && w.code !== 0 && !w.complet && (w.optionInconnue || Date.now() - w.t0 > 30_000);
+      if (hors || ratee) {
+        this.fermerFenetre(w);
+        w = null;
+      }
+    }
+    if (!w) {
+      const f = this.bibliotheque.fichier(fichierId);
+      const debut = Math.max(0, Math.floor(Number(depuis) || 0) - 15);
+      fs.mkdirSync(this.dossierSousTitres, { recursive: true });
+      const partiel = path.join(this.dossierSousTitres, `${fichierId}-${index}-a${debut}.partiel`);
+      const args = ['-hide_banner', '-v', 'error', '-nostdin', '-y'];
+      if (!Lecture.sansReadrate) args.push('-readrate', String(VITESSE_FENETRE), '-readrate_initial_burst', String(AVANCE_INITIALE));
+      if (debut > 0) args.push('-ss', String(debut), '-copyts');
+      args.push('-i', f.chemin, '-map', `0:${index}`, '-c:s', 'webvtt', '-flush_packets', '1', '-f', 'webvtt', partiel);
+      const p = spawn(OUTILS.ffmpeg, args, { windowsHide: true });
+      w = { cle, fichierId, index, debut, partiel, processus: p, t0: Date.now(), vu: Date.now(), fini: false, code: null };
+      this.fenetres.set(cle, w);
+      this.actifs.add(p);
+      let erreurs = '';
+      p.stderr.on('data', (d) => {
+        if (erreurs.length < 2000) erreurs += d;
+      });
+      p.on('close', (code) => {
+        this.actifs.delete(p);
+        Object.assign(w, { processus: null, fini: true, code });
+        if (w.ferme) return;
+        // ffmpeg trop ancien pour -readrate : la prochaine fenêtre s'en passe.
+        if (code && /readrate|Unrecognized option/i.test(erreurs)) {
+          Lecture.sansReadrate = true;
+          w.optionInconnue = true;
+          return;
+        }
+        if (code) return this.journal(`Sous-titres : extraction à la demande ratée (${erreurs.trim().slice(-200)})`);
+        if (debut === 0) {
+          try {
+            if (fs.statSync(partiel).size > 0 && !fs.existsSync(this.cheminVtt(fichierId, index))) {
+              fs.renameSync(partiel, this.cheminVtt(fichierId, index));
+              w.complet = true;
+            }
+          } catch {}
+        }
+      });
+    }
+    w.vu = Date.now();
+    return w;
+  }
+
+  fermerFenetre(w) {
+    w.ferme = true;
+    this.fenetres.delete(w.cle);
+    const effacer = () => {
+      try {
+        if (!w.complet) fs.rmSync(w.partiel, { force: true });
+      } catch {}
+    };
+    // Windows garde le fichier ouvert tant que ffmpeg tourne : effacé une fois le processus arrêté.
+    if (w.processus) {
+      w.processus.once('close', effacer);
+      w.processus.kill('SIGKILL');
+    } else effacer();
   }
 
   // Sous-titres externes (.srt à côté de la vidéo) : convertis une fois, en devinant l'encodage.
@@ -359,28 +474,35 @@ export class Lecture {
     return fs.existsSync(sortie) ? sortie : null;
   }
 
+  // Réponse : la piste complète (X-Complet: 1), ou ce que l'extraction à la demande a déjà lu à partir de
+  // X-Debut (X-Complet: 0, et X-Fin: 1 quand elle est allée jusqu'au bout du fichier). La page envoie la
+  // position regardée (?depuis=secondes) et redemande la suite.
   async sousTitres(fichierId, piste, res) {
-    let chemin;
+    let chemin = null;
     let complet = true;
+    const entetes = {};
     if (String(piste).startsWith('ext')) chemin = await this.externe(fichierId, Number(String(piste).slice(3)));
     else {
       const index = Number(piste);
       chemin = this.cheminVtt(fichierId, index);
-      if (!fs.existsSync(chemin)) {
-        this.extraire(fichierId);
-        complet = false;
-        chemin = `${chemin}.partiel`;
+      const f = this.bibliotheque.fichier(fichierId);
+      const existe = f?.sonde?.sousTitres?.some((x) => x.index === index && x.texte);
+      if (!fs.existsSync(chemin) && existe) {
+        const depuis = Number(new URL(res.req?.url || '/', 'http://local').searchParams.get('depuis')) || 0;
+        const w = this.fenetre(fichierId, index, depuis);
+        if (!w.complet) {
+          complet = false;
+          chemin = w.partiel;
+          entetes['X-Debut'] = String(w.debut);
+          if (w.fini) entetes['X-Fin'] = '1';
+        }
       }
     }
     let contenu = '';
     try {
-      contenu = fs.readFileSync(chemin, 'utf8');
+      if (chemin) contenu = fs.readFileSync(chemin, 'utf8');
     } catch {}
-    if (!complet && !this.extractions.has(fichierId) && fs.existsSync(this.cheminVtt(fichierId, Number(piste)))) {
-      contenu = fs.readFileSync(this.cheminVtt(fichierId, Number(piste)), 'utf8');
-      complet = true;
-    }
-    res.writeHead(200, { 'Content-Type': 'text/vtt; charset=utf-8', 'Cache-Control': 'no-store', 'X-Complet': complet ? '1' : '0' });
+    res.writeHead(200, { 'Content-Type': 'text/vtt; charset=utf-8', 'Cache-Control': 'no-store', 'X-Complet': complet ? '1' : '0', ...entetes });
     res.end(contenu || 'WEBVTT\n\n');
   }
 }

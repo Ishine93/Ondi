@@ -189,6 +189,9 @@ export class Gestionnaire {
       return {
         id: j.id,
         titre: j.titre,
+        // Lien d'origine et ses secours : la page retrouve le téléchargement sur la tuile du lien choisi.
+        source: j.type === 'lien' ? j.source : null,
+        secours: j.type === 'lien' ? j.secours || [] : [],
         type: j.type,
         mode: j.mode,
         etat: j.etat,

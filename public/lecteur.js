@@ -77,7 +77,7 @@ function choisirAudio(version, prefs) {
   return (a.find((x) => x.defaut) || a[0]).ordre;
 }
 function choisirSousTitres(version, audioOrdre, prefs) {
-  const st = (version.sousTitres || []).filter((x) => x.texte);
+  const st = (version.sousTitres || []).filter((x) => x.texte && !x.vide);
   if (prefs.st === 'non') return null;
   const audio = (version.audios || []).find((x) => x.ordre === audioOrdre);
   const fr = st.filter((x) => estFrancais(x.langue));
@@ -266,6 +266,8 @@ function construireLecteur() {
   // Vidéo.
   video.addEventListener('playing', () => {
     attente.hidden = true;
+    L.aJoue = true;
+    clearTimeout(L.gardeImage);
     clearTimeout(L.surveillance);
     L.essais = 0;
     if (tempsActuel() - (L.debutCoupures || 0) > 120) L.coupures = 0;
@@ -317,6 +319,8 @@ async function demarrer(position, { forcerConversion = false } = {}) {
   const etat = L;
   etat.attente.hidden = false;
   etat.cible = position;
+  etat.aJoue = false;
+  clearTimeout(etat.gardeImage);
   majTemps();
   try {
     const st = etat.st && !etat.st.texte ? etat.st : null;
@@ -341,6 +345,17 @@ async function demarrer(position, { forcerConversion = false } = {}) {
       etat.video.addEventListener('loadedmetadata', () => (etat.video.currentTime = position), { once: true });
     }
     etat.cible = null;
+    // Sous-titres image incrustés qui ne démarrent pas (piste illisible ou presque vide : la conversion attend
+    // une image qui ne vient pas) : au bout de 25 s, on relance sans eux plutôt que de rester bloqué.
+    if (st) {
+      etat.gardeImage = setTimeout(() => {
+        if (L !== etat || etat.aJoue || !etat.st || etat.st.texte) return;
+        const p = tempsActuel();
+        etat.st = null;
+        message(t('Ces sous-titres image ne démarrent pas sur ce fichier : lecture sans sous-titres. Choisis plutôt une piste texte.'), true);
+        demarrer(p);
+      }, 25_000);
+    }
     await etat.video.play().catch(() => {});
     if (etat.st?.texte) chargerSousTitres();
     else afficherSousTitres('');
@@ -390,6 +405,7 @@ function allerA(position, { differe = false } = {}) {
     if (L.session?.mode === 'direct') {
       L.video.currentTime = position;
       L.cible = null;
+      verifierCouvertureSt();
     } else {
       // Petit saut dans ce qui est déjà chargé : pas besoin de relancer le flux.
       const local = position - L.debut;
@@ -398,6 +414,7 @@ function allerA(position, { differe = false } = {}) {
         if (local >= b.start(i) && local <= b.end(i) - 1) {
           L.video.currentTime = local;
           L.cible = null;
+          verifierCouvertureSt();
           return;
         }
       }
@@ -519,11 +536,17 @@ function ouvrirMenu(nom, bouton) {
         if (avait && !avait.texte) demarrer(position());
       }),
     );
-    for (const s of L.version.sousTitres)
+    // Pistes texte d'abord (affichées tout de suite), puis les pistes image (la vidéo est convertie pour les incruster).
+    const pistes = L.version.sousTitres.filter((s) => !s.vide);
+    for (const s of [...pistes.filter((x) => x.texte), ...pistes.filter((x) => !x.texte)])
       m.append(
-        choix(s.nom, L.st && (s.index ?? `ext${s.externe}`) === (L.st.index ?? `ext${L.st.externe}`), () => {
+        // « image » est dit à droite (« incrustés (conversion) ») : pas deux fois.
+        choix(s.texte ? s.nom : s.nom.replace(/ · image(?= · \d+$|$)/, ''), L.st &&(s.index ?? `ext${s.externe}`) === (L.st.index ?? `ext${L.st.externe}`), () => {
           const avant = L.st;
           L.st = s;
+          L.cues = [];
+          L.cuesComplet = true;
+          afficherSousTitres('');
           if (estFrancais(s.langue)) ecrirePrefs({ st: s.force ? 'auto' : 'fr' });
           if (!s.texte || (avant && !avant.texte)) demarrer(position());
           else chargerSousTitres();
@@ -567,21 +590,41 @@ function ouvrirMenu(nom, bouton) {
 
 // ---------- sous-titres ----------
 
+// Piste pas encore préparée sur le PC : il l'extrait à partir de la position regardée (« depuis ») et renvoie
+// ce qu'il a déjà lu (à partir de X-Debut) ; on redemande la suite toutes les quelques secondes, et tout de
+// suite après un saut hors de ce qui est couvert.
 async function chargerSousTitres() {
   if (!L?.st?.texte) return;
   const etat = L;
   const piste = L.st.index != null ? L.st.index : `ext${L.st.externe}`;
   clearTimeout(etat.minuterieSt);
+  const depuis = Math.floor(tempsActuel());
   try {
-    const r = await fetch(`/api/soustitres/${etat.version.id}/${piste}.vtt`);
+    const r = await fetch(`/api/soustitres/${etat.version.id}/${piste}.vtt?depuis=${depuis}`, { cache: 'no-store' });
+    if (!r.ok) throw new Error(String(r.status));
     const texte = await r.text();
     if (L !== etat || (etat.st?.index ?? `ext${etat.st?.externe}`) !== piste) return;
     etat.cues = lireVtt(texte);
     etat.cuesComplet = r.headers.get('X-Complet') !== '0';
+    etat.cuesDebut = etat.cuesComplet ? 0 : Number(r.headers.get('X-Debut')) || 0;
+    const auBout = r.headers.get('X-Fin') === '1';
+    etat.cuesFin = etat.cuesComplet || auBout ? Infinity : etat.cues.length ? etat.cues[etat.cues.length - 1].fin : etat.cuesDebut;
+    etat.essaisSt = 0;
     // Extraction en cours sur le PC : on redemande la suite régulièrement.
-    if (!etat.cuesComplet) etat.minuterieSt = setTimeout(chargerSousTitres, etat.cues.length ? 8000 : 2500);
+    if (!etat.cuesComplet) etat.minuterieSt = setTimeout(chargerSousTitres, auBout ? 15000 : etat.cues.length ? 5000 : 2000);
     majSousTitres();
-  } catch {}
+  } catch {
+    // PC injoignable un instant : on réessaie (de plus en plus espacé), sans effacer ce qui est déjà affiché.
+    if (L !== etat) return;
+    etat.essaisSt = (etat.essaisSt || 0) + 1;
+    etat.minuterieSt = setTimeout(chargerSousTitres, Math.min(30000, 2000 * etat.essaisSt));
+  }
+}
+// Après un saut : si la nouvelle position n'est pas couverte par ce qui a été reçu, on redemande tout de suite.
+function verifierCouvertureSt() {
+  if (!L?.st?.texte || L.cuesComplet) return;
+  const p = tempsActuel();
+  if (p < (L.cuesDebut || 0) || p > (L.cuesFin ?? 0) + 30) chargerSousTitres();
 }
 function majSousTitres() {
   if (!L) return;
@@ -666,6 +709,7 @@ function fermerLecteur({ historique = true, sauver = true, garderEtat = false } 
   clearTimeout(L.minuterieSt);
   clearTimeout(L.attenteSaut);
   clearTimeout(L.surveillance);
+  clearTimeout(L.gardeImage);
   clearTimeout(minuterieControles);
   video.pause();
   video.removeAttribute('src');

@@ -387,7 +387,7 @@
   .resultats.grille .r-image svg { width: 30px; height: 30px; }
   .resultats.grille .r-chevron { display: none; }
   .resultats.grille .r-titre { font-size: 14px; line-height: 1.3; }
-  .resultats.grille .r-detail .puce:not(.langue):not(.nombre) { display: none; }
+  .resultats.grille .r-detail .puce:not(.langue):not(.nombre):not(.local) { display: none; }
   .resultats.grille .r-texte { align-content: start; padding: 0 2px; }
   /* contenu dont tous les liens sont morts : affiche grisée, mention « Liens KO » par-dessus */
   .badge-ko { display: none; pointer-events: none; }
@@ -483,6 +483,9 @@
   .source.envoyee .s-corps { border-color: #2c5a45; }
   .source.morte { cursor: not-allowed; }
   .source.morte .s-corps { opacity: .5; }
+  /* Lien déjà téléchargé : jamais grisé (sa tuile sert à suivre puis à regarder). */
+  .source.morte.avec-suivi { cursor: pointer; }
+  .source.morte.avec-suivi .s-corps { opacity: 1; }
   .v-dispo { font-size: 12px; color: var(--doux); display: flex; align-items: center; gap: 6px; }
   .v-dispo:empty { display: none; }
   .v-dispo.ok, .s-etat.ok { color: var(--vert); }
@@ -743,6 +746,49 @@
   body.grand .affiche { gap: 16px; }
   body.grand .rangee-piste { padding-top: 18px; padding-bottom: 18px; }
   body.grand .affiche:focus-visible .affiche-image { transform: scale(1.09); box-shadow: 0 0 0 4px #fff, 0 18px 40px #000e; }
+  /* ---------- tri (bouton + puces, comme les filtres) ---------- */
+  #btnTri[aria-expanded="true"] { border-color: var(--bleu); background: #1a98ff24; }
+  .tri-actuel { color: #8ccaff; font-weight: 600; }
+
+  /* ---------- liste de choix d'une liste déroulante (télécommande) ---------- */
+  .choix-option { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: 16px; background: #05090dcc; }
+  .co-panneau {
+    width: min(420px, 100%); max-height: 80vh; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 10px;
+    padding: 16px; border-radius: 16px; background: var(--surface); border: 1px solid #ffffff1f; box-shadow: 0 24px 60px #000c;
+  }
+  .co-titre { font-size: 13px; text-transform: uppercase; letter-spacing: .07em; color: var(--doux); font-weight: 700; }
+  .co-liste { display: grid; gap: 6px; overflow-y: auto; padding: 4px; }
+  .co-option {
+    text-align: left; padding: 11px 14px; border-radius: 10px; border: 1px solid #ffffff14; background: #ffffff0a; color: var(--texte);
+    cursor: pointer; font-size: 15px;
+  }
+  .co-option:hover { border-color: #ffffff38; }
+  .co-option[aria-pressed="true"] { border-color: var(--bleu); background: #1a98ff2b; font-weight: 650; }
+  .co-option[aria-pressed="true"]::after { content: " ✓"; color: #8ccaff; }
+  body.grand > .choix-option .co-panneau { zoom: 1.3; }
+
+  /* ---------- téléchargement suivi sur la tuile du lien ---------- */
+  .dl-suivi { display: grid; gap: 5px; margin-top: 7px; min-width: 0; }
+  .ep-ligne .dl-suivi { grid-column: 1 / -1; margin-top: 2px; }
+  .dl-barre { height: 5px; border-radius: 99px; background: #ffffff17; overflow: hidden; position: relative; }
+  .dl-barre > span { position: absolute; inset: 0 auto 0 0; width: 0; background: var(--bleu); border-radius: inherit; transition: width .6s ease; }
+  .dl-suivi[data-etat="termine"] .dl-barre > span { background: var(--vert); }
+  .dl-suivi[data-etat="erreur"] .dl-barre > span, .dl-suivi[data-etat="annule"] .dl-barre > span { background: var(--rouge); }
+  .dl-barre.indeterminee > span { width: 35% !important; animation: dl-va-vient 1.3s ease-in-out infinite; }
+  @keyframes dl-va-vient { from { left: -35%; } to { left: 100%; } }
+  .dl-ligne { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 10px; min-width: 0; }
+  .dl-texte { font-size: 12.5px; color: #b8c4d1; font-variant-numeric: tabular-nums; }
+  .dl-texte.ok { color: var(--vert); font-weight: 600; }
+  .dl-texte.ko { color: var(--rouge); }
+  .dl-regarder { display: inline-flex; align-items: center; gap: 6px; }
+  .dl-regarder svg { width: 13px; height: 13px; }
+  #btnTiroir.signal { animation: signal-tiroir .65s ease-in-out 4; }
+  @keyframes signal-tiroir { 50% { background: #1a98ff55; box-shadow: 0 0 0 4px #1a98ff40; } }
+
+  /* ---------- déjà dans la bibliothèque ---------- */
+  .puce.local { background: #3ecf8e26; color: #8fe3bd; font-weight: 650; }
+  #detailLocal svg { width: 15px; height: 15px; }
+
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
   }
@@ -828,7 +874,10 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h18M6 12h12M10 19h4"/></svg>
               Filtres <span id="nbFiltres" class="compteur" hidden></span>
             </button>
-            <select id="tri" aria-label="Trier les résultats"></select>
+            <button id="btnTri" class="bouton" type="button" aria-expanded="false" aria-controls="panneauTri" title="Trier les résultats">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4"/></svg>
+              <span>Trier</span> <span id="triActuel" class="tri-actuel"></span>
+            </button>
             <button id="btnVerifier" class="bouton" type="button" title="Vérifie chez AllDebrid, sans les débrider, les liens de tous les résultats affichés (du premier au dernier)">Vérifier les liens</button>
             <span id="progressionVerif" class="progression" hidden></span>
             <button id="btnMasquerKO" class="chip" type="button" aria-pressed="false" title="Cache les contenus dont tous les liens sont morts (sinon ils restent affichés en grisé)">Masquer les liens KO</button>
@@ -858,6 +907,9 @@
               <div class="f-section"><div class="f-titre">Note</div><div class="chips" id="fNotes"></div></div>
             </div>
             <div class="f-pied"><span class="aide" id="fAide"></span><button id="fReinit" class="lien-bouton" type="button">Tout réinitialiser</button></div>
+          </div>
+          <div id="panneauTri" class="panneau-filtres" hidden>
+            <div class="f-section"><div class="f-titre">Trier par</div><div class="chips" id="choixTri"></div></div>
           </div>
           <div id="resultats" class="resultats" hidden></div>
         </div>
@@ -902,6 +954,10 @@
         <p id="detailMeta" class="detail-meta"></p>
         <div id="detailPuces" class="detail-puces"></div>
         <div class="detail-actions">
+          <button id="detailLocal" class="bouton principal" type="button" hidden title="Déjà dans ta bibliothèque : pas besoin de le télécharger">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12.5-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5Z"/></svg>
+            <span>Regarder ma version</span>
+          </button>
           <a id="detailFiche" class="bouton verre" target="_blank" rel="noopener noreferrer">Voir la fiche sur le site ↗</a>
         </div>
       </div>
@@ -1407,6 +1463,8 @@ function rendre() {
   const actifs = jobs.filter((j) => ACTIFS.has(j.etat));
   const enCours = actifs.find((j) => j.etat === 'telechargement');
   document.title = enCours && enCours.total ? `${Math.floor((enCours.fait / enCours.total) * 100)} % · Débrideur` : 'Débrideur';
+  majSuivisTuiles();
+  majDejaDansBibliotheque();
 }
 
 async function rafraichir() {
@@ -1455,14 +1513,81 @@ $('#fermerTiroir').addEventListener('click', () => {
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && $('#tiroir').classList.contains('ouvert') && !document.querySelector('dialog[open]') && window.innerWidth < 1280) ouvrirTiroir(false);
 });
-// Ouvert d'office sur grand écran (il ne cache rien), fermé sur téléphone.
-ouvrirTiroir(lirePreference('tiroirOuvert', window.innerWidth >= 1280), { memoriser: false });
-// Quelque chose vient d'être envoyé : on montre le tiroir pour le voir arriver.
+// Toujours fermé au démarrage : il s'ouvre seulement avec son bouton.
+ouvrirTiroir(false, { memoriser: false });
+// Quelque chose vient d'être envoyé : le tiroir reste fermé (la progression s'affiche sur le lien choisi),
+// son bouton s'illumine un instant pour montrer où le suivre.
 function montrerTelechargements() {
   filtreJobs = 'tout';
   majFiltreJobs();
-  ouvrirTiroir(true);
+  const b = $('#btnTiroir');
+  b.classList.remove('signal');
+  void b.offsetWidth;
+  b.classList.add('signal');
+  setTimeout(() => b.classList.remove('signal'), 2600);
 }
+
+// ---------- téléchargement suivi sur la tuile du lien choisi ----------
+// Une tuile (lien d'un film, ligne d'un épisode) montre en bas la progression du téléchargement parti de
+// ses liens ; une fois le fichier rangé dans la bibliothèque, « Regarder » le lance ici même.
+// La tuile porte la classe « suivi-dl », el._liensSuivis() → ses liens, el._zoneSuivi() → où afficher.
+function jobDesLiens(liens) {
+  let trouve = null;
+  for (const j of dernier.jobs || []) {
+    if (!j.source || !(liens.includes(j.source) || (j.secours || []).some((l) => liens.includes(l)))) continue;
+    if (!trouve || (j.cree || 0) > (trouve.cree || 0)) trouve = j;
+  }
+  return trouve;
+}
+function majSuiviTuile(el) {
+  const liens = el._liensSuivis?.() || [];
+  const j = liens.length ? jobDesLiens(liens) : null;
+  let zone = el.querySelector('.dl-suivi');
+  el.classList.toggle('avec-suivi', !!j);
+  if (!j) return zone?.remove();
+  if (!zone) {
+    zone = element('span', 'dl-suivi');
+    const barre = element('span', 'dl-barre');
+    barre.append(element('span'));
+    zone.append(barre, element('span', 'dl-ligne'));
+    (el._zoneSuivi?.() || el).append(zone);
+  }
+  const video = j.fichiers.find((f) => !f.sousTitre && f.lecture) || null;
+  const cle = [j.id, j.etat, Math.floor(j.total ? (j.fait / j.total) * 100 : 0), j.vitesse ? Math.round(j.vitesse / 1e5) : 0, video?.lecture?.versionId || '', j.message].join('|');
+  if (zone.dataset.cle === cle) return;
+  zone.dataset.cle = cle;
+  zone.dataset.etat = j.etat;
+  const pct = j.etat === 'termine' ? 100 : j.total ? Math.min(100, (j.fait / j.total) * 100) : null;
+  zone.querySelector('.dl-barre').classList.toggle('indeterminee', pct == null && ACTIFS.has(j.etat));
+  zone.querySelector('.dl-barre > span').style.width = `${pct ?? 0}%`;
+  const ligne = zone.querySelector('.dl-ligne');
+  if (j.etat === 'telechargement') {
+    ligne.replaceChildren(
+      element('span', 'dl-texte', [t('Téléchargement {p} %', { p: Math.floor(pct || 0) }), j.vitesse ? `${taille(j.vitesse)}/s` : '', j.reste ? t('reste {d}', { d: duree(j.reste) }) : ''].filter(Boolean).join(' · ')),
+    );
+  } else if (j.etat === 'termine') {
+    const texte = element('span', 'dl-texte ok', video ? t('Téléchargé ✓') : t('Téléchargé ✓ · ajout à la bibliothèque…'));
+    if (!video) return ligne.replaceChildren(texte);
+    const regarder = element('button', 'bouton principal petit dl-regarder');
+    regarder.type = 'button';
+    regarder.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12.5-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5Z"/></svg>';
+    regarder.append(t('Regarder'));
+    regarder.addEventListener('click', (e) => {
+      // Le bouton est dans la tuile (une case à cocher) : le clic ne doit pas la cocher.
+      e.preventDefault();
+      e.stopPropagation();
+      lireDepuisFiche(video.lecture.cle, video.lecture.cleLecture, { depuis: regarder, versionId: video.lecture.versionId });
+    });
+    const avaitFocus = ligne.contains(document.activeElement);
+    ligne.replaceChildren(texte, regarder);
+    if (avaitFocus) regarder.focus();
+  } else {
+    const rate = j.etat === 'erreur' || j.etat === 'annule';
+    const texte = rate ? j.message || t(LIBELLES[j.etat]) : `${t(LIBELLES[j.etat] || j.etat)}…`;
+    ligne.replaceChildren(element('span', `dl-texte ${rate ? 'ko' : ''}`, texte));
+  }
+}
+const majSuivisTuiles = () => document.querySelectorAll('.suivi-dl').forEach(majSuiviTuile);
 
 function majFiltreJobs() {
   for (const b of $('#filtreJobs').children) b.setAttribute('aria-checked', String(b.dataset.filtre === filtreJobs));
@@ -1983,11 +2108,26 @@ function majPanneauFiltres() {
   $('#nbFiltres').textContent = String(n);
 }
 
-$('#btnFiltres').addEventListener('click', () => {
-  const p = $('#panneauFiltres');
-  p.hidden = !p.hidden;
-  $('#btnFiltres').setAttribute('aria-expanded', String(!p.hidden));
-});
+// Filtres et tri : deux panneaux de puces sous la barre d'outils, un seul ouvert à la fois.
+function basculerPanneau(nom, ouvrir) {
+  const panneaux = { filtres: ['#panneauFiltres', '#btnFiltres'], tri: ['#panneauTri', '#btnTri'] };
+  for (const [k, [p, b]] of Object.entries(panneaux)) {
+    const ouvert = k === nom && (ouvrir ?? $(p).hidden);
+    $(p).hidden = !ouvert;
+    $(b).setAttribute('aria-expanded', String(ouvert));
+  }
+}
+$('#btnFiltres').addEventListener('click', () => basculerPanneau('filtres'));
+// Retour dans le panneau des filtres ou du tri : on le referme, sans quitter la recherche.
+function retourPanneauRecherche() {
+  for (const [p, b] of [['#panneauTri', '#btnTri'], ['#panneauFiltres', '#btnFiltres']]) {
+    if ($(p).hidden || !$(p).contains(document.activeElement)) continue;
+    basculerPanneau(null);
+    $(b).focus();
+    return true;
+  }
+  return false;
+}
 let delaiAnnee = null;
 for (const [id, cle] of [['#fAnneeMin', 'anneeMin'], ['#fAnneeMax', 'anneeMax']]) {
   $(id).addEventListener('input', () => {
@@ -2009,18 +2149,30 @@ $('#fReinit').addEventListener('click', () => {
   appliquer();
 });
 
-$('#tri').replaceChildren(
-  ...TRIS.map(([v, t]) => {
-    const o = element('option', '', t);
-    o.value = v;
-    return o;
-  }),
-);
-$('#tri').value = TRIS.some(([v]) => v === tri) ? tri : 'site';
-$('#tri').addEventListener('change', () => {
-  tri = $('#tri').value;
-  memoire.ecrire('triRecherche', tri);
-  appliquer();
+// Tri : des puces comme les filtres (une liste déroulante se pilote mal à la télécommande).
+if (!TRIS.some(([v]) => v === tri)) tri = 'site';
+function majTri() {
+  $('#triActuel').textContent = TRIS.find(([v]) => v === tri)[1];
+  $('#choixTri').replaceChildren(
+    ...TRIS.map(([v, texte]) =>
+      puceFiltre(texte, v === tri, () => {
+        tri = v;
+        memoire.ecrire('triRecherche', tri);
+        majTri();
+        appliquer();
+        basculerPanneau('tri', false);
+        $('#btnTri').focus();
+      }),
+    ),
+  );
+}
+majTri();
+$('#btnTri').addEventListener('click', () => {
+  basculerPanneau('tri');
+  // À la télécommande, on arrive directement sur le tri en cours.
+  if (!$('#panneauTri').hidden && document.activeElement === $('#btnTri') && $('#btnTri').matches(':focus-visible')) {
+    $('#choixTri [aria-pressed="true"]')?.focus();
+  }
 });
 
 $('#btnMasquerKO').setAttribute('aria-pressed', String(masquerKO));
@@ -2508,6 +2660,8 @@ const SELECTEUR_FOCUS = 'button:not([disabled]), a[href], input:not([disabled]):
 const zoneDe = (el) => (el.matches('.source input') ? el.closest('.source') : el);
 const rectDe = (el) => zoneDe(el).getBoundingClientRect();
 function racinesNavigation() {
+  const choix = document.querySelector('.choix-option');
+  if (choix) return [choix];
   const dialogue = document.querySelector('dialog[open]');
   if (dialogue) return [dialogue];
   const pleins = [...document.querySelectorAll('.modal-plein:not([hidden])')];
@@ -2533,6 +2687,9 @@ function prochainFocus(depuis, touche) {
   let score = Infinity;
   for (const el of focusables()) {
     if (el === depuis || zoneDe(el) === zoneDe(depuis)) continue;
+    // Bouton dans une tuile (« Regarder » d'un lien téléchargé) : Bas y entre depuis la tuile, Haut en ressort vers elle.
+    if (touche === 'ArrowDown' && zoneDe(depuis).contains(el)) return el;
+    if (touche === 'ArrowUp' && zoneDe(el).contains(depuis)) return el;
     const b = rectDe(el);
     const bx = b.left + b.width / 2;
     const by = b.top + b.height / 2;
@@ -2565,6 +2722,12 @@ document.addEventListener('keydown', (e) => {
     document.activeElement.click();
     return;
   }
+  // OK sur une liste déroulante : notre liste au centre de l'écran (celle du système s'ouvre mal sur les télés).
+  if ((e.key === 'Enter' || e.key === ' ') && document.activeElement?.tagName === 'SELECT') {
+    e.preventDefault();
+    choisirOption(document.activeElement);
+    return;
+  }
   if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key) || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
   const actif = document.activeElement;
   if (!actif || actif === document.body) {
@@ -2577,9 +2740,11 @@ document.addEventListener('keydown', (e) => {
     }
     return;
   }
-  if (actif.tagName === 'SELECT' || actif.tagName === 'TEXTAREA') return;
+  if (actif.tagName === 'TEXTAREA') return;
   // Après un clic de souris (pas d'anneau visible), les flèches gardent leur rôle : faire défiler.
   if (!document.body.classList.contains('grand') && !actif.matches(':focus-visible')) return;
+  // Sur une liste déroulante, les flèches déplacent le curseur au lieu de changer la valeur sans le dire.
+  if (actif.tagName === 'SELECT') e.preventDefault();
   if (champTexte(actif) && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) return;
   const suivant = prochainFocus(actif, e.key);
   const vertical = e.key === 'ArrowUp' || e.key === 'ArrowDown';
@@ -2604,7 +2769,7 @@ document.addEventListener('keydown', (e) => {
     e.key === 'Escape' || e.key === 'GoBack' || e.key === 'BrowserBack' || e.keyCode === 461 || e.keyCode === 10009 ||
     (e.key === 'Backspace' && !document.activeElement?.matches('input, textarea, select'));
   if (!retour || document.querySelector('dialog[open]')) return;
-  if ((e.key !== 'Backspace' || !champTexte(document.activeElement || document.body)) && (retourAssistant() || retourProfils() || retourBiblio())) {
+  if ((e.key !== 'Backspace' || !champTexte(document.activeElement || document.body)) && (retourAssistant() || retourProfils() || retourBiblio() || retourPanneauRecherche())) {
     e.preventDefault();
     return;
   }
@@ -2652,6 +2817,49 @@ if (dansAppliTele) {
     const key = d.keyCode === 10009 || d.keyCode === 461 ? 'GoBack' : d.key;
     (document.activeElement || document.body).dispatchEvent(new KeyboardEvent('keydown', { key, keyCode: d.keyCode, bubbles: true, cancelable: true }));
   });
+}
+
+// Liste de choix d'une liste déroulante, au centre de l'écran, parcourue aux flèches ; Retour la ferme.
+const estToucheRetour = (e) => ['Escape', 'GoBack', 'BrowserBack', 'Backspace'].includes(e.key) || e.keyCode === 461 || e.keyCode === 10009;
+function choisirOption(sel) {
+  document.querySelector('.choix-option')?.remove();
+  const fond = element('div', 'choix-option');
+  fond.setAttribute('role', 'dialog');
+  fond.setAttribute('aria-modal', 'true');
+  const panneau = element('div', 'co-panneau');
+  const titre = sel.getAttribute('aria-label') || sel.closest('label')?.textContent.trim().split('\n')[0] || '';
+  if (titre) panneau.append(element('div', 'co-titre', titre));
+  const liste = element('div', 'co-liste');
+  const fermer = (valeur) => {
+    fond.remove();
+    if (valeur != null && valeur !== sel.value) {
+      sel.value = valeur;
+      sel.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    sel.focus();
+  };
+  for (const o of sel.options) {
+    if (o.hidden || o.disabled) continue;
+    const b = element('button', 'co-option', o.textContent);
+    b.type = 'button';
+    b.setAttribute('aria-pressed', String(o.value === sel.value));
+    b.addEventListener('click', () => fermer(o.value));
+    liste.append(b);
+  }
+  panneau.append(liste);
+  fond.append(panneau);
+  fond.addEventListener('click', (e) => e.target === fond && fermer(null));
+  fond.addEventListener('keydown', (e) => {
+    if (!estToucheRetour(e)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    fermer(null);
+  });
+  // Dans une fenêtre (Réglages), la liste doit être dedans pour passer devant elle.
+  (sel.closest('dialog[open]') || document.body).append(fond);
+  const actuel = liste.querySelector('[aria-pressed="true"]') || liste.firstElementChild;
+  actuel?.focus();
+  actuel?.scrollIntoView({ block: 'nearest' });
 }
 
 // ---------- lancement de la recherche ----------
@@ -2925,6 +3133,7 @@ function majGroupe(g) {
   g.annee = annees.length ? Math.min(...annees) : null;
   g.note = notes.length ? Math.max(...notes) : null;
   g.serie = g.versions.some((v) => v.serie);
+  g.local = dejaEnLocal(g);
   g.vs = g.versions.filter(versionPasse);
   majKO(g);
   const visible = groupePasse(g);
@@ -2960,6 +3169,7 @@ function majGroupe(g) {
   const qualites = unique(vs.map((v) => v.qualite));
   puces.push(...qualites.slice(0, 3).map((q) => element('span', 'puce', q)));
   if (qualites.length > 3) puces.push(element('span', 'puce', `+${qualites.length - 3}`));
+  if (g.local) puces.unshift(element('span', 'puce local', '✓ Dans ta bibliothèque'));
   g.detail.replaceChildren(...puces);
   const genres = [...g.genres.values()].slice(0, 3).join(', ');
   g.meta.textContent = [g.serie && g.annee, genres, g.note != null && `★ ${g.note.toFixed(1)}`].filter(Boolean).join(' · ') || (vs.length === 1 ? v0.chemin : '');
@@ -2968,6 +3178,50 @@ function majGroupe(g) {
     rendreVersions(g);
   }
 }
+
+// ---------- déjà dans la bibliothèque ----------
+// Un résultat de recherche qu'on a déjà (même titre, même année à un an près pour un film) est signalé,
+// avec « Regarder » dans sa fiche : pas besoin de le retélécharger.
+let indexBiblio = null; // titre normalisé → [{ cle, type, annee }]
+let signatureBiblio = null;
+function dejaEnLocal(g) {
+  if (!indexBiblio) return null;
+  const titre = normaliserTitre(sansAnnee(g.versions[0]?.titre || ''));
+  const candidats = indexBiblio.get(titre) || [];
+  if (g.serie) return candidats.find((x) => x.type === 'serie') || null;
+  return candidats.find((x) => x.type === 'film' && (!g.annee || !x.annee || Math.abs(g.annee - x.annee) <= 1)) || null;
+}
+// Relue au démarrage et à chaque téléchargement terminé puis rangé.
+async function majDejaDansBibliotheque() {
+  const sig = (dernier.jobs || [])
+    .filter((j) => j.etat === 'termine')
+    .map((j) => `${j.id}${j.fichiers.some((f) => f.lecture) ? '+' : ''}`)
+    .join(',');
+  if (sig === signatureBiblio) return;
+  signatureBiblio = sig;
+  try {
+    const c = await api('/api/bibliotheque?langue=fr');
+    const index = new Map();
+    for (const x of [...(c.films || []), ...(c.series || [])]) {
+      for (const nom of [x.titre, ...(x.autresTitres || [])]) {
+        const k = normaliserTitre(sansAnnee(nom || ''));
+        if (!k) continue;
+        if (!index.has(k)) index.set(k, []);
+        index.get(k).push({ cle: x.cle, type: x.type, annee: x.annee });
+      }
+    }
+    indexBiblio = index;
+  } catch {
+    signatureBiblio = null; // réessayé au prochain passage
+    return;
+  }
+  if (recherche) appliquer();
+  if (detailOuvert) majEnteteDetail(detailOuvert);
+}
+$('#detailLocal').addEventListener('click', () => {
+  const local = detailOuvert?.local;
+  if (local) lireDepuisFiche(local.cle, null, { depuis: $('#detailLocal') });
+});
 
 // ---------- fiche d'un contenu, plein écran ----------
 
@@ -2996,7 +3250,13 @@ function majEnteteDetail(g) {
     .join('  ·  ');
   const langues = new Map();
   for (const v of vs) if (v.langue && !langues.has(v.langue)) langues.set(v.langue, v);
-  $('#detailPuces').replaceChildren(...[...langues.values()].map(puceLangue), ...unique(vs.map((v) => v.qualite)).slice(0, 6).map((q) => element('span', 'puce', q)));
+  $('#detailPuces').replaceChildren(
+    ...(g.local ? [element('span', 'puce local', g.serie ? '✓ Déjà dans ta bibliothèque' : '✓ Tu as déjà ce film')] : []),
+    ...[...langues.values()].map(puceLangue),
+    ...unique(vs.map((v) => v.qualite)).slice(0, 6).map((q) => element('span', 'puce', q)),
+  );
+  $('#detailLocal').hidden = !g.local;
+  $('#detailLocal span').textContent = g.serie ? 'Reprendre la série' : 'Regarder ma version';
   $('#detailFiche').href = (vs.find((v) => v.url === g.choisie) || v0).url;
 }
 
@@ -3632,6 +3892,11 @@ function tuileSource(s, i, groupe) {
   if (s.type === 'hebergeur' || s.type === 'protege') texte.append(element('span', 's-etat'));
   corps.append(element('span', 's-coche'), texte, element('span', `s-type ${s.type}`, TYPES_SOURCE[s.type] || s.type));
   label.append(input, corps);
+  // Envoyé : la progression du téléchargement s'affiche en bas de la tuile, puis « Regarder ».
+  label.classList.add('suivi-dl');
+  label._liensSuivis = () => [s.url];
+  label._zoneSuivi = () => texte;
+  majSuiviTuile(label);
   return label;
 }
 
@@ -3730,7 +3995,7 @@ $('#panierEnvoyer').addEventListener('click', async () => {
     const k = rep.ajoutes.length;
     messagePanier = {
       classe: 'ok',
-      texte: `${k} envoyé${k > 1 ? 's' : ''} à AllDebrid ✓${rep.refuses.length ? ` (${rep.refuses.length} refusé${rep.refuses.length > 1 ? 's' : ''})` : ''} · suis-les dans Téléchargements`,
+      texte: `${k} envoyé${k > 1 ? 's' : ''} à AllDebrid ✓${rep.refuses.length ? ` (${rep.refuses.length} refusé${rep.refuses.length > 1 ? 's' : ''})` : ''} · la progression s'affiche sur le lien`,
     };
     montrerTelechargements();
     rafraichir();
@@ -3904,7 +4169,11 @@ function rendreEpisodes(panneau, x, r) {
         etat.textContent = '✗ mort';
       } else if (dansFile.has(choisi.s.url) || liensEnVerification.has(choisi.s.url)) etat.classList.add('attente');
       el.replaceChildren(libelle, puces, etat);
+      majSuiviTuile(el);
     };
+    // Épisode envoyé : sa progression s'affiche sous la ligne, puis « Regarder ».
+    el.classList.add('suivi-dl');
+    el._liensSuivis = () => parEpisode.get(ep).map(({ s }) => s.url);
     remplir();
     // La sélection a changé : on coche/décoche sur place (la ligne n'est refaite qu'après un envoi).
     el._majSelection = () => {

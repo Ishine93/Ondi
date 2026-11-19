@@ -38,7 +38,36 @@ const LANGUES = {
 };
 export const nomLangue = (code) => LANGUES[String(code || '').toLowerCase()] ?? String(code || '').toUpperCase();
 
-const NOMS_AUDIO = { ac3: 'Dolby Digital', eac3: 'Dolby Digital+', truehd: 'Dolby TrueHD', dts: 'DTS', aac: 'AAC', mp3: 'MP3', opus: 'Opus', flac: 'FLAC', vorbis: 'Vorbis', pcm_s16le: 'PCM', pcm_s24le: 'PCM' };
+// Version de ce que lireSonde garde d'un fichier : la bibliothèque relit les fichiers lus avec une version plus ancienne.
+export const VERSION_SONDE = 2;
+
+// Noms des pistes de sous-titres tels qu'affichés : langue, variante (France / Québec…), forcés / SDH, image.
+// Deux pistes qui restent pareilles sont numérotées (« Français », « Français · 2 »).
+const VARIANTES_ST = [
+  [/canad|\bvfq\b|qu[ée]b|\bfr-?ca\b/i, 'Québec'],
+  [/\(france\)|\bvff\b|\bvfi\b|\bfr-?fr\b|\bfrance\b/i, 'France'],
+  [/\b(us|usa|american)\b|\ben-?us\b/i, 'US'],
+  [/\b(uk|british)\b|\ben-?gb\b/i, 'UK'],
+];
+export function libellesSousTitres(pistes) {
+  const noms = pistes.map((s) => {
+    if (s.externe != null) return s.nom;
+    const titre = String(s.titre || '');
+    const base = nomLangue(s.langue) || titre || 'Sous-titres';
+    const variante = nomLangue(s.langue) ? VARIANTES_ST.find(([re]) => re.test(titre))?.[1] || '' : '';
+    const sdh = s.sdh ?? /sdh|malentendant/i.test(titre);
+    const commentaires = /comment/i.test(titre) ? 'commentaires' : '';
+    return [base, variante, s.force ? 'forcés' : sdh ? 'SDH' : '', commentaires, s.texte ? '' : 'image'].filter(Boolean).join(' · ');
+  });
+  const vus = new Map();
+  return pistes.map((s, i) => {
+    const n = (vus.get(noms[i]) || 0) + 1;
+    vus.set(noms[i], n);
+    return { ...s, nom: n > 1 ? `${noms[i]} · ${n}` : noms[i] };
+  });
+}
+
+const NOMS_AUDIO = {ac3: 'Dolby Digital', eac3: 'Dolby Digital+', truehd: 'Dolby TrueHD', dts: 'DTS', aac: 'AAC', mp3: 'MP3', opus: 'Opus', flac: 'FLAC', vorbis: 'Vorbis', pcm_s16le: 'PCM', pcm_s24le: 'PCM' };
 const canaux = (n) => (n >= 8 ? '7.1' : n >= 6 ? '5.1' : n === 2 ? 'Stéréo' : n === 1 ? 'Mono' : `${n} canaux`);
 export const SOUS_TITRES_TEXTE = new Set(['subrip', 'srt', 'ass', 'ssa', 'webvtt', 'mov_text', 'text']);
 
@@ -79,6 +108,10 @@ export function lireSonde(j) {
       const titre = tags.title || '';
       const force = !!s.disposition?.forced || /forc/i.test(titre);
       const sdh = !!s.disposition?.hearing_impaired || /sdh|malentendant/i.test(titre);
+      // Nombre de répliques noté par mkvmerge (« NUMBER_OF_FRAMES », parfois suivi de la langue) :
+      // 0 = piste vide, inutile (et une piste image vide bloque l'incrustation).
+      const cleImages = Object.keys(tags).find((k) => /^NUMBER_OF_FRAMES/i.test(k));
+      const images = cleImages != null && /^\d+$/.test(String(tags[cleImages]).trim()) ? Number(tags[cleImages]) : null;
       sousTitres.push({
         index: s.index,
         ordre: ordreSt++,
@@ -86,8 +119,11 @@ export function lireSonde(j) {
         langue: tags.language || '',
         titre,
         force,
+        sdh,
         defaut: !!s.disposition?.default,
         texte: SOUS_TITRES_TEXTE.has(s.codec_name),
+        images,
+        vide: images === 0,
         nom: [nomLangue(tags.language) || titre || `Sous-titres ${ordreSt}`, force ? 'forcés' : sdh ? 'SDH' : '', SOUS_TITRES_TEXTE.has(s.codec_name) ? '' : 'image']
           .filter(Boolean)
           .join(' · '),
@@ -96,6 +132,7 @@ export function lireSonde(j) {
   }
   const f = j.format || {};
   return {
+    version: VERSION_SONDE,
     duree: Number(f.duration) || 0,
     debit: Number(f.bit_rate) || 0,
     conteneur: String(f.format_name || '').split(',')[0],

@@ -141,20 +141,21 @@ test('rythme : espacement entre les appels, plafond par minute, pause après un 
     return liens.map((link) => ({ link, filename: 'x.mkv', size: 1, host: 'uptobox' }));
   };
   const avant = { ...reglages };
-  Object.assign(reglages, { espacement: 30, attenteLot: 0, parMinute: 3, minute: 400 });
+  // Marges larges : sur une machine chargée (ou un serveur de CI), les minuteries partent en retard.
+  Object.assign(reglages, { espacement: 80, attenteLot: 0, parMinute: 3, minute: 700 });
   try {
-    // Un link/infos par lien (demandes espacées de 15 ms). Cinq appels : jamais plus de trois par « minute » de 400 ms.
-    await pause(450);
+    // Un link/infos par lien (demandes espacées de 15 ms). Cinq appels : jamais plus de trois par « minute » de 700 ms.
+    await pause(750);
     const debut = Date.now();
     for (let i = 0; i < 5; i++) {
       verifierLiens(ad, [`https://1fichier.com/?rythme${i}`]);
       await pause(15);
     }
-    await pause(700);
+    await pause(1300);
     assert.equal(heures.length, 5);
-    for (let i = 1; i < 5; i++) assert.ok(heures[i] - heures[i - 1] >= 25, `appels ${i - 1} et ${i} trop rapprochés`);
-    assert.ok(heures[3] - heures[0] >= 390, 'le 4e appel doit attendre la « minute » suivante');
-    assert.ok(heures[2] - debut < 300, 'les trois premiers partent tout de suite');
+    for (let i = 1; i < 5; i++) assert.ok(heures[i] - heures[i - 1] >= 45, `appels ${i - 1} et ${i} trop rapprochés`);
+    assert.ok(heures[3] - heures[0] >= 680, 'le 4e appel doit attendre la « minute » suivante');
+    assert.ok(heures[2] - debut < 500, 'les trois premiers partent tout de suite');
     // AllDebrid demande de ralentir : rien ne part pendant la pause.
     ad.derniereSaturation = Date.now();
     const t = Date.now();

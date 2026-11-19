@@ -361,7 +361,13 @@ const serveur = http.createServer(async (req, res) => {
         res.setHeader('Access-Control-Allow-Origin', '*');
         return json(res, 200, { app: 'debrideur', ok: true });
       }
-      if (p === '/api/etat') return json(res, 200, { jobs: gestionnaire.instantane(), config: configPublique(), adresses: adressesReseau(), port: config.port });
+      if (p === '/api/etat') {
+        // Téléchargement fini et rangé : où le lire, pour le lancer depuis la recherche sans passer par la bibliothèque.
+        const jobs = gestionnaire.instantane().map((j) =>
+          j.etat !== 'termine' ? j : { ...j, fichiers: j.fichiers.map((f) => ({ ...f, lecture: f.dest ? bibliotheque.lectureDeChemin(f.dest) : null })) },
+        );
+        return json(res, 200, { jobs, config: configPublique(), adresses: adressesReseau(), port: config.port });
+      }
       if (p === '/api/compte') return json(res, 200, await compte(url.searchParams.has('frais')));
       if (p === '/api/recherche') {
         const q = (url.searchParams.get('q') || '').trim().slice(0, 200);
