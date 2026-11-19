@@ -10,7 +10,7 @@
   "scripts": {
     "start": "node lancer.mjs",
     "stop": "node lancer.mjs --arreter",
-    "test": "node --test tests/",
+    "test": "node --test \"tests/*.test.mjs\"",
     "paquets": "node outils/construire-paquets.mjs"
   },
   "debrideur": {
