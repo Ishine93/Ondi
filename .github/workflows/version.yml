@@ -49,6 +49,10 @@ jobs:
       - name: Appli LG (.ipk)
         run: bash tele/lg/construire.sh
 
+      - name: Notes de version
+        # Nouveautés (notes/$VERSION.md) + guide de téléchargement et d'installation (.github/modele-release.md)
+        run: node .github/notes-release.mjs "$VERSION" > /tmp/notes.md && head -n 12 /tmp/notes.md
+
       - name: Paquets
         run: node outils/construire-paquets.mjs
 
@@ -62,6 +66,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # Nouveautés (notes/$VERSION.md) + guide de téléchargement et d'installation (.github/modele-release.md)
-          node .github/notes-release.mjs "$VERSION" > /tmp/notes.md
           gh release create "$GITHUB_REF_NAME" dist/* --title "Débrideur $VERSION" --notes-file /tmp/notes.md
