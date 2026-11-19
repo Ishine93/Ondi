@@ -62,6 +62,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          NOTES="notes/$VERSION.md"
-          [ -f "$NOTES" ] || { echo "Débrideur $VERSION" > /tmp/notes.md; NOTES=/tmp/notes.md; }
-          gh release create "$GITHUB_REF_NAME" dist/* --title "Débrideur $VERSION" --notes-file "$NOTES"
+          # Nouveautés (notes/$VERSION.md) + guide de téléchargement et d'installation (.github/modele-release.md)
+          node .github/notes-release.mjs "$VERSION" > /tmp/notes.md
+          gh release create "$GITHUB_REF_NAME" dist/* --title "Débrideur $VERSION" --notes-file /tmp/notes.md

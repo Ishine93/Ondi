@@ -439,7 +439,7 @@ function fenetreMiseAJour(etat, { tele = null } = {}) {
     const notes = String(partie)
       .replace(/^(English|Français|French)\s*\n/i, '')
       .split('\n')
-      .map((l) => l.replace(/^[#*\-\s]+/, '').trim())
+      .map((l) => l.replace(/^[#*\-\s]+/, '').replace(/\*\*|__|`/g, '').trim())
       .filter(Boolean)
       .slice(0, 8);
     if (notes.length) {
