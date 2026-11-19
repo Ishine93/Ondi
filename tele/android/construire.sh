@@ -32,6 +32,8 @@ done
 PLATEFORME="$(for d in "$SDK"/platforms/android-*; do
   n="${d##*/android-}"
   n="${n%%[!0-9]*}"
+  # Les plateformes « preview » (codename ≠ REL) sont écartées : l'APK porterait la mention DEV.
+  if [ -f "$d/build.prop" ] && ! grep -q '^ro.build.version.codename=REL' "$d/build.prop"; then continue; fi
   if [ -n "$n" ] && [ "$n" -ge 34 ] && [ -f "$d/android.jar" ]; then echo "$d"; fi
 done | sort -V | tail -n 1)"
 [ -n "$PLATEFORME" ] || echec "aucune plateforme android-34 (ou plus récente) dans $SDK/platforms"

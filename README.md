@@ -73,7 +73,7 @@ Close Débrideur (**Settings → Stop Débrideur**), delete its folder and its s
 
 ## For developers
 
-Node.js 22+ and no dependencies. `node lancer.mjs` starts the server (port 8097), `node --test tests/` runs the tests, `node outils/construire-paquets.mjs` builds the packages. Pushing a tag `vX.Y.Z` makes GitHub Actions build the TV apps and publish the release.
+Node.js 22+ and no dependencies. `node lancer.mjs` starts the server (port 8097), `npm test` runs the tests, `node outils/construire-paquets.mjs` builds the packages. Pushing a tag `vX.Y.Z` makes GitHub Actions build the TV apps and publish the release.
 
 *Débrideur does not host or provide any content. Only download what you have the right to.*
 
@@ -154,6 +154,6 @@ Ferme le Débrideur (**Réglages → Arrêter le Débrideur**), supprime son dos
 
 ### Pour les développeurs
 
-Node.js 22+ et aucune dépendance. `node lancer.mjs` démarre le serveur (port 8097), `node --test tests/` lance les tests, `node outils/construire-paquets.mjs` fabrique les paquets. Pousser une étiquette `vX.Y.Z` fait construire les applis télé et publier la version par GitHub Actions.
+Node.js 22+ et aucune dépendance. `node lancer.mjs` démarre le serveur (port 8097), `npm test` lance les tests, `node outils/construire-paquets.mjs` fabrique les paquets. Pousser une étiquette `vX.Y.Z` fait construire les applis télé et publier la version par GitHub Actions.
 
 *Le Débrideur n'héberge ni ne fournit aucun contenu. Ne télécharge que ce que tu as le droit de télécharger.*
