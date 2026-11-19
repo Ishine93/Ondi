@@ -7,7 +7,8 @@ import { fileURLToPath } from 'node:url';
 import { Gestionnaire } from './gestionnaire.mjs';
 import { ClientAllDebrid } from './alldebrid.mjs';
 import { estVideo, estEchantillon } from './classer.mjs';
-import { rechercher, nouveautes, sourcesDe, verifierLiens, viderCacheRecherche, ErreurRecherche } from './recherche.mjs';
+import { rechercher, nouveautes, viderCacheRecherche, ErreurRecherche } from './recherche.mjs';
+import { configurerDisponibilite, sourcesFiche, verifierLiens, verifierFiches } from './disponibilite.mjs';
 import { tendances } from './tendances.mjs';
 import { verifierCleTmdb } from './metadonnees.mjs';
 import { Profils, ErreurProfil } from './profils.mjs';
@@ -130,6 +131,8 @@ setInterval(() => {
 }, 90_000).unref();
 
 const gestionnaire = new Gestionnaire({ config, dossierDonnees: DONNEES, journal, surTermine: planifierRescan });
+// États des liens déjà vérifiés, gardés d'un lancement à l'autre (donnees/disponibilite.json).
+configurerDisponibilite({ dossier: DONNEES });
 
 let compteCache = null;
 async function compte(forcer = false) {
@@ -380,7 +383,7 @@ const serveur = http.createServer(async (req, res) => {
         return repondreRecherche(res, () => nouveautes(config.siteRecherche, { categorie }));
       }
       if (p === '/api/recherche/sources') {
-        return repondreRecherche(res, () => sourcesDe(config.siteRecherche, url.searchParams.get('url') || '', { ad: gestionnaire.ad }));
+        return repondreRecherche(res, () => sourcesFiche(config.siteRecherche, url.searchParams.get('url') || '', { ad: gestionnaire.ad }));
       }
       if (p === '/api/magnets') {
         try {
@@ -510,7 +513,32 @@ const serveur = http.createServer(async (req, res) => {
     if (req.method === 'POST' && p === '/api/recherche/verifier') {
       const b = await lireJson(req);
       const liens = (Array.isArray(b.liens) ? b.liens : []).filter((l) => typeof l === 'string' && /^https?:\/\//i.test(l)).slice(0, 80);
-      return repondreRecherche(res, async () => ({ etats: await verifierLiens(gestionnaire.ad, liens) }));
+      // 12 s au plus : les liens qu'AllDebrid ouvre encore reviennent « enCours », la page les redemande.
+      return repondreRecherche(res, async () => ({ etats: await verifierLiens(gestionnaire.ad, liens, { attente: 12_000 }) }));
+    }
+    // État des fiches (au moins un lien en ligne ? tous morts ?) : une ligne JSON par fiche, envoyée
+    // dès que son verdict est connu, pour que la liste se mette à jour au fil de l'eau.
+    if (req.method === 'POST' && p === '/api/recherche/fiches') {
+      const b = await lireJson(req);
+      const urls = [...new Set((Array.isArray(b.urls) ? b.urls : []).filter((u) => typeof u === 'string' && /^https?:\/\//i.test(u)))].slice(0, 60);
+      // Page fermée avant la fin : on arrête. Sinon 20 s au plus par demande : les fiches dont AllDebrid
+      // ouvre encore les liens reviennent « enCours » (elles continuent ici), la page les redemande.
+      const abandon = new AbortController();
+      let termine = false;
+      res.on('close', () => termine || abandon.abort());
+      res.writeHead(200, { 'Content-Type': 'application/x-ndjson; charset=utf-8', 'Cache-Control': 'no-store', 'X-Accel-Buffering': 'no' });
+      try {
+        await verifierFiches(config.siteRecherche, urls, {
+          ad: gestionnaire.ad,
+          signal: abandon.signal,
+          attente: 20_000,
+          surVerdict: (verdict) => res.write(`${JSON.stringify(verdict)}\n`),
+        });
+      } catch (e) {
+        journal('Erreur vérification des fiches', e);
+      }
+      termine = true;
+      return res.end();
     }
     if (req.method === 'POST' && p === '/api/torrent') {
       const donnees = await lireCorps(req, 10e6);

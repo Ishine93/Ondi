@@ -85,7 +85,9 @@ export class ClientAllDebrid {
     this.lireCle = lireCle;
   }
 
-  async appel(chemin, params = {}, { fichiers, signal } = {}) {
+  // « delai » (ms) : attente maximale choisie par l'appelant. Passé ce délai, l'appel n'est pas
+  // relancé et échoue avec le code TIMEOUT (vérification des liens : on ne bloque pas 2 min sur un lien).
+  async appel(chemin, params = {}, { fichiers, signal, delai } = {}) {
     const cle = this.lireCle();
     if (!cle) throw new ErreurAllDebrid('NO_KEY', MESSAGES.NO_KEY);
     const corps = new FormData();
@@ -99,16 +101,20 @@ export class ClientAllDebrid {
     for (let essai = 0; ; essai++) {
       let res;
       try {
-        const sig = signal ? AbortSignal.any([signal, AbortSignal.timeout(30_000)]) : AbortSignal.timeout(30_000);
+        const limite = AbortSignal.timeout(delai || 30_000);
+        const sig = signal ? AbortSignal.any([signal, limite]) : limite;
         res = await fetch(BASE + chemin, { method: 'POST', headers: { Authorization: `Bearer ${cle}` }, body: corps, signal: sig });
       } catch (e) {
         if (signal?.aborted) throw signal.reason;
+        if (delai && e.name === 'TimeoutError') throw new ErreurAllDebrid('TIMEOUT', 'AllDebrid met trop de temps à répondre.');
         if (essai < 3) {
           await pause(2000 * (essai + 1), signal);
           continue;
         }
         throw new ErreurAllDebrid('NETWORK', `AllDebrid injoignable (${e.cause?.code || e.message}).`);
       }
+      // 429 / 503 : AllDebrid demande de ralentir. On le note : la vérification des liens lève le pied.
+      if (res.status === 429 || res.status === 503) this.derniereSaturation = Date.now();
       if ((res.status === 429 || res.status >= 500) && essai < 4) {
         await res.body?.cancel().catch(() => {});
         await pause(1500 * (essai + 1), signal);
@@ -179,8 +185,8 @@ export class ClientAllDebrid {
   }
 
   // Liens protégés (dl-protect & co) → liens chiffrés utilisables par deverrouiller().
-  async redirecteur(lien, signal) {
-    return (await this.appel('/v4/link/redirector', { link: lien }, { signal })).links || [];
+  async redirecteur(lien, signal, { delai } = {}) {
+    return (await this.appel('/v4/link/redirector', { link: lien }, { signal, delai })).links || [];
   }
 
   async envoyerMagnet(magnet, signal) {

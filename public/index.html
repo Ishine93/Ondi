@@ -389,6 +389,17 @@
   .resultats.grille .r-titre { font-size: 14px; line-height: 1.3; }
   .resultats.grille .r-detail .puce:not(.langue):not(.nombre) { display: none; }
   .resultats.grille .r-texte { align-content: start; padding: 0 2px; }
+  /* contenu dont tous les liens sont morts : affiche grisée, mention « Liens KO » par-dessus */
+  .badge-ko { display: none; pointer-events: none; }
+  .affiche.ko .badge-ko, .resultat.ko .badge-ko { display: grid; place-items: center; flex: none; }
+  .resultats.grille .r-bouton { position: relative; }
+  .affiche-image > .badge-ko, .resultats.grille .r-bouton > .badge-ko { position: absolute; top: 0; left: 0; right: 0; aspect-ratio: 2 / 3; z-index: 2; }
+  .badge-ko > span {
+    padding: 5px 12px; border-radius: 99px; background: #0b1118e6; border: 1px solid #ffffff3d; color: #ff9b9b;
+    font-size: 12.5px; font-weight: 750; letter-spacing: .05em; text-transform: uppercase; white-space: nowrap;
+  }
+  .affiche.ko .affiche-image img, .affiche.ko .affiche-vide, .resultat.ko .r-image { filter: grayscale(1) brightness(.42); }
+  .affiche.ko .affiche-infos, .resultat.ko .r-texte { opacity: .5; }
 
   /* ---------- fiche d'un contenu, plein écran ---------- */
   .detail { position: fixed; inset: 0; z-index: 40; background: var(--fond); overflow: hidden; }
@@ -820,6 +831,7 @@
             <select id="tri" aria-label="Trier les résultats"></select>
             <button id="btnVerifier" class="bouton" type="button" title="Vérifie chez AllDebrid, sans les débrider, les liens de tous les résultats affichés (du premier au dernier)">Vérifier les liens</button>
             <span id="progressionVerif" class="progression" hidden></span>
+            <button id="btnMasquerKO" class="chip" type="button" aria-pressed="false" title="Cache les contenus dont tous les liens sont morts (sinon ils restent affichés en grisé)">Masquer les liens KO</button>
             <span class="espace"></span>
             <div class="segments vues" role="radiogroup" aria-label="Affichage des résultats">
               <button type="button" role="radio" data-vue="liste" title="Liste" aria-label="Liste">
@@ -1841,6 +1853,8 @@ const filtres = {
 };
 let tri = memoire.lire('triRecherche', 'pertinence');
 let vue = memoire.lire('vueRecherche', 'grille');
+// Contenus dont tous les liens sont morts : grisés (« Liens KO »), ou cachés si on préfère.
+let masquerKO = memoire.lire('masquerKO', false) === true;
 
 const cleGenre = (g) => sansAccents(g).toLowerCase().trim();
 const genresDe = (v) => (v.genres || '').split(/\s*,\s*/).filter(Boolean);
@@ -1864,6 +1878,8 @@ function versionPasse(v) {
 }
 function groupePasse(g) {
   if (!g.vs.length) return false;
+  // Jamais sous le doigt : un contenu qui a le focus (télécommande) reste affiché, en grisé.
+  if (masquerKO && g.ko && !g.el.contains(document.activeElement)) return false;
   if (filtres.genres.size && ![...g.genres.keys()].some((k) => filtres.genres.has(k))) return false;
   if (filtres.anneeMin && (!g.annee || g.annee < filtres.anneeMin)) return false;
   if (filtres.anneeMax && (!g.annee || g.annee > filtres.anneeMax)) return false;
@@ -2004,6 +2020,14 @@ $('#tri').value = TRIS.some(([v]) => v === tri) ? tri : 'site';
 $('#tri').addEventListener('change', () => {
   tri = $('#tri').value;
   memoire.ecrire('triRecherche', tri);
+  appliquer();
+});
+
+$('#btnMasquerKO').setAttribute('aria-pressed', String(masquerKO));
+$('#btnMasquerKO').addEventListener('click', () => {
+  masquerKO = !masquerKO;
+  memoire.ecrire('masquerKO', masquerKO);
+  $('#btnMasquerKO').setAttribute('aria-pressed', String(masquerKO));
   appliquer();
 });
 
@@ -2188,7 +2212,27 @@ function carteContenu(g, rang) {
   b.append(cadreAffiche(imageDe(g), titre, rang), infos);
   b.setAttribute('aria-label', `${titre}${sous ? `, ${sous}` : ''}`);
   b.addEventListener('click', () => ouvrirDetail(g, b));
+  suivreCarte(b, g);
   return b;
+}
+
+// Mention « Liens KO » d'une carte : visible seulement quand la carte a la classe « ko ».
+function badgeKO() {
+  const badge = element('span', 'badge-ko');
+  badge.append(element('span', '', 'Liens KO'));
+  return badge;
+}
+// Carte d'un contenu du site (accueil) : grisée si tous ses liens sont morts, et vérifiée dès qu'elle est à l'écran.
+function suivreCarte(b, g) {
+  b.dataset.contenu = g.id;
+  b.classList.toggle('ko', !!g.ko);
+  b.querySelector('.affiche-image')?.append(badgeKO());
+  b._entrer = () => (b.isConnected ? suivreGroupe(g) : observateur.unobserve(b));
+  b._quitter = () => {
+    if (!b.isConnected) observateur.unobserve(b);
+    lacherGroupe(g);
+  };
+  observateur.observe(b);
 }
 
 function carteSuggestion(item, rang) {
@@ -2202,6 +2246,7 @@ function carteSuggestion(item, rang) {
   );
   if (g) infos.append(element('span', 'affiche-dispo', 'Sur le site'));
   b.append(cadreAffiche(item.image, item.titre, rang), infos);
+  if (g) suivreCarte(b, g);
   b.title = g ? 'Disponible sur le site : voir les versions' : 'Chercher ce titre sur le site';
   b.addEventListener('click', () => (g ? ouvrirDetail(g, b) : rechercherTitre(item.recherche, item.type)));
   return b;
@@ -2631,7 +2676,7 @@ let recherche = null;
 // Avant d'afficher d'autres résultats : on abandonne la recherche et les vérifications en cours.
 function nouvelleListe() {
   rechercheEnCours?.abort();
-  fileFiches.length = 0;
+  while (fileFiches.length) sortirDeLaFile(fileFiches.length - 1);
   retirerLiens([...dansFile]);
   verifTout = null;
   majVerifTout();
@@ -2791,10 +2836,12 @@ function etatResultats(pageEnCours) {
     return pageEnCours ? etatRecherche(`Recherche dans les pages suivantes… (${pageEnCours})`, 'charge') : etatRecherche(`Aucun résultat pour « ${q} » (${ou}).`);
   }
   const fiches = montres.reduce((n, g) => n + g.vs.length, 0);
-  const masques = tous.length - montres.length;
+  const koCaches = masquerKO ? tous.filter((g) => g.el.hidden && g.ko).length : 0;
+  const masques = tous.length - montres.length - koCaches;
   const quoi = `${montres.length} contenu${montres.length > 1 ? 's' : ''}${fiches > montres.length ? ` (${fiches} fiches)` : ''}`;
   const morceaux = [`${quoi} · ${ou}`];
   if (masques) morceaux.push(`${masques} masqué${masques > 1 ? 's' : ''} par les filtres`);
+  if (koCaches) morceaux.push(`${koCaches} masqué${koCaches > 1 ? 's' : ''} (liens KO)`);
   if (pageEnCours) return etatRecherche(`${morceaux.join(' · ')} · lecture des pages ${pageEnCours}…`, 'charge');
   if (recherche.pages > 1) morceaux.push(`${recherche.pages} pages lues`);
   if (recherche.erreurs) morceaux.push(`${recherche.erreurs} page${recherche.erreurs > 1 ? 's' : ''} illisible${recherche.erreurs > 1 ? 's' : ''}`);
@@ -2812,7 +2859,7 @@ const groupeDe = new Map(); // adresse d'une fiche du site → contenu
 function contenuDe(x) {
   let g = contenus.get(x.cle);
   if (!g) {
-    g = { id: `g${++numeroResultat}`, cle: x.cle, rang: 0, versions: [], vs: [], choisie: null, tuiles: new Map(), surveillances: [] };
+    g = { id: `g${++numeroResultat}`, cle: x.cle, rang: 0, versions: [], vs: [], choisie: null, tuiles: new Map(), surveillances: [], ko: false, suivi: false };
     contenus.set(x.cle, g);
     construireGroupe(g);
   }
@@ -2850,7 +2897,7 @@ function construireGroupe(g) {
   g.detail = element('span', 'r-detail');
   g.meta = element('span', 'r-meta');
   texte.append(g.titre, g.detail, g.meta);
-  b.append(g.vignette, texte);
+  b.append(g.vignette, texte, badgeKO());
   b.insertAdjacentHTML('beforeend', ICONES.chevron);
   // Le contenu de la fiche (versions, sources) vit à part : il s'affiche dans la fiche plein écran.
   g.panneau = element('div', 'r-sources');
@@ -2859,6 +2906,10 @@ function construireGroupe(g) {
   g.panneau.append(g.zoneVersions, g.zoneSources);
   g.el.append(b);
   b.addEventListener('click', () => ouvrirDetail(g, b));
+  // À l'écran : ses liens sont vérifiés (une version en ligne suffit) ; sorti de l'écran : on arrête.
+  g.el._entrer = () => suivreGroupe(g);
+  g.el._quitter = () => lacherGroupe(g);
+  observateur.observe(g.el);
 }
 
 const puceLangue = (v) => element('span', `puce langue l-${v.familles?.[0] || 'vo'}`, v.langue);
@@ -2875,6 +2926,7 @@ function majGroupe(g) {
   g.note = notes.length ? Math.max(...notes) : null;
   g.serie = g.versions.some((v) => v.serie);
   g.vs = g.versions.filter(versionPasse);
+  majKO(g);
   const visible = groupePasse(g);
   g.el.hidden = !visible;
   if (!visible) return;
@@ -3089,13 +3141,16 @@ function tuileVersion(g, v) {
 }
 
 // ---------- disponibilité des liens (AllDebrid, sans débrider) ----------
-// Par défaut, seuls les liens affichés à l'écran (et un peu en dessous) sont vérifiés ; un lien qui
-// sort de l'écran avant son tour est retiré de la file. Les boutons « Vérifier les liens » vérifient
-// tout, du premier au dernier, avec un compteur et un temps restant estimé.
+// Par défaut, seuls les contenus et les liens affichés à l'écran (et un peu en dessous) sont vérifiés ;
+// ce qui sort de l'écran avant son tour est retiré de la file. Les boutons « Vérifier les liens »
+// vérifient tout, du premier au dernier, avec un compteur et un temps restant estimé.
+// Un contenu dont toutes les versions n'ont plus que des liens morts est grisé (« Liens KO »).
 
 const pagesFiches = new Map(); // adresse de fiche → promesse de ses sources
 const etatsLiens = new Map(); // lien d'hébergeur → état renvoyé par AllDebrid
-const resumes = new Map(); // adresse de fiche → { total, dispo, morts, autres, episode } | { attente } | { erreur }
+// adresse de fiche → verdict du serveur { etat: 'ok' | 'ko' | 'inconnu', total, dispo, morts, autres, episode, hote… }
+//                  | { attente } | { erreur }
+const resumes = new Map();
 
 function ficheDe(url) {
   if (!pagesFiches.has(url)) {
@@ -3109,37 +3164,16 @@ function ficheDe(url) {
   }
   return pagesFiches.get(url);
 }
-const verifiables = (r) => r.sources.filter((s) => s.type === 'hebergeur' || s.type === 'protege');
-// Liens qui résument une fiche : jamais le streaming ; pour une série, ceux du premier épisode
-// (un par hébergeur) ; sinon 20 liens au plus.
-function echantillon(r) {
-  const dl = verifiables(r).filter((s) => !s.streaming);
-  const avecEpisode = dl.filter((s) => s.episode != null);
-  if (new Set(avecEpisode.map((s) => s.episode)).size > 1) {
-    const premier = Math.min(...avecEpisode.map((s) => s.episode));
-    return { liens: avecEpisode.filter((s) => s.episode === premier), episode: premier };
-  }
-  return { liens: dl.slice(0, 20), episode: null };
-}
-function resumer(r) {
-  const { liens, episode } = echantillon(r);
-  const etats = liens.map((s) => etatsLiens.get(s.url));
-  return {
-    total: etats.length,
-    dispo: etats.filter((e) => e?.dispo === true).length,
-    morts: etats.filter((e) => e?.dispo === false).length,
-    autres: r.sources.filter((s) => s.type === 'magnet' || s.type === 'torrent').length,
-    episode,
-  };
-}
 
-// --- file des liens : paquets de 10, deux paquets à la fois (le serveur limite en plus son rythme) ---
+// --- file des liens : paquets de 10, trois paquets à la fois (le serveur règle lui-même son rythme
+// pour rester sous les limites d'AllDebrid) ---
 
 const fileLiens = [];
 const dansFile = new Set();
 const liensEnVerification = new Set();
 const abonnes = new Map(); // lien → fonctions à rappeler quand son état est connu
 const ecouteursFile = new Set(); // rappelés après chaque paquet (compteurs de progression)
+const rappels = new Map(); // lien qu'AllDebrid met du temps à ouvrir → nombre de fois redemandé
 let paquetsEnCours = 0;
 
 function suivreLien(lien, maj) {
@@ -3163,7 +3197,7 @@ function retirerLiens(liens) {
   enlever.forEach((l) => dansFile.delete(l));
 }
 function pomperLiens() {
-  while (paquetsEnCours < 2 && fileLiens.length) {
+  while (paquetsEnCours < 3 && fileLiens.length) {
     const lot = fileLiens.splice(0, 10);
     lot.forEach((l) => {
       dansFile.delete(l);
@@ -3172,38 +3206,38 @@ function pomperLiens() {
     paquetsEnCours++;
     api('/api/recherche/verifier', { method: 'POST', body: JSON.stringify({ liens: lot }) })
       .then(({ etats }) => {
-        for (const [l, e] of Object.entries(etats)) etatsLiens.set(l, e);
+        // AllDebrid peut mettre 40 s à ouvrir un lien protégé qu'il n'a jamais vu : le serveur répond
+        // sans l'attendre (« enCours ») et continue ; on redemande ce lien un peu plus tard.
+        const encore = [];
+        for (const [l, e] of Object.entries(etats)) {
+          if (e.enCours && (rappels.get(l) || 0) < 8) {
+            rappels.set(l, (rappels.get(l) || 0) + 1);
+            encore.push(l);
+          } else etatsLiens.set(l, e);
+        }
+        return encore;
       })
       .catch((e) => {
         for (const l of lot) etatsLiens.set(l, { dispo: null, message: e.message });
+        return [];
       })
-      .finally(() => {
+      .then((encore) => {
         paquetsEnCours--;
         for (const l of lot) {
+          if (encore.includes(l)) continue; // reste affiché « en vérification »
           liensEnVerification.delete(l);
           for (const f of [...(abonnes.get(l) || [])]) f();
         }
         for (const f of [...ecouteursFile]) f();
+        if (encore.length) {
+          setTimeout(() => {
+            encore.forEach((l) => liensEnVerification.delete(l));
+            demanderLiens(encore);
+          }, 3000);
+        }
         pomperLiens();
       });
   }
-}
-// Vérifie ces liens tout de suite (en tête de file) et attend leur état.
-function verifierLiensMaintenant(liens) {
-  const attendus = [...new Set(liens)].filter((l) => !etatsLiens.has(l));
-  if (!attendus.length) return Promise.resolve();
-  return new Promise((fin) => {
-    let reste = attendus.length;
-    const desabonnements = attendus.map((l) =>
-      suivreLien(l, () => {
-        if (--reste) return;
-        desabonnements.forEach((d) => d());
-        fin();
-      }),
-    );
-    retirerLiens(attendus);
-    demanderLiens(attendus, { devant: true });
-  });
 }
 
 // --- visibilité : un élément affiché demande ses liens, un élément sorti de l'écran les rend ---
@@ -3228,22 +3262,51 @@ function surveiller(el) {
   };
 }
 
-// --- fiches (versions) : 2 à la fois, déclenchées par la visibilité ou par « Vérifier les liens » ---
+// --- fiches (versions) : déclenchées par la visibilité ou par « Vérifier les liens » ---
+// Le serveur lit la fiche et teste ses liens (les hébergeurs qui marchent d'abord, arrêt au premier
+// lien en ligne). On lui envoie les fiches par paquets de 30 ; chaque verdict arrive dès qu'il est connu.
 
 const fileFiches = [];
-let fichesEnCours = 0;
-async function verifierFiche(v) {
-  resumes.set(v.url, { attente: true });
-  majEtats(v.url);
-  try {
-    const r = await ficheDe(v.url);
-    await verifierLiensMaintenant(echantillon(r).liens.map((s) => s.url));
-    resumes.set(v.url, resumer(r));
-  } catch (e) {
-    resumes.set(v.url, { erreur: e.message });
+const rappelsFiches = new Map(); // fiche dont AllDebrid ouvre encore les liens → nombre de fois redemandée
+let fluxFiches = 0;
+let pompeFiches = null;
+
+// Lit la réponse au fil de l'eau : une ligne JSON par fiche.
+async function lireVerdicts(urls, surVerdict) {
+  const profil = typeof jetonProfil === 'string' && jetonProfil ? { 'X-Profil': jetonProfil } : {};
+  const r = await fetch('/api/recherche/fiches', { method: 'POST', headers: { 'Content-Type': 'application/json', ...profil }, body: JSON.stringify({ urls }) });
+  if (!r.ok) throw new Error((await r.json().catch(() => ({}))).erreur || `Erreur ${r.status}`);
+  const lignes = (texte) => {
+    for (const ligne of texte.split('\n')) {
+      if (!ligne.trim()) continue;
+      let verdict;
+      try {
+        verdict = JSON.parse(ligne);
+      } catch {
+        continue;
+      }
+      surVerdict(verdict);
+    }
+  };
+  if (!r.body?.getReader) return lignes(await r.text());
+  const lecteur = r.body.getReader();
+  const decodeur = new TextDecoder();
+  let reste = '';
+  for (;;) {
+    const { done, value } = await lecteur.read();
+    if (done) break;
+    reste += decodeur.decode(value, { stream: true });
+    const fin = reste.lastIndexOf('\n');
+    if (fin < 0) continue;
+    lignes(reste.slice(0, fin));
+    reste = reste.slice(fin + 1);
   }
-  majEtats(v.url);
-  if (verifTout?.urls.has(v.url)) verifTout.faits++;
+  lignes(reste);
+}
+function recevoirVerdict(url, r) {
+  resumes.set(url, r);
+  majEtats(url);
+  if (verifTout?.urls.has(url)) verifTout.faits++;
   majVerifTout();
 }
 function demanderVerification(v, prioritaire = false) {
@@ -3251,20 +3314,87 @@ function demanderVerification(v, prioritaire = false) {
   if ((r && !r.erreur) || fileFiches.includes(v)) return;
   if (prioritaire) fileFiches.unshift(v);
   else fileFiches.push(v);
-  pomperFiches();
+  // Les demandes du même instant (toutes les cartes visibles) partent dans le même paquet.
+  pompeFiches ??= setTimeout(pomperFiches, 30);
+}
+// Retire une fiche de la file ; si elle attendait d'être redemandée, elle redevient « pas vérifiée ».
+function sortirDeLaFile(i) {
+  const [v] = fileFiches.splice(i, 1);
+  if (!resumes.get(v.url)?.attente) return;
+  resumes.delete(v.url);
+  majDispo(groupeDe.get(v.url)?.tuiles.get(v.url), undefined);
 }
 function oublierVerification(v) {
   const i = fileFiches.indexOf(v);
-  if (i >= 0 && !verifTout?.urls.has(v.url)) fileFiches.splice(i, 1);
+  if (i >= 0 && !verifTout?.urls.has(v.url)) sortirDeLaFile(i);
 }
 function pomperFiches() {
-  while (fichesEnCours < 2 && fileFiches.length) {
-    const v = fileFiches.shift();
-    fichesEnCours++;
-    verifierFiche(v).finally(() => {
-      fichesEnCours--;
-      pomperFiches();
-    });
+  pompeFiches = null;
+  while (fluxFiches < 3 && fileFiches.length) {
+    const lot = fileFiches.splice(0, 30);
+    fluxFiches++;
+    const attendues = new Set(lot.map((v) => v.url));
+    for (const url of attendues) {
+      resumes.set(url, { attente: true });
+      majEtats(url);
+    }
+    // AllDebrid peut mettre 40 s à ouvrir un lien qu'il n'a jamais vu : le serveur rend la main au
+    // bout de 20 s (« enCours ») et continue de son côté ; ces fiches sont redemandées un peu plus tard.
+    const encore = [];
+    lireVerdicts([...attendues], (r) => {
+      if (!attendues.delete(r.url)) return;
+      const v = lot.find((x) => x.url === r.url);
+      if (r.enCours && (rappelsFiches.get(r.url) || 0) < 6) {
+        rappelsFiches.set(r.url, (rappelsFiches.get(r.url) || 0) + 1);
+        encore.push(v);
+      } else recevoirVerdict(r.url, r.erreur ? { erreur: r.erreur } : r.enCours ? { erreur: 'AllDebrid met trop de temps à répondre.' } : r);
+    })
+      .catch((e) => e)
+      .then((echec) => {
+        // Fiches restées sans réponse (connexion coupée…) : non vérifiées, on pourra les redemander.
+        for (const url of attendues) recevoirVerdict(url, { erreur: echec?.message || 'Pas de réponse du Débrideur.' });
+        fluxFiches--;
+        if (encore.length) {
+          setTimeout(() => {
+            fileFiches.push(...encore.filter((v) => resumes.get(v.url)?.attente && !fileFiches.includes(v)));
+            pomperFiches();
+          }, 2000);
+        }
+        pomperFiches();
+      });
+  }
+}
+
+// --- cartes de la liste et de l'accueil : un contenu est « KO » quand toutes ses versions le sont ---
+// Une version en ligne suffit à la carte : ses versions sont vérifiées deux par deux, et on s'arrête
+// à la première en ligne (les autres le seront à l'ouverture de la fiche).
+function suivreGroupe(g) {
+  g.suivi = true;
+  avancerGroupe(g);
+}
+function lacherGroupe(g) {
+  g.suivi = false;
+  if (detailOuvert !== g) g.vs.forEach(oublierVerification);
+}
+function avancerGroupe(g) {
+  if (!g.suivi) return;
+  const etats = g.vs.map((v) => resumes.get(v.url));
+  if (etats.some((r) => r?.etat === 'ok')) return;
+  const enCours = g.vs.filter((v, i) => etats[i]?.attente || fileFiches.includes(v)).length;
+  const aFaire = g.vs.filter((v, i) => !etats[i] && !fileFiches.includes(v));
+  for (const v of aFaire.slice(0, Math.max(0, 2 - enCours))) demanderVerification(v);
+}
+// KO : chaque version affichée a été vérifiée, tous ses liens sont morts et il ne reste pas de torrent.
+function majKO(g) {
+  const ko = g.vs.length > 0 && g.vs.every((v) => resumes.get(v.url)?.etat === 'ko' && !resumes.get(v.url).autres);
+  if (ko === g.ko) return;
+  g.ko = ko;
+  g.el.classList.toggle('ko', ko);
+  for (const carte of document.querySelectorAll(`.affiche[data-contenu="${g.id}"]`)) carte.classList.toggle('ko', ko);
+  // « Masquer les liens KO » : la carte disparaît (ou revient) sans toucher au reste de la liste.
+  if (masquerKO && recherche?.groupes.has(g.cle) && g.el.hidden === groupePasse(g)) {
+    g.el.hidden = !g.el.hidden;
+    etatResultats(recherche.pageEnCours);
   }
 }
 
@@ -3298,7 +3428,7 @@ function majVerifTout() {
 $('#btnVerifier').addEventListener('click', () => {
   if (verifTout) {
     // Arrêt : les fiches pas encore commencées sortent de la file.
-    for (let i = fileFiches.length - 1; i >= 0; i--) if (verifTout.urls.has(fileFiches[i].url)) fileFiches.splice(i, 1);
+    for (let i = fileFiches.length - 1; i >= 0; i--) if (verifTout.urls.has(fileFiches[i].url)) sortirDeLaFile(i);
     $('#progressionVerif').textContent = `Arrêté à ${verifTout.faits} / ${verifTout.total} fiches`;
     verifTout = null;
     return majVerifTout();
@@ -3330,23 +3460,29 @@ function majDispo(el, r) {
   } else if (r.erreur) {
     el.textContent = '? non vérifié';
     el.title = r.erreur;
-  } else if (r.dispo && r.episode != null) {
+  } else if (r.etat === 'ok') {
+    // Un lien en ligne suffit : le serveur ne teste pas les autres (ils le sont dans la fiche ouverte).
     el.classList.add('ok');
-    el.textContent = `✓ ${r.dispo} hébergeur${r.dispo > 1 ? 's' : ''} en ligne`;
-    el.title = `D'après les liens de l'épisode ${r.episode}`;
-  } else if (r.dispo) {
-    el.classList.add('ok');
-    el.textContent = `✓ ${r.dispo} lien${r.dispo > 1 ? 's' : ''} en ligne`;
-  } else if (r.morts) {
+    el.textContent = ['✓ en ligne', r.hote, r.episode == null && r.taille ? taille(r.taille) : ''].filter(Boolean).join(' · ');
+    el.title = r.episode != null ? `D'après les liens de l'épisode ${r.episode}` : r.nom || '';
+  } else if (r.etat === 'ko') {
     el.classList.add('ko');
     el.textContent = r.autres ? '✗ liens morts (reste torrent)' : '✗ liens morts';
-  } else el.textContent = r.autres ? 'Torrent / magnet' : r.total ? '? à confirmer' : 'Aucun lien';
+    el.title = r.message || '';
+  } else {
+    el.textContent = r.autres ? 'Torrent / magnet' : r.total ? '? à confirmer' : 'Aucun lien';
+    el.title = r.message || '';
+  }
 }
 
-// Une fiche vient d'être vérifiée : on met à jour la tuile de sa version.
+// L'état d'une fiche a changé : la tuile de sa version, puis la carte de son contenu (grisée si
+// tout est mort), et la version suivante du contenu s'il en reste à vérifier.
 function majEtats(url) {
   const g = groupeDe.get(url);
-  if (g) majDispo(g.tuiles.get(url), resumes.get(url));
+  if (!g) return;
+  majDispo(g.tuiles.get(url), resumes.get(url));
+  majKO(g);
+  avancerGroupe(g);
 }
 
 // Numéro d'épisode d'après le nom du fichier : « Serie.S01E03.mkv », « Episode 3 »…

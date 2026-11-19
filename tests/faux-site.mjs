@@ -5,7 +5,8 @@
 // Chaque résultat est un seul lien « Titre · qualité · genres · note /10 · année », comme sur
 // beaucoup de sites ; les versions d'un même contenu sont réparties sur plusieurs pages.
 // Catégorie par « &p=films|series|mangas » (sans p : tout).
-// Essais : « dune » (3 versions de Dune 2 + Dune), « étoile » en Films (24 fiches, 5 pages → 12 contenus × 2 versions),
+// Essais : « dune » (3 versions de Dune 2 + Dune), « étoile » en Films (26 fiches, 6 pages → 12 contenus × 2 versions,
+// plus « Étoile morte » dont tous les liens sont morts et « Étoile noire » qui n'en a qu'un en ligne),
 // « étoile » en Mangas ou Séries.
 import http from 'node:http';
 
@@ -20,6 +21,10 @@ const CATALOGUE = [
   { id: 6, slug: 'dune-deuxieme-partie-4k', titre: 'Dune : Deuxième partie', qualite: '4K LIGHT VOSTFR', annee: 2024, rubrique: 'films', ...SF },
   { id: 4, slug: 'dune', titre: 'Dune', qualite: '1080p FRENCH', annee: 2021, rubrique: 'films', ...SF, note: '7.8' },
   { id: 5, slug: 'archive-film', titre: 'Archive Film', annee: 2022, rubrique: 'films', genres: 'Documentaire', note: '5.5' },
+  // Liens protégés avec l'hébergeur annoncé devant le nom du fichier (« Rapidgator - Film.mkv »).
+  // Étoile morte : tout est mort ou non géré → « Liens KO ». Étoile noire : Rapidgator mort, Turbobit en ligne.
+  { id: 8, slug: 'etoile-morte', titre: 'Étoile morte', qualite: '1080p FRENCH', annee: 2018, rubrique: 'films', genres: 'Drame', note: '4.9' },
+  { id: 9, slug: 'etoile-noire', titre: 'Étoile noire', qualite: '1080p MULTI', annee: 2020, rubrique: 'films', genres: 'Science-Fiction', note: '7.2' },
   { id: 7, slug: 'dune-deuxieme-partie-hdlight', titre: 'Dune : Deuxième partie', qualite: 'HDLight 720p FRENCH', annee: 2024, rubrique: 'films', ...SF },
   ...Array.from({ length: 12 }, (_, i) => ({
     id: 100 + i, slug: `etoile-filante-${i + 1}`, titre: `Étoile filante ${i + 1}`, qualite: '1080p MULTI', annee: 2000 + i, rubrique: 'films',
@@ -67,7 +72,14 @@ https://uptobox.com/boyss04e04</pre>`,
   5: `
     <h3>Archive</h3>
     <p><a href="https://1fichier.com/?archive">Archive.Film.2022.part1.rar</a></p>`,
+  8: liensAnnonces('Etoile.Morte.2018.FRENCH.1080p.mkv', [['Uploady', 'etoile-morte-uploady'], ['Rapidgator', 'etoile-morte-rapidgator-mort'], ['Turbobit', 'etoile-morte-turbobit-mort']]),
+  9: liensAnnonces('Etoile.Noire.2020.MULTi.1080p.mkv', [['Uploady', 'etoile-noire-uploady'], ['Rapidgator', 'etoile-noire-rapidgator-mort'], ['Turbobit', 'etoile-noire-turbobit']]),
 };
+function liensAnnonces(fichier, liens) {
+  return `<h2>${fichier} 4.2 Go</h2><div>${liens
+    .map(([hote, id]) => `<a href="https://dl-protect.link/${id}?rl=a2"><strong class="hebergeur">${hote}</strong> - ${fichier}</a><br/>`)
+    .join('\n')}</div>`;
+}
 
 function page(titre, contenu) {
   const derniers = CATALOGUE.slice(0, 3)

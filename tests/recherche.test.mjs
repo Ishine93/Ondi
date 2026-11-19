@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import http from 'node:http';
 import {
   lireHtml, trouverBarre, requeteRecherche, extraireResultats, extraireSources, classerLien, motsCles, decoderEntites, lireSite,
-  trouverPagination, rechercher, verifierLiens,
+  trouverPagination, rechercher,
 } from '../src/recherche.mjs';
 
 const HEBERGEURS = {
@@ -270,36 +270,16 @@ test('extraireSources : fiche de série (épisode dans « fn » en base64, hébe
   assert.equal(sources[2].libelle, 'The Boys - Saison 1 Épisode 2 - [VF HD]');
 });
 
-test('verifierLiens : liens directs par lots, protégés ouverts, liens morts, cache', async () => {
-  const appels = [];
-  const ad = {
-    hebergeurs: async () => HEBERGEURS,
-    infosLiens: async (liens) => {
-      appels.push(`infos×${liens.length}`);
-      return liens.map((link) =>
-        link.includes('mort')
-          ? { link, error: { code: 'LINK_DOWN', message: 'This link is not available' } }
-          : { link, filename: `${link.split(/[/?]/).pop()}.mkv`, size: 1000, host: 'uptobox' },
-      );
-    },
-    redirecteur: async (lien) => {
-      appels.push('redirecteur');
-      return [`https://uptobox.com/${lien.split('/').pop()}`];
-    },
-  };
-  const liens = ['https://1fichier.com/?film', 'https://uptobox.com/mortabc', 'https://dl-protect.link/serie-s1-e2'];
-  const etats = await verifierLiens(ad, liens);
-  assert.deepEqual(etats['https://1fichier.com/?film'], { dispo: true, nom: 'film.mkv', noms: ['film.mkv'], hote: 'uptobox', taille: 1000, fichiers: 1 });
-  assert.equal(etats['https://uptobox.com/mortabc'].dispo, false);
-  assert.match(etats['https://uptobox.com/mortabc'].message, /mort/);
-  // Derrière le protecteur : le vrai hébergeur et le nom du fichier (donc l'épisode).
-  assert.deepEqual([etats['https://dl-protect.link/serie-s1-e2'].hote, etats['https://dl-protect.link/serie-s1-e2'].noms], ['uptobox', ['serie-s1-e2.mkv']]);
-  // Un seul link/infos pour les liens directs et les fichiers cachés derrière le protecteur.
-  assert.deepEqual(appels.sort(), ['infos×3', 'redirecteur']);
-  // Deuxième demande : tout vient du cache, aucun appel à AllDebrid.
-  appels.length = 0;
-  await verifierLiens(ad, liens);
-  assert.deepEqual(appels, []);
+test('extraireSources : hébergeur annoncé devant un lien protégé (« Rapidgator - Film.mkv »)', () => {
+  const doc = lireHtml(
+    `<h2>Film.2024.MULTi.1080p.mkv 4.2 Go</h2>
+     <a href="https://dl-protect.link/a1?rl=a2"><strong class="hebergeur">Uploady</strong> - Film.2024.MULTi.1080p.mkv</a><br/>
+     <a href="https://dl-protect.link/b1?rl=a2"><strong class="hebergeur">Rapidgator</strong> - Film.2024.MULTi.1080p.mkv</a><br/>
+     <a href="https://dl-protect.link/c1">Télécharger</a> <a href="https://1fichier.com/?x">1fichier - Film.mkv</a>`,
+    'https://site.test/?p=film&id=1',
+  );
+  const sources = extraireSources(doc, HEBERGEURS);
+  assert.deepEqual(sources.map((s) => [s.type, s.annonce]), [['protege', 'Uploady'], ['protege', 'Rapidgator'], ['protege', ''], ['hebergeur', '']]);
 });
 
 test('lireSite', () => {

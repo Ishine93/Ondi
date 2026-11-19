@@ -26,6 +26,7 @@ export function octet(nom, i) {
 
 let appelsStatut = 0;
 let coupureFaite = false;
+const ouvertures = new Map(); // lien protégé → nombre de fois qu'on a demandé à l'ouvrir
 const ok = (res, data) => {
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ status: 'success', data }));
@@ -115,7 +116,9 @@ http
         };
         return ok(res, {
           infos: champ('link[]').map((link) => {
-            if (link.includes('mort')) return { link, error: { code: 'LINK_DOWN', message: 'This link is not available on the file hoster website' } };
+            // Hébergeur qu'AllDebrid ne gère pas (annoncé « Uploady » par le faux site).
+            if (link.includes('uploady')) return { link, error: { code: 'LINK_HOST_NOT_SUPPORTED', message: 'This host or link is not supported' } };
+            if (/mort(-|$)/.test(link) || link.includes('?mort') || link.includes('/mort')) return { link, error: { code: 'LINK_DOWN', message: 'This link is not available on the file hoster website' } };
             const host = ['1fichier', 'uptobox', 'rapidgator', 'redirect.alldebrid'].find((h) => link.includes(h));
             if (!host) return { link, error: { code: 'LINK_HOST_NOT_SUPPORTED', message: 'This host or link is not supported' } };
             const slug = decodeURIComponent(link.split('?fn=')[0].split(/[/?=]/).pop() || 'fichier');
@@ -123,7 +126,8 @@ http
             const titre = (s) => s.split('-').map((m) => m[0].toUpperCase() + m.slice(1)).join('.');
             const filename = connus[link] || (ep ? `${titre(ep[1])}.S${ep[2].padStart(2, '0')}E${ep[3].padStart(2, '0')}.VOSTFR.HD.mkv` : `${slug}.mkv`);
             // Comme le vrai AllDebrid : un lien caché par un protecteur donne l'hébergeur réel.
-            const reel = host === 'redirect.alldebrid' ? '1fichier' : host;
+            const annonce = link.includes('/etoile-') && ['rapidgator', 'turbobit'].find((h) => link.includes(h));
+            const reel = host === 'redirect.alldebrid' ? annonce || '1fichier' : host;
             return { link, filename, size: FICHIERS[filename] || 1.4 * 1024 * Mo, host: reel, hostDomain: `${reel}.com` };
           }),
         });
@@ -143,6 +147,17 @@ http
         const lien = champ('link')[0] || '';
         if (!lien.includes('dl-protect')) return ko(res, 'REDIRECTOR_NOT_SUPPORTED', 'Redirector not supported');
         const slug = lien.split('?')[0].split('/').pop();
+        // Liens « etoile-… » (hébergeur annoncé par le site), comme le vrai AllDebrid : un lien jamais vu
+        // est long à ouvrir (ici Turbobit, 1,5 s), et le tout premier essai peut rater (REDIRECTOR_ERROR passager).
+        if (slug.startsWith('etoile-')) {
+          const essai = (ouvertures.get(slug) || 0) + 1;
+          ouvertures.set(slug, essai);
+          if (essai === 1 && slug.includes('turbobit')) {
+            await new Promise((r) => setTimeout(r, 1500));
+            if (!slug.includes('mort')) return ko(res, 'REDIRECTOR_ERROR', 'Could not extract links from redirector');
+          }
+          return ok(res, { links: [`https://redirect.alldebrid.com/${slug}`] });
+        }
         return ok(res, { links: [/-s\d+-e\d+/.test(slug) ? `https://redirect.alldebrid.com/${slug}` : 'https://redirect.alldebrid.com/protege-0'] });
       }
       default:

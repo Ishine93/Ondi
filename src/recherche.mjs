@@ -2,7 +2,6 @@
 // extraction des sources d'une fiche : liens d'hébergeurs, protecteurs de liens,
 // magnets et .torrent. Aucune dépendance : petite lecture HTML maison.
 import { decrireResultat, episodeDuNom, normaliser } from './titres.mjs';
-import { messageAllDebrid } from './alldebrid.mjs';
 
 const NAVIGATEUR = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
@@ -533,6 +532,8 @@ export function nomDansLien(url) {
 // « Rapidgator - Télécharger », « Vidoza - Regarder » : l'hébergeur réel (même derrière un protecteur)
 // et la nature du lien (téléchargement ou simple lecture en streaming).
 const RE_ACTION = /^(.{2,30}?)\s*[-–:|]\s*(t[ée]l[ée]charger|download|dl|regarder|streaming|stream|voir|lire)\b/i;
+// « Rapidgator - Film.2024.MULTi.1080p.mkv » : ce que le site annonce devant le nom du fichier.
+const RE_ANNONCE = /^(\S{2,20})\s+[-–:|]\s+\S/;
 
 export function extraireSources(doc, hebergeurs) {
   const sources = [];
@@ -551,6 +552,8 @@ export function extraireSources(doc, hebergeurs) {
       type: s.type,
       hebergeur: action?.[1] || s.hebergeur,
       protecteur: s.type === 'protege' ? s.hebergeur : '',
+      // Hébergeur annoncé devant un lien protégé : évite de tester ceux qu'AllDebrid ne gère pas.
+      annonce: s.type === 'protege' ? action?.[1] || propre(texte).match(RE_ANNONCE)?.[1] || '' : '',
       streaming: !!action && /regarder|stream|voir|lire/i.test(action[2]),
       nom,
       saison: ep?.saison ?? null,
@@ -599,7 +602,7 @@ function versCarte(groupe) {
 }
 
 let cacheHebergeurs = null;
-async function hebergeursConnus(ad, signal) {
+export async function hebergeursConnus(ad, signal) {
   if (cacheHebergeurs && Date.now() < cacheHebergeurs.expire) return cacheHebergeurs.v;
   let v;
   let duree = 12 * 3600e3;
@@ -614,123 +617,7 @@ async function hebergeursConnus(ad, signal) {
   return v;
 }
 
-// ---------- disponibilité des liens ----------
-// Vérifie chez AllDebrid que les fichiers sont toujours en ligne, sans les débrider (link/infos).
-// Un lien protégé est d'abord ouvert (link/redirector). État d'un lien :
-//   { dispo: true, nom, taille, fichiers } | { dispo: false, message } | { dispo: null, message } (on ne sait pas).
-
-const cacheEtats = new Map(); // lien → { etat, expire }
-const PAR_APPEL = 25;
-
-// Pas plus de 8 appels AllDebrid en cours, ni plus de 8 lancés par seconde
-// (leurs limites : 12 par seconde et 600 par minute). Ouvrir un lien protégé prend 1 à 2 s chez eux.
-const ESPACEMENT_APPELS = 125; // ms
-const APPELS_SIMULTANES = 8;
-let appelsEnCours = 0;
-let prochainAppel = 0;
-const fileAppels = [];
-async function creneau(travail) {
-  while (appelsEnCours >= APPELS_SIMULTANES) await new Promise((r) => fileAppels.push(r));
-  appelsEnCours++;
-  const attente = prochainAppel - Date.now();
-  prochainAppel = Math.max(Date.now(), prochainAppel) + ESPACEMENT_APPELS;
-  if (attente > 0) await new Promise((r) => setTimeout(r, attente));
-  try {
-    return await travail();
-  } finally {
-    appelsEnCours--;
-    fileAppels.shift()?.();
-  }
-}
-
-function etatDepuisInfo(info) {
-  if (!info) return { dispo: null, message: "AllDebrid n'a rien répondu pour ce lien." };
-  if (info.error) {
-    const temporaire = ['LINK_TEMPORARY_UNAVAILABLE', 'LINK_HOST_UNAVAILABLE', 'LINK_HOST_FULL'].includes(info.error.code);
-    return { dispo: temporaire ? null : false, message: messageAllDebrid(info.error.code, info.error.message) };
-  }
-  const nom = info.filename || '';
-  return { dispo: true, nom, noms: [nom], hote: info.host || info.hostDomain || '', taille: Number(info.size) || 0, fichiers: 1 };
-}
-
-async function infosParLots(ad, liens, signal) {
-  const etats = new Map();
-  for (let i = 0; i < liens.length; i += PAR_APPEL) {
-    const lot = liens.slice(i, i + PAR_APPEL);
-    const infos = await creneau(() => ad.infosLiens(lot, signal));
-    lot.forEach((l, k) => etats.set(l, etatDepuisInfo(infos.find((x) => x.link === l) || infos[k])));
-  }
-  return etats;
-}
-
-const erreurDeCompte = (e) => e?.code === 'NO_KEY' || /^AUTH_/.test(e?.code || '') || e?.code === 'NETWORK';
-
-// Ouvre un lien protégé : liens cachés derrière, ou état d'erreur. Un même lien demandé
-// deux fois en même temps (deux versions qui le partagent) n'est ouvert qu'une fois.
-const ouverturesEnCours = new Map();
-function ouvrirProtege(ad, lien, signal) {
-  if (!ouverturesEnCours.has(lien)) {
-    const p = creneau(() => ad.redirecteur(lien, signal))
-      .then((caches) => (caches.length ? { caches } : { etat: { dispo: false, message: 'Le lien protégé ne contient aucun fichier.' } }))
-      .catch((e) => {
-        if (signal?.aborted || erreurDeCompte(e)) throw e;
-        return { etat: { dispo: false, message: e.message } };
-      })
-      .finally(() => ouverturesEnCours.delete(lien));
-    ouverturesEnCours.set(lien, p);
-  }
-  return ouverturesEnCours.get(lien);
-}
-
-// État d'un lien protégé d'après ses fichiers : le vrai hébergeur et les noms de fichiers
-// (utile pour savoir quel épisode se cache derrière).
-function etatProtege(etats) {
-  const ok = etats.filter((e) => e.dispo);
-  if (!ok.length) return etats.find((e) => e.dispo === null) || etats[0];
-  return {
-    dispo: true,
-    nom: ok[0].nom + (ok.length > 1 ? ` (+${ok.length - 1})` : ''),
-    noms: ok.map((e) => e.nom).slice(0, 30),
-    hote: ok[0].hote,
-    taille: ok.reduce((t, e) => t + e.taille, 0),
-    fichiers: ok.length,
-  };
-}
-
-export async function verifierLiens(ad, liens, { signal } = {}) {
-  try {
-    const hebergeurs = await hebergeursConnus(ad, signal);
-    const resultat = {};
-    const directs = [];
-    const proteges = [];
-    for (const l of new Set(liens)) {
-      const c = cacheEtats.get(l);
-      if (c && Date.now() < c.expire) {
-        resultat[l] = c.etat;
-        continue;
-      }
-      const type = classerLien(l, hebergeurs)?.type;
-      if (type === 'hebergeur') directs.push(l);
-      else if (type === 'protege') proteges.push(l);
-      else resultat[l] = { dispo: null, message: "Ne peut pas être vérifié avant l'envoi." };
-    }
-    const retenir = (l, etat) => {
-      resultat[l] = etat;
-      if (etat.dispo !== null) cacheEtats.set(l, { etat, expire: Date.now() + 10 * 60e3 });
-    };
-    // 1) on ouvre les liens protégés, 2) un seul link/infos (par lots de 25) pour tous les fichiers à la fois.
-    const ouverts = await Promise.all(proteges.map((l) => ouvrirProtege(ad, l, signal)));
-    const caches = ouverts.flatMap((o) => o.caches || []);
-    const etats = await infosParLots(ad, [...new Set([...directs, ...caches])], signal);
-    for (const l of directs) retenir(l, etats.get(l));
-    proteges.forEach((l, i) => retenir(l, ouverts[i].etat || etatProtege(ouverts[i].caches.map((c) => etats.get(c)))));
-    if (cacheEtats.size > 3000) cacheEtats.clear();
-    return resultat;
-  } catch (e) {
-    if (signal?.aborted || e instanceof ErreurRecherche) throw e;
-    throw new ErreurRecherche(`Vérification impossible : ${e.message}`);
-  }
-}
+// La disponibilité des liens et des fiches (encore en ligne ?) est dans disponibilite.mjs.
 
 // ---------- accès au site ----------
 

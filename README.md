@@ -6,7 +6,7 @@
 
 ## What it does
 
-- **Search & download** — searches the site you set, groups every version (language, quality, season), checks which links are alive, and downloads through your AllDebrid account, many files at once.
+- **Search & download** — searches the site you set, groups every version (language, quality, season), checks which links are alive (titles whose links are all dead are greyed out, or hidden if you prefer), and downloads through your AllDebrid account, many files at once.
 - **Library** — your movies and shows sorted automatically, with posters, summaries, cast and episode titles (TMDB), in English or French.
 - **Player** — plays everything on any screen: the server converts on the fly when a device cannot read a file (4K HDR, DTS, Dolby…) using your graphics card (NVIDIA, Intel, AMD, Apple) when there is one. Audio tracks, subtitles, quality, resume, next episode.
 - **Profiles** — "Who's watching?" screen, avatars, optional password, separate history for everyone.
@@ -87,7 +87,7 @@ Node.js 22+ and no dependencies. `node lancer.mjs` starts the server (port 8097)
 
 ### Ce qu'il fait
 
-- **Recherche et téléchargement** — cherche sur le site que tu as choisi, regroupe toutes les versions (langue, qualité, saison), vérifie les liens encore en ligne et télécharge avec ton compte AllDebrid, plusieurs fichiers à la fois.
+- **Recherche et téléchargement** — cherche sur le site que tu as choisi, regroupe toutes les versions (langue, qualité, saison), vérifie les liens encore en ligne (un contenu dont tous les liens sont morts est grisé, ou caché si tu préfères) et télécharge avec ton compte AllDebrid, plusieurs fichiers à la fois.
 - **Bibliothèque** — tes films et séries rangés tout seuls, avec affiches, résumés, casting et titres d'épisodes (TMDB), en français ou en anglais.
 - **Lecteur** — lit tout sur n'importe quel écran : le serveur convertit à la volée quand un appareil ne sait pas lire un fichier (4K HDR, DTS, Dolby…), avec ta carte graphique (NVIDIA, Intel, AMD, Apple) s'il y en a une. Pistes audio, sous-titres, qualité, reprise, épisode suivant.
 - **Profils** — écran « Qui regarde ? », avatars, mot de passe facultatif, historique séparé pour chacun.
