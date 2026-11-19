@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1920">
+<title>Débrideur</title>
+<style>
+  /* Compatible webOS 5 (2020, Chromium 68) : pas de « inset » ni de « gap » en flexbox. */
+  html, body { margin: 0; width: 100%; height: 100%; background: #0b1118; color: #f2f5f8; font-family: "LG Smart UI", "Segoe UI", system-ui, sans-serif; overflow: hidden; }
+  #app { position: fixed; top: 0; left: 0; width: 100%; height: 100%; border: 0; background: #0b1118; }
+  #ecran { position: fixed; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; text-align: center;
+    background: radial-gradient(1400px 800px at 50% -10%, #1d3550 0%, #0b1118 62%); }
+  .boite { width: 1100px; }
+  .logo { display: flex; align-items: center; justify-content: center; font-size: 52px; font-weight: 800; margin-bottom: 40px; }
+  .logo svg { width: 80px; height: 80px; margin-right: 18px; }
+  h1 { font-size: 46px; margin: 0; }
+  p { font-size: 28px; color: #b9c5d2; margin: 0; line-height: 1.45; }
+  .rond { width: 70px; height: 70px; border-radius: 50%; border: 7px solid #ffffff30; border-top-color: #fff; animation: t 1s linear infinite; }
+  @keyframes t { to { transform: rotate(360deg); } }
+  .champ { font-size: 34px; padding: 18px 24px; border-radius: 14px; border: 2px solid #263443; background: #0b1118; color: #fff; width: 640px; text-align: center; }
+  .boutons { display: flex; justify-content: center; margin-top: 28px; }
+  .boutons button + button { margin-left: 22px; }
+  button { font-size: 30px; font-weight: 700; padding: 18px 40px; border-radius: 14px; border: 2px solid #ffffff2a; background: #ffffff14; color: #fff; font-family: inherit; }
+  button.principal { background: #1a98ff; border-color: #1a98ff; }
+  button:focus, .champ:focus { outline: 5px solid #fff; outline-offset: 4px; }
+  code { color: #8ccaff; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<iframe id="app" hidden allow="autoplay; fullscreen"></iframe>
+<div id="ecran">
+  <div class="boite">
+    <div class="logo">
+      <svg viewBox="0 0 32 32"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#58b9ff"/><stop offset="1" stop-color="#1a6dff"/></linearGradient></defs><rect width="32" height="32" rx="8" fill="url(#g)"/><path d="M16 7v13m-6-6 6 6 6-6M9 25h14" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Débrideur
+    </div>
+    <div id="attente">
+      <div class="rond" style="margin: 0 auto 26px"></div>
+      <p id="etape">Connexion au serveur…</p>
+    </div>
+    <div id="reglage" hidden>
+      <h1 id="titreReglage">Serveur introuvable</h1>
+      <p id="aideReglage" style="margin: 18px 0 26px"></p>
+      <input id="adresse" class="champ" inputmode="url" spellcheck="false" autocomplete="off" placeholder="192.168.1.50:8097">
+      <div class="boutons">
+        <button id="connecter" class="principal">Se connecter</button>
+        <button id="chercher">Chercher sur le réseau</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+// Client télé LG (webOS) du Débrideur : trouve le serveur (adresse gardée, sinon recherche sur le réseau de la télé),
+// puis affiche le Débrideur en plein écran. Touche rouge : changer de serveur. Même logique que le client Samsung.
+(function () {
+  'use strict';
+  var VERSION = '1.0.0'; // doit être égale à "version" dans appinfo.json (construire.sh le vérifie)
+  var RETOUR = 461, ROUGE = 403;
+  var $ = function (s) { return document.querySelector(s); };
+  var app = $('#app');
+  var serveur = '';
+  var essai = 0; // numéro de la tentative en cours : une recherche dépassée n'ouvre plus rien
+
+  // Anglais si la télé n'est pas en français.
+  var anglais = !/^fr/i.test(navigator.language || '');
+  var T = anglais ? {
+    connexion: 'Connecting to the server…',
+    connexionA: 'Connecting to ',
+    recherche: 'Searching the network…',
+    rechercheSur: 'Searching the network (%s)…',
+    titre: 'Server not found',
+    aide: 'Is the Débrideur computer (PC, Mac or mini-PC) on and connected to the same router? Then choose “Search the network”, or type its address, shown in Débrideur under Settings → Phone and TV (e.g. <code>192.168.1.50:8097</code>).',
+    titreAccueil: 'No Débrideur server found',
+    aideAccueil: 'Install the Débrideur first on a Windows PC, a Mac or a mini-PC on the same network: <code>github.com/Ishine93/Debrideur</code>. Then press “Search the network”.<br>Already installed? Type its address, shown in Débrideur under Settings → Phone and TV (e.g. <code>192.168.1.50:8097</code>).',
+    connecter: 'Connect',
+    chercher: 'Search the network'
+  } : {
+    connexion: 'Connexion au serveur…',
+    connexionA: 'Connexion à ',
+    recherche: 'Recherche sur le réseau…',
+    rechercheSur: 'Recherche sur le réseau (%s)…',
+    titre: 'Serveur introuvable',
+    aide: 'L\'ordinateur du Débrideur (PC, Mac ou mini-PC) est-il allumé et relié à la même box ? Choisis alors « Chercher sur le réseau », ou tape son adresse, affichée dans le Débrideur sous Réglages → Téléphone et télé (par exemple <code>192.168.1.50:8097</code>).',
+    titreAccueil: 'Aucun serveur Débrideur trouvé',
+    aideAccueil: 'Installe d\'abord le Débrideur sur un PC Windows, un Mac ou un mini-PC du même réseau : <code>github.com/Ishine93/Debrideur</code>. Puis appuie sur « Chercher sur le réseau ».<br>Déjà installé ? Tape son adresse, affichée dans le Débrideur sous Réglages → Téléphone et télé (par exemple <code>192.168.1.50:8097</code>).',
+    connecter: 'Se connecter',
+    chercher: 'Chercher sur le réseau'
+  };
+  if (anglais) document.documentElement.lang = 'en';
+  $('#connecter').textContent = T.connecter;
+  $('#chercher').textContent = T.chercher;
+
+  var lire = function (cle) { try { return localStorage.getItem(cle) || ''; } catch (e) { return ''; } };
+  var ecrire = function (cle, v) { try { localStorage.setItem(cle, v); } catch (e) {} };
+  var normaliser = function (a) {
+    a = String(a || '').trim().replace(/^https?:\/\//i, '').replace(/\/.*$/, '');
+    if (!a) return '';
+    return /:\d+$/.test(a) ? a : a + ':8097';
+  };
+
+  function ping(adresse, delai) {
+    return new Promise(function (ok) {
+      var x = new XMLHttpRequest();
+      var fini = false;
+      var fin = function (v) { if (!fini) { fini = true; ok(v); } };
+      x.open('GET', 'http://' + adresse + '/api/ping', true);
+      x.timeout = delai || 2500;
+      x.onload = function () { try { fin(JSON.parse(x.responseText).app === 'debrideur'); } catch (e) { fin(false); } };
+      x.onerror = x.ontimeout = function () { fin(false); };
+      x.send();
+    });
+  }
+
+  // Adresse IP de la télé, demandée au service Luna de webOS (sans bibliothèque LG) ; '' si indisponible.
+  var ponts = []; // garde les ponts en vie jusqu'à la réponse
+  function appelLuna(uri) {
+    return new Promise(function (ok) {
+      try {
+        var pont = new window.PalmServiceBridge();
+        ponts.push(pont);
+        pont.onservicecallback = function (msg) { var r = null; try { r = JSON.parse(msg); } catch (e) {} ok(r || {}); };
+        pont.call(uri, '{}');
+      } catch (e) { ok({}); }
+    });
+  }
+  function ipDe(r) {
+    var cable = r.wired || {}, wifi = r.wifi || {};
+    return cable.state === 'connected' && cable.ipAddress ? cable.ipAddress : wifi.state === 'connected' && wifi.ipAddress ? wifi.ipAddress : '';
+  }
+  function reseauTele() {
+    if (!window.PalmServiceBridge) return Promise.resolve('');
+    // Nom actuel du service, puis l'ancien nom (celui de la documentation LG) s'il ne répond pas.
+    var reponse = appelLuna('luna://com.webos.service.connectionmanager/getStatus').then(function (r) {
+      return ipDe(r) || appelLuna('luna://com.palm.connectionmanager/getStatus').then(ipDe);
+    });
+    var delai = new Promise(function (ok) { setTimeout(function () { ok(''); }, 3000); });
+    return Promise.race([reponse, delai]).then(function (ip) { ponts = []; return /^\d+\.\d+\.\d+\.\d+$/.test(ip || '') ? ip : ''; });
+  }
+
+  // Cherche sur un réseau x.y.z.1 à x.y.z.254, par paquets de 32 : la première adresse qui répond « debrideur » gagne.
+  function balayer(base, n) {
+    var candidats = [];
+    for (var i = 1; i < 255; i++) candidats.push(base + '.' + i + ':8097');
+    var trouve = '';
+    var paquet = function (debut) {
+      if (trouve || n !== essai || debut >= candidats.length) return Promise.resolve(trouve);
+      var lot = candidats.slice(debut, debut + 32);
+      return Promise.all(lot.map(function (a) { return ping(a, 1500).then(function (oui) { if (oui && !trouve) trouve = a; }); }))
+        .then(function () { return paquet(debut + 32); });
+    };
+    return paquet(0);
+  }
+
+  // Réseau de la télé si on le connaît, sinon les réseaux de box les plus courants, dans cet ordre.
+  function chercherSurReseau(n) {
+    montrerAttente(T.recherche);
+    return reseauTele().then(function (ip) {
+      var bases = ip ? [ip.split('.').slice(0, 3).join('.')] : ['192.168.1', '192.168.0', '192.168.178', '10.0.0'];
+      var suite = function (i) {
+        if (i >= bases.length || n !== essai) return Promise.resolve('');
+        montrerAttente(T.rechercheSur.replace('%s', bases[i] + '.x'));
+        return balayer(bases[i], n).then(function (a) { return a || suite(i + 1); });
+      };
+      return suite(0);
+    });
+  }
+
+  function montrerAttente(texte) {
+    $('#ecran').hidden = false;
+    $('#attente').hidden = false;
+    $('#reglage').hidden = true;
+    $('#etape').textContent = texte;
+  }
+  // Décharge la page du Débrideur (arrête aussi une vidéo en cours).
+  function fermerPage() {
+    app.onload = null;
+    app.hidden = true;
+    app.src = 'about:blank';
+  }
+  function montrerReglage() {
+    essai++;
+    fermerPage();
+    var connu = serveur || lire('serveur');
+    if (connu) $('#adresse').value = connu;
+    var accueil = !$('#adresse').value.trim(); // premier lancement : aucun serveur connu ni tapé
+    $('#titreReglage').textContent = accueil ? T.titreAccueil : T.titre;
+    $('#aideReglage').innerHTML = accueil ? T.aideAccueil : T.aide;
+    $('#ecran').hidden = false;
+    $('#attente').hidden = true;
+    $('#reglage').hidden = false;
+    $('#connecter').focus();
+  }
+  function donnerLaMain() { try { app.focus(); app.contentWindow.focus(); } catch (e) {} }
+  function ouvrir(adresse) {
+    essai++;
+    serveur = adresse;
+    ecrire('serveur', adresse);
+    app.onload = function () { $('#ecran').hidden = true; donnerLaMain(); };
+    app.src = 'http://' + adresse + '/?tele=1&appli=lg-' + VERSION;
+    app.hidden = false;
+  }
+  // Fin d'une tentative : ouvre le serveur trouvé, sinon l'écran de réglage (sauf si une autre tentative a pris la main).
+  function conclure(n) {
+    return function (a) { if (n !== essai) return; if (a) ouvrir(a); else montrerReglage(); };
+  }
+
+  function demarrer() {
+    var n = ++essai;
+    var gardee = normaliser(lire('serveur'));
+    montrerAttente(T.connexion);
+    var suite = gardee ? ping(gardee).then(function (oui) { return oui ? gardee : n === essai ? chercherSurReseau(n) : ''; }) : chercherSurReseau(n);
+    suite.then(conclure(n));
+  }
+
+  $('#connecter').addEventListener('click', function () {
+    var a = normaliser($('#adresse').value);
+    if (!a) return $('#adresse').focus();
+    var n = ++essai;
+    montrerAttente(T.connexionA + a + '…');
+    ping(a, 4000).then(function (oui) { return oui ? a : ''; }).then(conclure(n));
+  });
+  $('#chercher').addEventListener('click', function () {
+    var n = ++essai;
+    chercherSurReseau(n).then(conclure(n));
+  });
+  // Pointeur de la Magic Remote : survoler un bouton lui donne le focus.
+  [$('#connecter'), $('#chercher')].forEach(function (b) { b.addEventListener('mouseover', function () { b.focus(); }); });
+
+  // Quitter : retour à l'accueil de la télé.
+  var quitter = function () {
+    try { if (window.webOS && typeof webOS.platformBack === 'function') return webOS.platformBack(); } catch (e) {}
+    try { if (window.PalmSystem && typeof PalmSystem.platformBack === 'function') return PalmSystem.platformBack(); } catch (e) {}
+    window.close();
+  };
+
+  // Touches : rouge = changer de serveur ; page affichée = on lui renvoie la touche ;
+  // écran de réglage = gauche / droite entre les boutons, haut pour le champ, bas pour les boutons.
+  document.addEventListener('keydown', function (e) {
+    var code = e.keyCode;
+    if (code === ROUGE) { e.preventDefault(); return montrerReglage(); }
+    if (!app.hidden) {
+      // La page du Débrideur a perdu la main (rare) : on lui renvoie la touche.
+      try { app.contentWindow.postMessage({ type: 'debrideur-touche', key: e.key, keyCode: code }, '*'); donnerLaMain(); } catch (err) {}
+      e.preventDefault();
+      return;
+    }
+    var actif = document.activeElement;
+    if (code === RETOUR || e.key === 'Escape' || e.key === 'GoBack') {
+      e.preventDefault();
+      if (!$('#attente').hidden) return montrerReglage(); // recherche en cours : on l'arrête
+      if (serveur) return ouvrir(serveur);
+      return quitter();
+    }
+    if (code === 37 || code === 39) {
+      if (actif === $('#connecter') && code === 39) $('#chercher').focus();
+      else if (actif === $('#chercher') && code === 37) $('#connecter').focus();
+    } else if (code === 38) $('#adresse').focus();
+    else if (code === 40 && actif === $('#adresse')) $('#connecter').focus();
+    else if (code === 13 && actif === $('#adresse')) $('#connecter').click();
+  });
+
+  // Messages de la page du Débrideur : quitter (Retour à l'accueil), changer de serveur.
+  window.addEventListener('message', function (e) {
+    if (e.source !== app.contentWindow) return;
+    var d = e.data || {};
+    if (d.type === 'debrideur-quitter') quitter();
+    else if (d.type === 'debrideur-serveur') montrerReglage();
+  });
+  // Retour dans l'appli (relancée depuis l'accueil) : la page reprend la main.
+  document.addEventListener('visibilitychange', function () { if (!document.hidden && !app.hidden) donnerLaMain(); });
+  document.addEventListener('webOSRelaunch', function () { if (!app.hidden) donnerLaMain(); });
+  // Serveur éteint en cours de route : la page ne répond plus → écran de connexion.
+  setInterval(function () {
+    if (app.hidden || !serveur) return;
+    ping(serveur, 4000).then(function (oui) {
+      if (!oui) ping(serveur, 6000).then(function (encore) { if (!encore && !app.hidden) { fermerPage(); demarrer(); } });
+    });
+  }, 30000);
+
+  demarrer();
+})();
+</script>
+</body>
+</html>

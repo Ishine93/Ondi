@@ -1,0 +1,4 @@
+# Fichiers produits par construire.sh et outils téléchargés par les scripts d'installation.
+build/
+platform-tools/
+platform-tools.zip

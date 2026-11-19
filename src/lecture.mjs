@@ -1,0 +1,386 @@
+// Lecture des vidéos de la bibliothèque, comme Jellyfin :
+//   direct     : le fichier tel quel (MP4 que l'appareil sait lire), avec avance rapide native ;
+//   remux      : l'image est recopiée sans perte, le son est converti si l'appareil ne le lit pas
+//                (DTS, TrueHD, AC3 sur PC…), le tout repaqueté en MP4 fragmenté à la volée ;
+//   conversion : l'image est réencodée par la carte graphique (NVIDIA, Intel… sinon le processeur) :
+//                débit plus léger pour le Wi-Fi, HDR → SDR pour un écran qui ne l'affiche pas,
+//                sous-titres « image » (PGS) incrustés.
+// Pour avancer dans un flux converti, la page demande une nouvelle session à partir de la position voulue :
+// le flux commence au point clé juste avant (renvoyé dans « debut »), la page ajoute ce décalage à l'horloge.
+import { spawn, execFile } from 'node:child_process';
+import crypto from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
+import { OUTILS, encodeurMateriel } from './video.mjs';
+
+const TYPES_DIRECTS = { mp4: 'video/mp4', m4v: 'video/mp4', webm: 'video/webm', mov: 'video/mp4' };
+
+// Point clé (image complète) juste avant t : c'est là que ffmpeg commencera en recopiant l'image.
+function pointCle(chemin, indexVideo, t) {
+  if (t <= 0.5) return Promise.resolve(0);
+  return new Promise((ok) => {
+    execFile(
+      OUTILS.ffprobe,
+      ['-v', 'error', '-select_streams', String(indexVideo === undefined ? 'v:0' : indexVideo), '-read_intervals', `${t}%+#8`, '-show_entries', 'packet=pts_time,flags', '-of', 'csv=p=0', chemin],
+      { timeout: 15_000, windowsHide: true },
+      (e, sortie) => {
+        if (e) return ok(t);
+        const cles = String(sortie)
+          .split(/\r?\n/)
+          .filter((l) => /K/.test(l.split(',')[1] || ''))
+          .map((l) => Number(l.split(',')[0]))
+          .filter((x) => Number.isFinite(x));
+        ok(cles.length ? Math.min(...cles) : t);
+      },
+    );
+  });
+}
+
+// Débit cible → hauteur de sortie (en gardant le format de l'image).
+function hauteurPour(debitMbps, hauteurSource) {
+  const h = debitMbps >= 25 ? 2160 : debitMbps >= 7 ? 1080 : debitMbps >= 3 ? 720 : 480;
+  return Math.min(h, hauteurSource || h);
+}
+
+export class Lecture {
+  constructor({ bibliotheque, dossierCache, journal = () => {} }) {
+    this.bibliotheque = bibliotheque;
+    this.journal = journal;
+    this.dossierSousTitres = path.join(dossierCache, 'sous-titres');
+    this.sessions = new Map(); // id → session
+    this.extractions = new Map(); // fichierId → promesse
+    this.echecs = new Map(); // fichierId → extractions ratées (le préparatif en arrière-plan abandonne après 2)
+    this.actifs = new Set(); // processus ffmpeg en cours
+    // Restes d'une extraction coupée (Débrideur arrêté pendant) : à refaire.
+    try {
+      for (const n of fs.readdirSync(this.dossierSousTitres)) {
+        const chemin = path.join(this.dossierSousTitres, n);
+        if (n.endsWith('.partiel') || (n.endsWith('.vtt') && fs.statSync(chemin).size === 0)) fs.rmSync(chemin, { force: true });
+      }
+    } catch {}
+    setInterval(() => this.menage(), 60_000).unref();
+  }
+
+  menage() {
+    const limite = Date.now() - 6 * 3600e3;
+    for (const [id, s] of this.sessions) if (s.cree < limite && !s.processus) this.sessions.delete(id);
+  }
+
+  arreterTout() {
+    for (const p of this.actifs) p.kill('SIGKILL');
+  }
+
+  // ---------- choix du mode ----------
+
+  async preparer({ fichierId, position = 0, audio, qualite = 'auto', caps = {}, sousTitreImage = null }) {
+    const f = this.bibliotheque.fichier(fichierId);
+    if (!f?.sonde?.video) throw new Error('Fichier introuvable ou illisible.');
+    const s = f.sonde;
+    const v = s.video;
+    const pisteAudio = s.audios.find((a) => a.ordre === Number(audio)) || s.audios.find((a) => a.defaut) || s.audios[0] || null;
+    const raisons = [];
+
+    // L'image peut-elle être recopiée telle quelle ?
+    let videoOk =
+      (v.codec === 'h264' && v.bits <= 8) ||
+      (v.codec === 'hevc' && caps.hevc && (v.bits <= 8 || caps.hevc10)) ||
+      (v.codec === 'av1' && caps.av1) ||
+      (v.codec === 'vp9' && caps.vp9);
+    if (!videoOk) raisons.push(`image ${v.codec.toUpperCase()}${v.bits > 8 ? ` ${v.bits} bits` : ''} non lue par cet appareil`);
+    if (videoOk && v.hdr && !caps.hdr) {
+      videoOk = false;
+      raisons.push(`${v.hdr} → SDR`);
+    }
+    if (videoOk && v.hdr === 'Dolby Vision' && v.dvProfil === 5 && !caps.dv) {
+      videoOk = false;
+      raisons.push('Dolby Vision profil 5');
+    }
+    const maxH = Number(caps.maxHauteur) || 2160;
+    if (videoOk && Math.min(v.hauteur, v.largeur * 9 / 16) > maxH * 1.05) {
+      videoOk = false;
+      raisons.push(`définition trop haute pour cet appareil`);
+    }
+    const debitSource = (s.debit || 0) / 1e6;
+    let cible = null; // Mbit/s si conversion
+    if (qualite !== 'original' && qualite !== 'auto') {
+      const q = Number(qualite);
+      if (q && (!debitSource || debitSource > q * 1.15)) {
+        videoOk = false;
+        cible = q;
+        raisons.push(`débit réduit à ${q} Mbit/s`);
+      }
+    } else if (qualite === 'auto' && caps.debitMax && debitSource > Number(caps.debitMax) * 1.1) {
+      videoOk = false;
+      cible = Number(caps.debitMax);
+      raisons.push(`fichier trop lourd pour la connexion (${Math.round(debitSource)} Mbit/s)`);
+    }
+    if (sousTitreImage != null) {
+      if (videoOk) raisons.push('sous-titres image incrustés');
+      videoOk = false;
+    }
+
+    // Le son peut-il être recopié ?
+    const codecsAudio = new Set(['aac', 'mp3', ...(caps.opus ? ['opus'] : []), ...(caps.flac ? ['flac'] : []), ...(caps.ac3 ? ['ac3'] : []), ...(caps.eac3 ? ['eac3'] : []), ...(caps.dts ? ['dts'] : [])]);
+    const audioOk = !pisteAudio || codecsAudio.has(pisteAudio.codec);
+    const audioSortie = audioOk ? 'copie' : caps.eac3 && pisteAudio.canaux > 2 ? 'eac3' : 'aac';
+
+    const ext = path.extname(f.chemin).slice(1).toLowerCase();
+    const premiereAudio = s.audios[0];
+    const mode =
+      videoOk && audioOk && TYPES_DIRECTS[ext] && (!pisteAudio || pisteAudio === premiereAudio) && sousTitreImage == null ? 'direct' : videoOk ? 'remux' : 'conversion';
+
+    const id = crypto.randomBytes(9).toString('base64url');
+    if (mode === 'direct') {
+      this.sessions.set(id, { id, mode, fichierId, cree: Date.now() });
+      return { session: id, url: `/api/direct/${fichierId}`, debut: 0, mode, details: 'Lecture directe', duree: s.duree };
+    }
+
+    const encodeur = await encodeurMateriel();
+    const sortieHevc = mode === 'conversion' && caps.hevc && encodeur.nom !== 'processeur';
+    const garderHdr = mode === 'conversion' && v.hdr && caps.hdr && sortieHevc && caps.hevc10;
+    const debut = mode === 'remux' ? await pointCle(f.chemin, v.index, Math.max(0, Number(position) || 0)) : Math.max(0, Number(position) || 0);
+    if (mode === 'conversion' && !cible) cible = Math.min(Number(caps.debitMax) || 40, 60);
+    const session = {
+      id,
+      mode,
+      fichierId,
+      chemin: f.chemin,
+      debut,
+      video: v,
+      pisteAudio,
+      audioSortie,
+      cible,
+      encodeur,
+      sortieHevc,
+      garderHdr,
+      sousTitreImage: sousTitreImage == null ? null : s.sousTitres.find((x) => x.ordre === Number(sousTitreImage)) || null,
+      cree: Date.now(),
+    };
+    this.sessions.set(id, session);
+    const hauteur = mode === 'conversion' ? hauteurPour(cible, v.hauteur) : v.hauteur;
+    const details =
+      mode === 'remux'
+        ? `Image d'origine${audioOk ? '' : ` · son converti (${audioSortie === 'eac3' ? 'Dolby Digital+ 5.1' : 'AAC stéréo'})`}`
+        : `Converti par ${encodeur.nom === 'processeur' ? 'le processeur' : `la carte graphique (${encodeur.nom})`} · ${hauteur >= 2000 ? '4K' : `${hauteur}p`} ${sortieHevc ? 'HEVC' : 'H.264'}${garderHdr ? ' HDR' : ''} · ${cible} Mbit/s`;
+    return { session: id, url: `/api/flux/${id}.mp4`, debut, mode, details, raisons, duree: s.duree };
+  }
+
+  // ---------- arguments ffmpeg ----------
+
+  arguments(s) {
+    const v = s.video;
+    const a = ['-hide_banner', '-v', 'error', '-nostdin'];
+    const nvidia = s.mode === 'conversion' && s.encodeur.nom === 'nvidia' && ['h264', 'hevc', 'av1', 'vp9', 'mpeg2video'].includes(v.codec);
+    if (nvidia) a.push('-hwaccel', 'cuda', '-hwaccel_output_format', 'cuda', '-extra_hw_frames', '4');
+    if (s.debut > 0) a.push('-ss', s.debut.toFixed(3));
+    a.push('-i', s.chemin);
+    const audio = s.pisteAudio ? ['-map', `0:${s.pisteAudio.index}`] : [];
+
+    if (s.mode === 'remux') {
+      a.push('-map', `0:${v.index}`, ...audio, '-c:v', 'copy');
+      if (v.codec === 'hevc') {
+        a.push('-tag:v', 'hvc1');
+        // Dolby Vision profil 8 : on garde la base HDR10 (la plupart des navigateurs refusent les données DV).
+        if (v.hdr === 'Dolby Vision' && v.dvProfil === 8) a.push('-bsf:v', 'dovi_rpu=strip=1');
+      }
+    } else {
+      const H = hauteurPour(s.cible, v.hauteur);
+      const W = -2;
+      const sdr = v.hdr && !s.garderHdr;
+      const enc = s.sortieHevc ? s.encodeur.hevc : s.encodeur.h264;
+      let filtres;
+      let complexe = null;
+      if (nvidia) {
+        const fmt = s.garderHdr ? 'p010le' : sdr ? 'p010le' : 'yuv420p';
+        const chaine = [`scale_cuda=w=${W}:h=${H}:format=${fmt}:interp_algo=bicubic`];
+        if (sdr) chaine.push('tonemap_cuda=format=yuv420p:p=bt709:t=bt709:m=bt709:tonemap=bt2390:peak=100:desat=0');
+        filtres = chaine.join(',');
+        if (s.sousTitreImage) {
+          complexe = `[0:${s.sousTitreImage.index}]scale=w=${W === -2 ? `trunc(${H}*iw/ih/2)*2` : W}:h=${H},format=yuva420p,hwupload=derive_device=cuda[st];[0:${v.index}]${filtres}[img];[img][st]overlay_cuda=eof_action=pass:repeatlast=0[sortie]`;
+        }
+      } else {
+        const chaine = [];
+        if (sdr) chaine.push('tonemapx=tonemap=bt2390:desat=0:peak=100:t=bt709:m=bt709:p=bt709:format=yuv420p');
+        chaine.push(`scale=w=${W}:h=${H}:flags=bicubic`, `format=${s.garderHdr ? 'p010le' : 'yuv420p'}`);
+        filtres = chaine.join(',');
+        if (s.sousTitreImage) complexe = `[0:${v.index}]${filtres}[img];[0:${s.sousTitreImage.index}]scale=w=trunc(${H}*iw/ih/2)*2:h=${H}[st];[img][st]overlay=eof_action=pass:repeatlast=0[sortie]`;
+      }
+      if (complexe) a.push('-filter_complex', complexe, '-map', '[sortie]', ...audio);
+      else a.push('-map', `0:${v.index}`, ...audio, '-vf', filtres);
+      const b = `${s.cible}M`;
+      a.push('-c:v', enc);
+      if (/nvenc/.test(enc)) a.push('-preset', 'p4', '-tune', 'hq', '-rc', 'vbr', '-spatial_aq', '1');
+      else if (/qsv/.test(enc)) a.push('-preset', 'faster');
+      else if (enc === 'libx264' || enc === 'libx265') a.push('-preset', 'veryfast');
+      a.push('-b:v', b, '-maxrate', `${Math.round(s.cible * 1.5)}M`, '-bufsize', `${s.cible * 2}M`, '-g', '48', '-keyint_min', '48');
+      if (s.sortieHevc) {
+        a.push('-tag:v', 'hvc1');
+        if (s.garderHdr) a.push('-profile:v', 'main10', '-color_primaries', 'bt2020', '-color_trc', v.hdr === 'HLG' ? 'arib-std-b67' : 'smpte2084', '-colorspace', 'bt2020nc');
+      } else a.push('-profile:v', 'high');
+      if (sdr) a.push('-color_primaries', 'bt709', '-color_trc', 'bt709', '-colorspace', 'bt709');
+    }
+    if (s.pisteAudio) {
+      if (s.audioSortie === 'copie') a.push('-c:a', 'copy');
+      else if (s.audioSortie === 'eac3') a.push('-c:a', 'eac3', '-ac', String(Math.min(6, s.pisteAudio.canaux)), '-b:a', '640k');
+      else a.push('-c:a', 'aac', '-ac', '2', '-b:a', '224k');
+    }
+    a.push('-sn', '-dn', '-map_metadata', '-1', '-map_chapters', '-1', '-max_muxing_queue_size', '4096');
+    a.push('-f', 'mp4', '-movflags', 'frag_keyframe+empty_moov+delay_moov+default_base_moof', '-frag_duration', '2000000', 'pipe:1');
+    return a;
+  }
+
+  // ---------- envoi ----------
+
+  flux(id, req, res) {
+    const s = this.sessions.get(id);
+    if (!s || s.mode === 'direct') {
+      res.writeHead(404);
+      return res.end();
+    }
+    // Une seule lecture par session : un nouvel appel (le navigateur qui relance) arrête l'ancienne.
+    if (s.processus) s.processus.kill('SIGKILL');
+    const args = this.arguments(s);
+    const p = spawn(OUTILS.ffmpeg, args, { windowsHide: true });
+    s.processus = p;
+    this.actifs.add(p);
+    let erreurs = '';
+    p.stderr.on('data', (d) => {
+      if (erreurs.length < 4000) erreurs += d;
+    });
+    res.writeHead(200, { 'Content-Type': 'video/mp4', 'Cache-Control': 'no-store', 'Accept-Ranges': 'none' });
+    p.stdout.pipe(res);
+    const fin = () => {
+      if (!p.killed && p.exitCode === null) p.kill('SIGKILL');
+    };
+    req.on('close', fin);
+    res.on('close', fin);
+    p.on('close', (code) => {
+      this.actifs.delete(p);
+      if (s.processus === p) s.processus = null;
+      if (code && code !== 255 && !res.destroyed && erreurs.trim()) this.journal(`Lecture (${s.mode}) : ffmpeg ${code} — ${erreurs.trim().split('\n').slice(-3).join(' | ')}`);
+      res.end();
+    });
+  }
+
+  direct(fichierId, req, res) {
+    const f = this.bibliotheque.fichier(fichierId);
+    const type = f && TYPES_DIRECTS[path.extname(f.chemin).slice(1).toLowerCase()];
+    if (!type) {
+      res.writeHead(404);
+      return res.end();
+    }
+    const taille = fs.statSync(f.chemin).size;
+    const m = /bytes=(\d*)-(\d*)/.exec(req.headers.range || '');
+    if (m) {
+      let debut = m[1] ? Number(m[1]) : taille - Number(m[2]);
+      let fin = m[1] && m[2] ? Number(m[2]) : taille - 1;
+      if (!(debut >= 0 && debut < taille)) {
+        res.writeHead(416, { 'Content-Range': `bytes */${taille}` });
+        return res.end();
+      }
+      fin = Math.min(fin, taille - 1);
+      res.writeHead(206, { 'Content-Type': type, 'Content-Length': fin - debut + 1, 'Content-Range': `bytes ${debut}-${fin}/${taille}`, 'Accept-Ranges': 'bytes', 'Cache-Control': 'no-store' });
+      if (req.method === 'HEAD') return res.end();
+      return fs.createReadStream(f.chemin, { start: debut, end: fin }).pipe(res);
+    }
+    res.writeHead(200, { 'Content-Type': type, 'Content-Length': taille, 'Accept-Ranges': 'bytes', 'Cache-Control': 'no-store' });
+    if (req.method === 'HEAD') return res.end();
+    fs.createReadStream(f.chemin).pipe(res);
+  }
+
+  // ---------- sous-titres texte → WebVTT ----------
+  // Toutes les pistes texte d'un fichier sont extraites d'un coup (un seul passage sur le disque) et gardées
+  // en cache. Pendant l'extraction, la page reçoit déjà le début et redemande la suite.
+
+  cheminVtt(fichierId, cle) {
+    return path.join(this.dossierSousTitres, `${fichierId}-${cle}.vtt`);
+  }
+
+  extraire(fichierId) {
+    if (this.extractions.has(fichierId)) return this.extractions.get(fichierId);
+    const f = this.bibliotheque.fichier(fichierId);
+    const pistes = (f?.sonde?.sousTitres || []).filter((x) => x.texte);
+    const manquantes = pistes.filter((x) => !fs.existsSync(this.cheminVtt(fichierId, x.index)));
+    if (!manquantes.length) return Promise.resolve();
+    fs.mkdirSync(this.dossierSousTitres, { recursive: true });
+    const args = ['-hide_banner', '-v', 'error', '-nostdin', '-i', f.chemin];
+    for (const x of manquantes) args.push('-map', `0:${x.index}`, '-c:s', 'webvtt', '-f', 'webvtt', `${this.cheminVtt(fichierId, x.index)}.partiel`);
+    const promesse = new Promise((ok) => {
+      const p = spawn(OUTILS.ffmpeg, args, { windowsHide: true });
+      this.actifs.add(p);
+      let erreurs = '';
+      p.stderr.on('data', (d) => (erreurs += d));
+      p.on('close', (code) => {
+        this.actifs.delete(p);
+        let vides = 0;
+        for (const x of manquantes) {
+          const partiel = `${this.cheminVtt(fichierId, x.index)}.partiel`;
+          try {
+            // Fichier vide = extraction interrompue : on ne le garde pas (elle sera refaite).
+            const taille = fs.existsSync(partiel) ? fs.statSync(partiel).size : 0;
+            if (code === 0 && taille > 0) fs.renameSync(partiel, this.cheminVtt(fichierId, x.index));
+            else {
+              if (code === 0) vides++;
+              fs.rmSync(partiel, { force: true });
+            }
+          } catch {}
+        }
+        if (code || vides) {
+          this.echecs.set(fichierId, (this.echecs.get(fichierId) || 0) + 1);
+          this.journal(`Sous-titres : extraction ratée${vides ? ` (${vides} piste(s) vide(s))` : ''} ${erreurs.trim().slice(-300)}`);
+        }
+        this.extractions.delete(fichierId);
+        ok();
+      });
+    });
+    this.extractions.set(fichierId, promesse);
+    return promesse;
+  }
+
+  // Sous-titres externes (.srt à côté de la vidéo) : convertis une fois, en devinant l'encodage.
+  async externe(fichierId, n) {
+    const f = this.bibliotheque.fichier(fichierId);
+    const x = f?.externes?.[n];
+    if (!x) return null;
+    const sortie = this.cheminVtt(fichierId, `ext${n}`);
+    if (fs.existsSync(sortie)) return sortie;
+    fs.mkdirSync(this.dossierSousTitres, { recursive: true });
+    const brut = fs.readFileSync(x.chemin);
+    let texte;
+    try {
+      texte = new TextDecoder('utf-8', { fatal: true }).decode(brut);
+    } catch {
+      texte = new TextDecoder('windows-1252').decode(brut);
+    }
+    const tmp = `${sortie}.source${path.extname(x.chemin)}`;
+    fs.writeFileSync(tmp, texte.replace(/^﻿/, ''));
+    await new Promise((ok) => execFile(OUTILS.ffmpeg, ['-hide_banner', '-v', 'error', '-y', '-i', tmp, '-f', 'webvtt', sortie], { windowsHide: true }, () => ok()));
+    fs.rmSync(tmp, { force: true });
+    return fs.existsSync(sortie) ? sortie : null;
+  }
+
+  async sousTitres(fichierId, piste, res) {
+    let chemin;
+    let complet = true;
+    if (String(piste).startsWith('ext')) chemin = await this.externe(fichierId, Number(String(piste).slice(3)));
+    else {
+      const index = Number(piste);
+      chemin = this.cheminVtt(fichierId, index);
+      if (!fs.existsSync(chemin)) {
+        this.extraire(fichierId);
+        complet = false;
+        chemin = `${chemin}.partiel`;
+      }
+    }
+    let contenu = '';
+    try {
+      contenu = fs.readFileSync(chemin, 'utf8');
+    } catch {}
+    if (!complet && !this.extractions.has(fichierId) && fs.existsSync(this.cheminVtt(fichierId, Number(piste)))) {
+      contenu = fs.readFileSync(this.cheminVtt(fichierId, Number(piste)), 'utf8');
+      complet = true;
+    }
+    res.writeHead(200, { 'Content-Type': 'text/vtt; charset=utf-8', 'Cache-Control': 'no-store', 'X-Complet': complet ? '1' : '0' });
+    res.end(contenu || 'WEBVTT\n\n');
+  }
+}

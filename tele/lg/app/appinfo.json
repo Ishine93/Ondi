@@ -1,0 +1,15 @@
+{
+  "id": "io.github.ishine93.debrideur",
+  "version": "1.0.0",
+  "vendor": "Débrideur",
+  "type": "web",
+  "main": "index.html",
+  "title": "Débrideur",
+  "icon": "icon.png",
+  "largeIcon": "largeIcon.png",
+  "splashBackground": "splash.png",
+  "iconColor": "#0b1118",
+  "resolution": "1920x1080",
+  "disableBackHistoryAPI": true,
+  "requiredACG": ["network.query"]
+}

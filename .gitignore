@@ -1,0 +1,28 @@
+# Personal data: settings, API keys, downloads state, library cache, logs (never published)
+donnees/
+captures/
+*.log
+
+# Tools downloaded by the installers
+runtime/
+outils/ffmpeg/
+platform-tools/
+webos-cli/
+node_modules/
+
+# Build outputs (attached to GitHub releases instead)
+dist/
+tele/Debrideur.wgt
+tele/*/build/
+*.apk
+*.ipk
+
+# Signing keys and local tooling
+.cles/
+*.p12
+*.jks
+*.keystore
+.claude/
+.vscode/
+.DS_Store
+Thumbs.db

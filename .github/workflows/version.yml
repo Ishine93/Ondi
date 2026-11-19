@@ -1,0 +1,67 @@
+# Publication d'une version : pousser l'étiquette vX.Y.Z (même numéro que package.json).
+# Construit les applis télé (Samsung .wgt, LG .ipk, Android TV / Fire TV .apk), les paquets Windows / Mac / télé,
+# puis crée la « release » GitHub avec tous les fichiers (la mise à jour automatique les télécharge de là).
+name: Version
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  paquets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Numéro de version
+        run: |
+          V="$(node -p "require('./package.json').version")"
+          echo "VERSION=$V" >> "$GITHUB_ENV"
+          if [[ "$GITHUB_REF" == refs/tags/v* && "${GITHUB_REF_NAME#v}" != "$V" ]]; then
+            echo "L'étiquette $GITHUB_REF_NAME ne correspond pas à package.json ($V)"; exit 1
+          fi
+
+      - name: Tests
+        run: node --test tests/
+
+      - name: Appli Samsung (.wgt)
+        run: node tele/construire.mjs
+
+      - name: Appli Android TV / Fire TV (.apk)
+        env:
+          DEBRIDEUR_KEYSTORE_B64: ${{ secrets.DEBRIDEUR_KEYSTORE_B64 }}
+          DEBRIDEUR_KEYSTORE_MDP: ${{ secrets.DEBRIDEUR_KEYSTORE_MDP }}
+        run: bash tele/android/construire.sh
+
+      - name: Appli LG (.ipk)
+        run: bash tele/lg/construire.sh
+
+      - name: Paquets
+        run: node outils/construire-paquets.mjs
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: paquets-${{ env.VERSION }}
+          path: dist/
+
+      - name: Publication sur GitHub
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NOTES="notes/$VERSION.md"
+          [ -f "$NOTES" ] || { echo "Débrideur $VERSION" > /tmp/notes.md; NOTES=/tmp/notes.md; }
+          gh release create "$GITHUB_REF_NAME" dist/* --title "Débrideur $VERSION" --notes-file "$NOTES"

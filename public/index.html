@@ -1,0 +1,3943 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b1118">
+<title>Débrideur</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23aa5cc3'/%3E%3Cstop offset='1' stop-color='%2300a4dc'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='url(%23g)'/%3E%3Cpath d='M16 7v13m-6-6 6 6 6-6M9 25h14' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+  /* Thème sombre façon Prime Video : bleu nuit, accent bleu vif, affiches et grandes images. */
+  :root {
+    --fond: #0b1118;
+    --surface: #141d26;
+    --carte: #16202a;
+    --carte-2: #1c2834;
+    --bord: #263443;
+    --texte: #f2f5f8;
+    --doux: #8d9db0;
+    --bleu: #1a98ff;
+    --bleu-fonce: #0a6fd6;
+    --degrade: linear-gradient(135deg, #2aa4ff, #0a6fd6);
+    --violet: #aa5cc3;
+    --vert: #3ecf8e;
+    --rouge: #ff6b6b;
+    --orange: #f5a524;
+    --rayon: 12px;
+    --marge: clamp(16px, 4vw, 60px);
+    --haut-nav: 68px;
+    --l-affiche: clamp(118px, 12.5vw, 196px);
+    --largeur-tiroir: 400px;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; }
+  html { scrollbar-color: #2b3a49 var(--fond); }
+  body {
+    background: var(--fond);
+    color: var(--texte);
+    font: 15px/1.45 "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  a { color: var(--bleu); }
+  img { max-width: 100%; }
+
+  /* ---------- boutons et petits éléments ---------- */
+  .bouton {
+    border: 1px solid #ffffff1f; background: #ffffff12; border-radius: 9px; padding: 8px 15px; cursor: pointer; color: var(--texte);
+    display: inline-flex; align-items: center; justify-content: center; gap: 7px; font-size: 14px; font-weight: 600; text-decoration: none;
+    transition: background .15s, border-color .15s, transform .15s;
+  }
+  .bouton:hover { background: #ffffff21; border-color: #ffffff33; }
+  .bouton svg { width: 16px; height: 16px; flex: none; }
+  .principal { background: var(--bleu); border-color: transparent; color: #fff; padding: 9px 20px; }
+  .principal:hover { background: #3aa8ff; border-color: transparent; }
+  .principal:disabled { opacity: .55; cursor: default; background: var(--bleu); }
+  .bouton.grand { padding: 13px 26px; font-size: 16.5px; border-radius: 10px; }
+  .bouton.verre { background: #ffffff1c; border-color: #ffffff2e; backdrop-filter: blur(10px); color: #fff; }
+  .bouton.verre:hover { background: #ffffff30; }
+  .bouton.petit { padding: 5px 11px; font-size: 13px; }
+  .bouton.danger { border-color: #5a3a44; color: #ffb3b3; background: #ff6b6b10; }
+  .bouton.danger:hover { border-color: var(--rouge); }
+  .bouton.danger.confirmer { background: #3a1820; border-color: var(--rouge); color: #fff; }
+  .lien-bouton { background: none; border: 0; color: var(--doux); cursor: pointer; font-size: 13px; padding: 2px 4px; }
+  .lien-bouton:hover { color: var(--texte); }
+  .icone {
+    width: 40px; height: 40px; display: grid; place-items: center; border-radius: 50%; flex: none;
+    background: transparent; border: 1px solid transparent; cursor: pointer; text-decoration: none; color: #dbe3ec;
+    transition: background .15s, color .15s;
+  }
+  .icone:hover { background: #ffffff1a; color: #fff; }
+  .icone svg { width: 21px; height: 21px; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 7px; padding: 5px 12px; border-radius: 999px; flex: none;
+    background: #ffffff10; border: 1px solid #ffffff1a; font-size: 13px; color: #c3ccd6; white-space: nowrap;
+  }
+  .badge .point { width: 8px; height: 8px; border-radius: 50%; background: var(--doux); flex: none; }
+  .badge.ok .point { background: var(--vert); }
+  .badge.ko { cursor: pointer; color: var(--texte); border-color: #5a3a44; }
+  .badge.ko .point { background: var(--rouge); }
+  .carte { background: var(--carte); border: 1px solid #ffffff12; border-radius: var(--rayon); }
+  .segments { display: inline-flex; background: #ffffff0d; border: 1px solid #ffffff17; border-radius: 10px; padding: 3px; }
+  .segments button {
+    border: 0; background: none; padding: 6px 13px; border-radius: 7px; cursor: pointer; color: var(--doux); font-size: 14px; font-weight: 600;
+  }
+  .segments button[aria-checked="true"] { background: #ffffff24; color: #fff; }
+  .puce { font-size: 11.5px; padding: 1px 7px; border-radius: 99px; background: #ffffff14; color: #b8c4d1; white-space: nowrap; }
+  .puce.nombre { background: #1a98ff26; color: #8ccaff; font-weight: 600; }
+  .puce.langue { font-weight: 700; letter-spacing: .02em; }
+  .l-multi { background: #aa5cc333; color: #e2bdf2; }
+  .l-vf { background: #1a98ff2e; color: #8ccaff; }
+  .l-vostfr { background: #f5a5242b; color: #f7c983; }
+  .l-vo { background: #ffffff14; color: var(--doux); }
+  .aide { font-size: 12.5px; color: var(--doux); margin: 0; }
+  .aide code { color: var(--texte); background: var(--carte-2); padding: 0 5px; border-radius: 4px; }
+  .espace { flex: 1; }
+  .progression { font-size: 12.5px; color: var(--doux); font-variant-numeric: tabular-nums; }
+  @keyframes tourne { to { transform: rotate(360deg); } }
+  @keyframes pouls { 50% { opacity: .35; } }
+  @keyframes reflet { to { background-position: -200% 0; } }
+  @keyframes apparition { from { opacity: 0; transform: translateY(14px); } }
+  .chargement { display: flex; align-items: center; gap: 8px; }
+  .chargement::before {
+    content: ""; width: 13px; height: 13px; border-radius: 50%; border: 2px solid #33475a; border-top-color: var(--bleu);
+    animation: tourne .8s linear infinite; flex: none;
+  }
+
+  /* Clavier et télécommande : on voit toujours où on est (anneau blanc, comme sur les plateformes). */
+  :focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+  input:focus-visible, textarea:focus-visible { outline: none; }
+
+  /* ---------- barre de navigation ---------- */
+  .nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 25; height: var(--haut-nav);
+    display: flex; align-items: center; gap: 6px; padding: 0 var(--marge);
+    background: linear-gradient(180deg, #0b1118f2 0%, #0b111880 60%, #0b111800 100%);
+    transition: background .25s, box-shadow .25s;
+  }
+  .nav.pleine, body[data-vue="recherche"] .nav { background: #0b1118f7; box-shadow: 0 1px 0 #ffffff12; backdrop-filter: blur(12px); }
+  .logo { display: flex; align-items: center; gap: 10px; font-size: 19px; font-weight: 750; color: #fff; text-decoration: none; letter-spacing: -.01em; margin-right: 14px; flex: none; }
+  .logo svg { width: 30px; height: 30px; flex: none; }
+  .onglets { display: flex; gap: 2px; min-width: 0; flex: 0 1 auto; overflow-x: auto; scrollbar-width: none; }
+  .onglets::-webkit-scrollbar { display: none; }
+  .onglet {
+    border: 0; background: none; color: #b9c4d0; font-weight: 650; font-size: 15.5px; padding: 8px 13px; border-radius: 8px;
+    cursor: pointer; white-space: nowrap; transition: color .15s, background .15s;
+  }
+  .onglet:hover { color: #fff; background: #ffffff12; }
+  .onglet[aria-current="page"] { color: #fff; box-shadow: inset 0 -3px 0 var(--bleu); border-radius: 8px 8px 3px 3px; }
+  /* Le badge du compte rétrécit avant les onglets (il ne garde que son point au besoin). */
+  .nav #compte { margin: 0 4px; flex: 0 100 auto; min-width: 34px; overflow: hidden; }
+  .nav #compte > span:last-child { overflow: hidden; text-overflow: ellipsis; }
+  @media (max-width: 1180px) { .nav #compte { max-width: 34px; padding: 5px 12px; } .nav #compte > span:last-child { display: none; } }
+  body.tiroir-ouvert .nav #compte { max-width: 34px; padding: 5px 12px; }
+  body.tiroir-ouvert .nav #compte > span:last-child { display: none; }
+  .avec-pastille { position: relative; }
+  .pastille {
+    position: absolute; top: 0; right: 0; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 99px;
+    background: var(--bleu); color: #fff; font-size: 11px; font-weight: 700; display: grid; place-items: center;
+  }
+  #btnTiroir[aria-expanded="true"] { background: #ffffff1f; color: #fff; }
+
+  /* ---------- page ---------- */
+  .page { padding: var(--haut-nav) 0 40px; min-height: 100vh; }
+  body.avec-panier .page { padding-bottom: 140px; }
+  footer { margin: 40px var(--marge) 0; color: var(--doux); font-size: 13px; display: grid; gap: 4px; }
+  footer code { color: var(--texte); background: var(--carte); padding: 1px 6px; border-radius: 5px; user-select: all; }
+
+  /* ---------- accueil : affiche à la une ---------- */
+  .hero {
+    position: relative; margin-top: calc(-1 * var(--haut-nav)); min-height: clamp(440px, 74vh, 780px);
+    display: flex; align-items: flex-end; overflow: hidden; isolation: isolate; clip-path: inset(0);
+    /* Le haut garde la place de la barre : un long titre agrandit l'affiche au lieu de passer dessous. */
+    padding: calc(var(--haut-nav) + 28px) var(--marge) 104px;
+  }
+  .hero-fond {
+    position: absolute; inset: 0; z-index: -2; background-size: cover; background-position: center 30%;
+    filter: blur(34px) saturate(1.25) brightness(.62); transform: scale(1.25); transition: background-image .4s;
+  }
+  .hero::after {
+    content: ""; position: absolute; inset: 0; z-index: -1;
+    background:
+      linear-gradient(0deg, var(--fond) 0%, #0b111800 38%),
+      linear-gradient(90deg, #0b1118f5 0%, #0b1118b8 38%, #0b111833 70%, #0b111800 100%);
+  }
+  .hero.avec-fond .hero-fond { filter: brightness(.78); transform: none; background-position: center 20%; }
+  .hero.avec-fond::after {
+    background:
+      linear-gradient(0deg, var(--fond) 0%, #0b111800 42%),
+      linear-gradient(90deg, #0b1118f2 0%, #0b1118a6 34%, #0b111800 64%);
+  }
+  .hero-contenu { position: relative; max-width: min(640px, 56%); }
+  .hero.anime .hero-contenu, .hero.anime .hero-affiche { animation: apparition .55s ease both; }
+  .hero-sur-titre { margin: 0; color: #8ccaff; font-weight: 750; text-transform: uppercase; letter-spacing: .1em; font-size: 13px; }
+  .hero-titre {
+    font-size: clamp(30px, 4.4vw, 64px); line-height: 1.06; font-weight: 800; margin: 8px 0 12px; letter-spacing: -.02em; text-wrap: balance;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .hero-titre.long { font-size: clamp(26px, 3.1vw, 46px); }
+  .hero-meta { margin: 0; color: #d3dce5; font-size: 15.5px; font-weight: 600; }
+  .hero-resume {
+    margin: 12px 0 0; color: #c3cdd8; font-size: 15.5px; line-height: 1.5; max-width: 62ch;
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
+  .hero-affiche {
+    position: absolute; right: calc(var(--marge) + 2vw); bottom: 80px; height: calc(100% - 185px); max-height: 540px;
+    aspect-ratio: 2 / 3; object-fit: cover; border-radius: 14px; box-shadow: 0 30px 80px #000d, 0 0 0 1px #ffffff1a;
+  }
+  .hero-points { position: absolute; left: var(--marge); bottom: 58px; display: flex; gap: 4px; }
+  .hero-point {
+    width: 30px; height: 20px; padding: 8px 0; border: 0; cursor: pointer; background: #ffffff45; background-clip: content-box;
+    border-radius: 4px; transition: width .25s, background-color .25s;
+  }
+  .hero-point[aria-selected="true"] { width: 48px; background-color: #fff; }
+
+  /* ---------- accueil : rangées qui défilent de côté ---------- */
+  .rangees { display: grid; gap: 30px; position: relative; padding-bottom: 10px; }
+  .hero:not([hidden]) + .rangees { margin-top: -46px; }
+  .rangee { min-width: 0; }
+  .rangee-tete { display: flex; align-items: baseline; gap: 12px; padding: 0 var(--marge); margin-bottom: 4px; }
+  .rangee-tete h2 { font-size: clamp(17px, 1.45vw, 23px); font-weight: 750; margin: 0; letter-spacing: -.005em; }
+  .rangee-info { color: var(--doux); font-size: 13px; }
+  .rangee-cadre { position: relative; }
+  .rangee-piste {
+    display: flex; gap: 14px; overflow-x: auto; scroll-snap-type: x proximity; scroll-padding-inline: var(--marge);
+    padding: 12px var(--marge) 14px; scrollbar-width: none; overscroll-behavior-x: contain;
+  }
+  .rangee-piste::-webkit-scrollbar { display: none; }
+  .rangee-fleche {
+    position: absolute; top: 12px; bottom: 14px; z-index: 3; width: max(44px, var(--marge)); border: 0; padding: 0; cursor: pointer;
+    color: #fff; display: grid; place-items: center; opacity: 0; transition: opacity .2s;
+  }
+  .rangee-fleche.gauche { left: 0; background: linear-gradient(90deg, #0b1118f0, #0b111800); }
+  .rangee-fleche.droite { right: 0; background: linear-gradient(270deg, #0b1118f0, #0b111800); }
+  .rangee-fleche svg { width: 34px; height: 34px; filter: drop-shadow(0 2px 6px #000); }
+  .rangee-cadre:hover .rangee-fleche { opacity: 1; }
+  @media (hover: none) { .rangee-fleche { display: none; } }
+
+  /* carte « affiche » : l'image, puis le titre */
+  .affiche {
+    flex: none; width: var(--l-affiche); scroll-snap-align: start; border: 0; background: none; padding: 0; margin: 0;
+    color: inherit; text-align: left; cursor: pointer; display: grid; align-content: start; gap: 9px; border-radius: 10px;
+  }
+  .affiche:focus-visible { outline: none; }
+  .affiche-image {
+    position: relative; display: block; aspect-ratio: 2 / 3; border-radius: 10px; overflow: hidden; background: var(--carte-2);
+    box-shadow: 0 8px 22px #0008; transition: transform .22s ease, box-shadow .22s ease;
+  }
+  .affiche-image img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .affiche-vide {
+    display: grid; place-items: center; height: 100%; padding: 14px; text-align: center; font-weight: 700; font-size: 15px;
+    color: #b8c4d1; background: linear-gradient(160deg, #22313f, #121a22);
+  }
+  .affiche:hover .affiche-image { transform: scale(1.04); box-shadow: 0 14px 30px #000b; }
+  .affiche:focus-visible .affiche-image { transform: scale(1.07); box-shadow: 0 0 0 3px #fff, 0 16px 36px #000d; }
+  .affiche-infos { display: grid; gap: 3px; padding: 0 2px; min-width: 0; }
+  .affiche-titre { font-size: 14px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .affiche-sous { font-size: 12.5px; color: var(--doux); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .affiche-sous:empty { display: none; }
+  .affiche-langues { display: flex; flex-wrap: wrap; gap: 4px; }
+  .affiche-langues:empty { display: none; }
+  .affiche-langues .puce { font-size: 10.5px; padding: 0 6px; }
+  .affiche-dispo { font-size: 12px; color: var(--vert); font-weight: 650; }
+  .affiche-dispo::before { content: "●"; margin-right: 5px; font-size: 9px; vertical-align: 1px; }
+  .affiche-rang {
+    position: absolute; left: 6px; bottom: -2px; z-index: 1; font-size: calc(var(--l-affiche) * .42); font-weight: 900; line-height: 1;
+    color: #fff; letter-spacing: -.06em; -webkit-text-stroke: 2px #0b1118; paint-order: stroke fill; text-shadow: 0 6px 18px #000c;
+  }
+  .rangee-piste.numerotee .affiche-image::after {
+    content: ""; position: absolute; inset: 52% 0 0; background: linear-gradient(#00000000, #000000b3);
+  }
+  .affiche.squelette, .rangee.attente .rangee-tete h2 {
+    background: linear-gradient(90deg, #16202a 0%, #1f2c39 50%, #16202a 100%); background-size: 200% 100%;
+    animation: reflet 1.3s linear infinite; border-radius: 10px;
+  }
+  .affiche.squelette { aspect-ratio: 2 / 3; cursor: default; }
+  .rangee.attente .rangee-tete h2 { width: 200px; height: 22px; }
+  .etat-accueil { margin: 24px var(--marge) 0; color: var(--doux); }
+  .etat-accueil:empty { display: none; }
+
+  /* ---------- recherche ---------- */
+  #vueRecherche { padding: 0 var(--marge); }
+  /* Le champ reste en haut pendant qu'on tape (clavier à l'écran, résultats qui défilent). */
+  .barre-recherche {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px 12px; position: sticky; top: var(--haut-nav); z-index: 6;
+    margin: 0 calc(-1 * var(--marge)); padding: 20px var(--marge) 14px; background: var(--fond); box-shadow: 0 10px 20px -12px #000;
+  }
+  .champ-recherche {
+    min-width: 0; display: flex; align-items: center; gap: 12px; height: 58px; background: #1b2631;
+    border: 2px solid transparent; border-radius: 12px; padding: 0 8px 0 18px; transition: border-color .15s, background .15s;
+  }
+  .champ-recherche:focus-within { border-color: var(--bleu); background: #1e2b37; }
+  .champ-recherche > svg { width: 22px; height: 22px; color: var(--doux); flex: none; }
+  .champ-recherche input { flex: 1; min-width: 0; border: 0; background: none; outline: none; padding: 10px 0; font-size: 20px; font-weight: 500; }
+  .champ-recherche input::placeholder { color: #6e7f92; font-weight: 400; }
+  .champ-recherche input::-webkit-search-cancel-button { filter: invert(.7); cursor: pointer; }
+  .barre-recherche > .principal { height: 58px; padding: 0 26px; font-size: 16px; border-radius: 12px; }
+  .site {
+    flex: none; max-width: 40%; border: 0; background: #ffffff12; color: var(--doux); border-radius: 7px; padding: 5px 10px;
+    font-size: 12.5px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .site:hover { color: var(--texte); }
+  .filtres { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .filtres select, .outils select {
+    background: #ffffff12; border: 1px solid #ffffff1f; border-radius: 9px; padding: 8px 12px; color: var(--texte);
+    font-size: 14px; font-weight: 600; cursor: pointer; outline: none; max-width: 100%;
+  }
+  .filtres select:hover, .outils select:hover { border-color: #ffffff38; }
+  select option { background: var(--surface); color: var(--texte); }
+  #btnClavier[aria-pressed="true"] { background: #1a98ff2e; border-color: var(--bleu); }
+  .recherche-corps { display: grid; gap: 26px; margin-top: 8px; align-items: start; }
+  .avec-clavier .recherche-corps { grid-template-columns: minmax(280px, 360px) minmax(0, 1fr); }
+  .recherche-resultats { min-width: 0; }
+  .clavier {
+    display: grid; grid-template-columns: repeat(6, 1fr); gap: 7px; position: sticky; top: calc(var(--haut-nav) + 150px);
+  }
+  .touche {
+    aspect-ratio: 1; border: 0; border-radius: 9px; background: #1b2631; color: #e7edf3; font-size: 19px; font-weight: 650;
+    text-transform: uppercase; cursor: pointer; transition: background .12s, transform .12s, color .12s;
+  }
+  .touche:hover { background: #26384a; }
+  .touche:focus-visible { outline: none; background: #fff; color: var(--fond); transform: scale(1.1); }
+  .touche.large { grid-column: span 3; aspect-ratio: auto; text-transform: none; font-size: 15px; }
+  .touche.double { grid-column: span 2; aspect-ratio: auto; }
+  #etatRecherche { font-size: 14px; color: var(--doux); margin: 0 0 14px; display: flex; align-items: center; gap: 8px; }
+  #etatRecherche:empty { display: none; }
+  #etatRecherche.ko { color: var(--rouge); }
+  #etatRecherche.charge::before {
+    content: ""; width: 14px; height: 14px; border-radius: 50%; border: 2px solid #33475a; border-top-color: var(--bleu);
+    animation: tourne .8s linear infinite; flex: none;
+  }
+  .suggestions h2 { font-size: 19px; font-weight: 750; margin: 0 0 12px; }
+  .suggestions-liste { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 8px; }
+  .suggestion-ligne {
+    display: flex; align-items: center; gap: 12px; text-align: left; background: var(--surface); border: 1px solid #ffffff0f;
+    border-radius: 10px; padding: 13px 16px; cursor: pointer; transition: background .15s, border-color .15s;
+  }
+  .suggestion-ligne:hover, .suggestion-ligne:focus-visible { background: #1e2a36; border-color: #ffffff38; }
+  .suggestion-type { flex: none; width: 40px; font-size: 11px; font-weight: 750; text-transform: uppercase; letter-spacing: .05em; color: #8ccaff; }
+  .suggestion-titre { font-weight: 650; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* barre d'outils : filtres, tri, vue */
+  .outils { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 14px; }
+  #btnFiltres[aria-expanded="true"] { border-color: var(--bleu); background: #1a98ff24; }
+  .compteur { background: var(--bleu); color: #fff; font-size: 11.5px; font-weight: 700; border-radius: 99px; padding: 0 6px; min-width: 18px; text-align: center; }
+  .vues button { display: grid; place-items: center; padding: 6px 9px; }
+  .vues svg { width: 16px; height: 16px; }
+  .panneau-filtres {
+    margin-bottom: 16px; background: var(--surface); border: 1px solid #ffffff12; border-radius: 12px; padding: 14px 16px; display: grid; gap: 12px;
+  }
+  .f-section { display: grid; gap: 6px; min-width: 0; }
+  .f-titre { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--doux); font-weight: 650; }
+  .f-note { text-transform: none; letter-spacing: 0; font-weight: 400; }
+  .f-ligne { display: flex; flex-wrap: wrap; gap: 12px 28px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chips:empty::before { content: "—"; color: #4a5a6b; font-size: 13px; }
+  .chip {
+    border: 1px solid #ffffff1f; background: #ffffff0a; color: #b9c4d0; border-radius: 99px; padding: 4px 12px; font-size: 13px;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-weight: 600;
+  }
+  .chip:hover { color: #fff; border-color: #ffffff3d; }
+  .chip[aria-pressed="true"] { background: #1a98ff2b; border-color: var(--bleu); color: #fff; }
+  .chip-n { font-size: 11.5px; color: #6e7f92; font-variant-numeric: tabular-nums; }
+  .chip[aria-pressed="true"] .chip-n { color: #8ccaff; }
+  .chip.en-cours { border-style: dashed; }
+  .chip.vivant::after { content: " ✓"; color: var(--vert); }
+  .chip.mort { text-decoration: line-through; opacity: .6; }
+  .f-annees { display: flex; align-items: center; gap: 6px; color: var(--doux); }
+  .f-annees input {
+    width: 82px; background: #ffffff0d; border: 1px solid #ffffff1f; border-radius: 8px; padding: 6px 9px; color: var(--texte); outline: none;
+  }
+  .f-annees input:focus { border-color: var(--bleu); }
+  .f-case { display: inline-flex !important; align-items: center; gap: 9px; font-size: 14px; cursor: pointer; padding: 4px 0; color: var(--texte) !important; }
+  .f-case input { accent-color: var(--bleu); width: 18px; height: 18px; }
+  .f-pied { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+
+  /* résultats : affiches (grille) ou lignes (liste) */
+  .resultats { display: grid; gap: 8px; }
+  .resultat { border: 1px solid #ffffff0f; border-radius: 12px; background: var(--surface); overflow: hidden; }
+  .r-bouton {
+    width: 100%; display: flex; align-items: center; gap: 14px; padding: 8px 14px 8px 8px; border: 0; background: none;
+    text-align: left; cursor: pointer; border-radius: 11px;
+  }
+  .r-bouton:hover { background: #1c2834; }
+  .r-bouton:focus-visible { outline: 3px solid #fff; outline-offset: -3px; }
+  .r-image { width: 40px; height: 60px; border-radius: 6px; object-fit: cover; background: var(--carte-2); flex: none; display: grid; place-items: center; color: #4a5a6b; }
+  .r-image svg { width: 18px; height: 18px; }
+  .r-texte { flex: 1; min-width: 0; display: grid; gap: 2px; }
+  .r-titre { font-weight: 650; overflow-wrap: anywhere; }
+  .r-chemin { font-size: 12.5px; color: var(--doux); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .r-chevron { color: var(--doux); flex: none; width: 18px; height: 18px; }
+  .r-detail { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; margin-top: 2px; }
+  .r-meta { font-size: 12.5px; color: var(--doux); }
+  .resultats.grille { grid-template-columns: repeat(auto-fill, minmax(var(--l-affiche), 1fr)); gap: 26px 16px; }
+  .resultats.grille .resultat { border: 0; background: none; overflow: visible; border-radius: 10px; }
+  .resultats.grille .r-bouton { flex-direction: column; align-items: stretch; gap: 9px; padding: 0; height: 100%; border-radius: 10px; }
+  .resultats.grille .r-bouton:hover { background: none; }
+  .resultats.grille .r-bouton:focus-visible { outline: none; }
+  .resultats.grille .r-image {
+    width: 100%; height: auto; aspect-ratio: 2 / 3; border-radius: 10px; box-shadow: 0 8px 22px #0008; transition: transform .22s, box-shadow .22s;
+  }
+  .resultats.grille .r-bouton:hover .r-image { transform: scale(1.03); }
+  .resultats.grille .r-bouton:focus-visible .r-image { transform: scale(1.05); box-shadow: 0 0 0 3px #fff, 0 16px 36px #000d; }
+  .resultats.grille .r-image svg { width: 30px; height: 30px; }
+  .resultats.grille .r-chevron { display: none; }
+  .resultats.grille .r-titre { font-size: 14px; line-height: 1.3; }
+  .resultats.grille .r-detail .puce:not(.langue):not(.nombre) { display: none; }
+  .resultats.grille .r-texte { align-content: start; padding: 0 2px; }
+
+  /* ---------- fiche d'un contenu, plein écran ---------- */
+  .detail { position: fixed; inset: 0; z-index: 40; background: var(--fond); overflow: hidden; }
+  body.detail-ouvert { overflow: hidden; }
+  .detail-fond {
+    position: absolute; inset: -80px -80px auto; height: 78vh; background-size: cover; background-position: center 25%;
+    filter: blur(44px) saturate(1.3) brightness(.55); opacity: .95;
+    -webkit-mask-image: linear-gradient(#000 35%, transparent); mask-image: linear-gradient(#000 35%, transparent);
+  }
+  .detail-defilement { position: absolute; inset: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0 var(--marge) 150px; }
+  .detail-defilement:focus { outline: none; }
+  .detail-fermer {
+    position: sticky; top: 16px; z-index: 3; margin: 16px 0 0 auto; width: 48px; height: 48px;
+    background: #0b1118b8; border: 1px solid #ffffff2e; backdrop-filter: blur(8px);
+  }
+  .detail-hero { position: relative; display: flex; align-items: flex-end; gap: 34px; padding: 0 0 30px; max-width: 1400px; margin: -20px auto 0; }
+  .detail-affiche {
+    width: clamp(150px, 17vw, 270px); aspect-ratio: 2 / 3; object-fit: cover; border-radius: 14px; flex: none;
+    box-shadow: 0 26px 60px #000d, 0 0 0 1px #ffffff1a;
+  }
+  .detail-infos { min-width: 0; }
+  .detail-infos h1 { font-size: clamp(26px, 3.4vw, 50px); line-height: 1.08; margin: 0 0 10px; font-weight: 800; letter-spacing: -.015em; overflow-wrap: anywhere; }
+  .detail-meta { color: #d3dce5; margin: 0 0 14px; font-size: 15.5px; font-weight: 600; }
+  .detail-puces { display: flex; flex-wrap: wrap; gap: 6px; }
+  .detail-puces .puce { font-size: 12.5px; padding: 3px 10px; }
+  .detail-actions { margin-top: 20px; display: flex; flex-wrap: wrap; gap: 10px; }
+  .detail-corps { position: relative; max-width: 1400px; margin: 0 auto; display: grid; gap: 24px; }
+  .detail-corps .r-sources { border: 0; padding: 0; display: grid; gap: 28px; }
+  .detail-corps .r-sources .aide a { color: var(--bleu); }
+  .saisons { display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px 8px; scrollbar-width: thin; }
+  .saison {
+    flex: none; display: grid; gap: 1px; text-align: left; border: 1px solid #ffffff1f; background: #ffffff0d; border-radius: 10px;
+    padding: 9px 18px; cursor: pointer; color: #c3ccd6; font-weight: 700; font-size: 15px; transition: background .15s, color .15s;
+  }
+  .saison:hover { background: #ffffff1c; color: #fff; }
+  .saison[aria-selected="true"] { background: #fff; color: var(--fond); border-color: #fff; }
+  .saison-n { font-size: 12px; font-weight: 500; opacity: .75; }
+
+  /* versions et sources : tuiles à cocher */
+  .versions { display: grid; gap: 10px; }
+  .v-titre { font-size: 13px; text-transform: uppercase; letter-spacing: .07em; color: var(--doux); font-weight: 700; }
+  .v-saison { display: grid; gap: 8px; }
+  .v-sous-titre { font-size: 15px; font-weight: 700; color: var(--texte); padding-top: 4px; }
+  .versions:not([hidden]) + .zone-sources { border-top: 1px solid #ffffff14; padding-top: 22px; }
+  .zone-sources, .bloc-sources { display: grid; gap: 16px; }
+  .zone-sources > .aide { margin: 0; font-size: 14px; }
+  .groupe-sources { border: 0; margin: 0; padding: 0; min-width: 0; }
+  .groupe-sources legend { font-size: 13px; text-transform: uppercase; letter-spacing: .07em; color: var(--doux); padding: 0 0 8px; font-weight: 700; }
+  .tuiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 8px; }
+  .source { display: block; min-width: 0; cursor: pointer; border-radius: 11px; }
+  .source input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+  .s-corps {
+    display: flex; align-items: center; gap: 11px; padding: 10px 12px; border: 1px solid #ffffff14; border-radius: 11px;
+    background: var(--surface); transition: border-color .12s, background .12s, transform .12s; height: 100%;
+  }
+  .source:hover .s-corps { border-color: #ffffff38; background: #18232e; }
+  .source input:checked + .s-corps { border-color: var(--bleu); background: #10263a; }
+  .source input:focus-visible + .s-corps { outline: 3px solid #fff; outline-offset: 2px; }
+  .s-coche { width: 18px; height: 18px; border-radius: 50%; border: 2px solid #4f6275; flex: none; display: grid; place-items: center; }
+  .source input:checked + .s-corps .s-coche { border-color: var(--bleu); background: var(--bleu); }
+  .source input:checked + .s-corps .s-coche::after { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #fff; }
+  .source input[type="checkbox"] + .s-corps .s-coche { border-radius: 5px; }
+  .source input[type="checkbox"]:checked + .s-corps .s-coche::after { content: "✓"; width: auto; height: auto; background: none; color: #fff; font-size: 12px; line-height: 1; font-weight: 700; }
+  .s-texte { flex: 1; min-width: 0; display: grid; gap: 1px; }
+  .s-hote { font-weight: 650; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .s-hote .puce { font-size: 11px; vertical-align: 1px; }
+  .s-libelle { font-size: 12.5px; color: var(--doux); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .s-type {
+    flex: none; font-size: 10.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: 2px 6px;
+    border-radius: 5px; background: #ffffff14; color: var(--doux);
+  }
+  .s-type.hebergeur { color: #8ccaff; background: #1a98ff24; }
+  .s-type.protege { color: #e2bdf2; background: #aa5cc32b; }
+  .s-type.magnet, .s-type.torrent { color: #8fe3bd; background: #3ecf8e24; }
+  .s-etat { font-size: 12px; color: var(--doux); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .s-ep { margin-right: 6px; }
+  .source.version .s-hote { white-space: normal; overflow: visible; line-height: 1.6; }
+  .source.version .s-corps { align-items: flex-start; }
+  .source.version .s-coche { margin-top: 3px; }
+  .source.envoyee .s-hote::after { content: " · envoyée ✓"; color: var(--vert); font-weight: 500; font-size: 12.5px; }
+  .source.envoyee .s-corps { border-color: #2c5a45; }
+  .source.morte { cursor: not-allowed; }
+  .source.morte .s-corps { opacity: .5; }
+  .v-dispo { font-size: 12px; color: var(--doux); display: flex; align-items: center; gap: 6px; }
+  .v-dispo:empty { display: none; }
+  .v-dispo.ok, .s-etat.ok { color: var(--vert); }
+  .v-dispo.ko, .s-etat.ko { color: var(--rouge); }
+  .v-dispo.attente::before, .s-etat.attente::before, .ep-etat.attente::before {
+    content: ""; width: 10px; height: 10px; border-radius: 50%; border: 2px solid #33475a; border-top-color: var(--bleu);
+    animation: tourne .8s linear infinite; display: inline-block; vertical-align: -1px; margin-right: 5px;
+  }
+  .r-pied { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding-top: 2px; }
+  .r-choix { flex: 1 1 200px; min-width: 0; font-size: 14px; color: var(--doux); overflow-wrap: anywhere; }
+  .r-choix strong { color: var(--texte); font-weight: 650; }
+  .r-choix.ok { color: var(--vert); }
+  .r-choix.ko { color: var(--rouge); }
+
+  /* série : une ligne par épisode */
+  .ep-tete { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+  .ep-total { font-weight: 700; }
+  .ep-champ { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--doux); }
+  .ep-tete select { background: #ffffff12; border: 1px solid #ffffff1f; border-radius: 8px; padding: 6px 9px; color: var(--texte); font-size: 13.5px; }
+  .ep-liste { display: grid; gap: 5px; }
+  .ep-ligne {
+    display: grid; grid-template-columns: 140px minmax(0, 1fr) auto; align-items: center; gap: 8px 12px; padding: 7px 10px;
+    border-radius: 9px; background: var(--surface); border: 1px solid transparent;
+  }
+  .ep-ligne:has(input:checked) { background: #10263a; border-color: #1a98ff55; }
+  .ep-ligne.envoyee { opacity: .6; }
+  .ep-case { display: inline-flex; align-items: center; gap: 9px; cursor: pointer; font-size: 14px; font-weight: 600; white-space: nowrap; }
+  .ep-case input { accent-color: var(--bleu); width: 18px; height: 18px; }
+  .ep-hotes { display: flex; flex-wrap: wrap; gap: 4px; }
+  .ep-hotes .chip { padding: 2px 10px; font-size: 12.5px; }
+  .ep-etat { font-size: 12px; color: var(--doux); white-space: nowrap; min-width: 16px; }
+  .ep-etat.ok { color: var(--vert); }
+  .ep-etat.ko { color: var(--rouge); }
+  details.replie summary { cursor: pointer; color: var(--doux); font-size: 13px; padding: 2px 0 8px; }
+
+  /* ---------- sélection multiple, en bas de l'écran (au-dessus de la fiche) ---------- */
+  .panier {
+    position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); width: min(880px, calc(100vw - 24px)); z-index: 45;
+    background: #13202cf2; backdrop-filter: blur(14px); border: 1px solid #1a98ff66; border-radius: 16px; box-shadow: 0 16px 50px #000c;
+    padding: 12px 16px; display: grid; gap: 8px;
+  }
+  .panier summary { cursor: pointer; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+  #panierResume { color: var(--doux); font-size: 13px; }
+  #panierListe { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; max-height: 32vh; overflow-y: auto; font-size: 13px; }
+  #panierListe li { display: flex; gap: 8px; align-items: baseline; background: #ffffff0d; border-radius: 8px; padding: 5px 8px; }
+  #panierListe li span { flex: 1; min-width: 0; overflow-wrap: anywhere; color: var(--doux); }
+  #panierListe li strong { color: var(--texte); font-weight: 650; }
+  .panier-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+  .panier-actions .r-choix { flex: 1 1 160px; }
+
+  /* ---------- fenêtres ---------- */
+  dialog {
+    width: min(580px, calc(100vw - 32px)); background: var(--surface); color: var(--texte); border: 1px solid #ffffff1a;
+    border-radius: 18px; padding: 0; box-shadow: 0 30px 80px #000d;
+  }
+  dialog::backdrop { background: #04070acc; backdrop-filter: blur(6px); }
+  .dlg-tete { padding: 20px 22px 4px; }
+  .dlg-tete h2 { margin: 0; font-size: 19px; font-weight: 750; }
+  .dlg-corps { padding: 12px 22px 4px; display: grid; gap: 16px; max-height: min(68vh, 640px); overflow-y: auto; }
+  .dlg-corps label { display: grid; gap: 6px; font-size: 13.5px; color: var(--doux); font-weight: 600; }
+  .dlg-corps label .aide { font-weight: 400; }
+  .dlg-corps input, .dlg-corps select {
+    background: #ffffff0d; border: 1px solid #ffffff1f; border-radius: 9px; padding: 10px 12px; outline: none; color: var(--texte); font-weight: 400;
+  }
+  .dlg-corps input:focus, .dlg-corps select:focus { border-color: var(--bleu); }
+  .dlg-pied { display: flex; justify-content: flex-end; gap: 8px; padding: 16px 22px 20px; align-items: center; }
+  .dlg-pied .msg { flex: 1; font-size: 13px; }
+  .dlg-pied .msg.ko { color: var(--rouge); }
+  .dlg-pied .msg.ok { color: var(--vert); }
+  #sources {
+    width: 100%; min-height: 120px; resize: vertical; background: #ffffff0a; border: 1px solid #ffffff1f;
+    border-radius: 11px; padding: 12px 14px; outline: none; line-height: 1.45; word-break: break-all;
+  }
+  #sources:focus { border-color: var(--bleu); }
+  #sources::placeholder { color: #6e7f92; word-break: normal; }
+  .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 12px; }
+  #retour { font-size: 13.5px; margin-top: 10px; }
+  #retour:empty { display: none; }
+  #retour.ko { color: var(--rouge); }
+  #retour.ok { color: var(--vert); }
+  .liste-magnets { display: grid; gap: 6px; max-height: min(60vh, 520px); overflow-y: auto; font-size: 14px; color: var(--doux); }
+  .magnet { display: flex; align-items: center; gap: 10px; background: #ffffff0a; border-radius: 9px; padding: 8px 10px; }
+  .magnet .m-texte { flex: 1; min-width: 0; display: grid; }
+  .magnet .m-nom { color: var(--texte); overflow-wrap: anywhere; }
+  .magnet .m-info { font-size: 12.5px; }
+  .magnet button { flex: none; }
+  .magnet button:disabled { opacity: .6; cursor: default; }
+  .magnet.sans-video { opacity: .55; }
+  .liste-magnets .lien-bouton { justify-self: start; padding: 6px 2px; }
+  .zone-arret { display: grid; gap: 6px; padding-top: 10px; border-top: 1px dashed #ffffff1f; }
+  .zone-arret .bouton { justify-self: start; }
+  /* Glisser un lien ou un .torrent n'importe où sur la page. */
+  body.depot::after {
+    content: "Dépose ton lien ou ton fichier .torrent"; position: fixed; inset: 14px; z-index: 70; pointer-events: none;
+    display: grid; place-items: center; border: 3px dashed var(--bleu); border-radius: 22px; background: #0b1118e0;
+    font-size: 24px; font-weight: 750; color: #fff;
+  }
+
+  /* ---------- téléchargements : tiroir sur la droite ---------- */
+  .tiroir {
+    position: fixed; top: 0; right: 0; bottom: 0; width: min(var(--largeur-tiroir), 100vw); z-index: 30;
+    background: #0e151d; border-left: 1px solid #ffffff14; box-shadow: -16px 0 50px #000b;
+    transform: translateX(105%); visibility: hidden; transition: transform .22s ease, visibility 0s linear .22s;
+  }
+  .tiroir.ouvert { transform: none; visibility: visible; transition: transform .22s ease; }
+  .tiroir-interieur { height: 100%; display: flex; flex-direction: column; }
+  .tiroir-tete { display: flex; align-items: center; gap: 8px; padding: 16px 14px 10px 18px; }
+  .tiroir-tete h2 { margin: 0; font-size: 17px; font-weight: 750; }
+  .tiroir-outils { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 0 14px 8px 18px; }
+  .tiroir-outils .segments button { padding: 5px 10px; font-size: 13px; }
+  .tiroir-outils .segments .n { color: #6e7f92; margin-left: 4px; font-variant-numeric: tabular-nums; }
+  #syncMessage { padding: 0 18px; margin: 0 0 6px; }
+  #syncMessage:empty { display: none; }
+  #syncMessage.ok { color: var(--vert); }
+  #syncMessage.ko { color: var(--rouge); }
+  .tiroir-corps { flex: 1; overflow-y: auto; padding: 4px 14px 24px 18px; overscroll-behavior: contain; }
+  #liste { display: grid; gap: 10px; }
+  #vide { text-align: center; color: var(--doux); padding: 34px 10px; border: 1px dashed #ffffff1f; border-radius: var(--rayon); font-size: 14px; }
+  #vide:empty { display: none; }
+  .job { padding: 13px 14px 12px; }
+  .job.nouveau { animation: arrivee 2.4s ease; }
+  @keyframes arrivee { 0%, 40% { border-color: var(--bleu); box-shadow: 0 0 0 3px #1a98ff40; } }
+  .job-tete { display: flex; align-items: flex-start; gap: 10px; }
+  .job-type {
+    flex: none; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: 2px 7px;
+    border-radius: 6px; background: #ffffff14; color: var(--doux); margin-top: 2px;
+  }
+  .job-titre { flex: 1; min-width: 0; font-weight: 650; overflow-wrap: anywhere; }
+  .job-boutons { display: flex; gap: 6px; flex: none; }
+  .job-boutons button {
+    border: 1px solid #ffffff1f; background: #ffffff0d; border-radius: 8px; padding: 3px 10px; cursor: pointer; font-size: 13px; color: var(--doux);
+  }
+  .job-boutons button:hover { color: var(--texte); border-color: #ffffff3d; }
+  .etapes { display: flex; flex-wrap: wrap; gap: 4px; list-style: none; margin: 9px 0 0; padding: 0; font-size: 12px; }
+  .etapes li {
+    display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px 2px 7px; border-radius: 99px;
+    background: #ffffff0a; color: #6e7f92; border: 1px solid transparent;
+  }
+  .etapes li::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .7; }
+  .etapes li + li { margin-left: 14px; position: relative; }
+  .etapes li + li::after { content: "›"; position: absolute; left: -13px; color: #4a5a6b; }
+  .etapes li.fait { color: var(--vert); }
+  .etapes li.fait::before { content: "✓"; width: auto; height: auto; background: none; opacity: 1; font-size: 11px; }
+  .etapes li.actif { color: var(--texte); border-color: #1a98ff66; background: #1a98ff1f; }
+  .etapes li.actif::before { background: var(--bleu); opacity: 1; animation: pouls 1.4s infinite; }
+  .job[data-etat="erreur"] .etapes li.actif, .job[data-etat="annule"] .etapes li.actif { border-color: #5a3a44; background: #2a1a20; }
+  .job[data-etat="erreur"] .etapes li.actif::before, .job[data-etat="annule"] .etapes li.actif::before { background: var(--rouge); animation: none; }
+  .job-ligne { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 14px; margin-top: 8px; font-size: 13.5px; }
+  .job-etat { display: inline-flex; align-items: center; gap: 7px; }
+  .job-etat::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--doux); flex: none; }
+  .job[data-etat="telechargement"] .job-etat::before, .job[data-etat="torrent"] .job-etat::before, .job[data-etat="preparation"] .job-etat::before { background: var(--bleu); animation: pouls 1.4s infinite; }
+  .job[data-etat="termine"] .job-etat::before { background: var(--vert); }
+  .job[data-etat="erreur"] .job-etat::before { background: var(--rouge); }
+  .job[data-etat="erreur"] .job-etat { color: #ffb3b3; }
+  .job[data-etat="file"] .job-etat::before, .job[data-etat="attente"] .job-etat::before { background: var(--orange); }
+  .job-chiffres { color: var(--doux); font-variant-numeric: tabular-nums; }
+  .barre { height: 6px; border-radius: 99px; background: #ffffff14; overflow: hidden; margin-top: 9px; }
+  .barre > div { height: 100%; width: 0; background: var(--degrade); border-radius: 99px; transition: width .6s ease; }
+  .job[data-etat="termine"] .barre > div { background: var(--vert); }
+  .job[data-etat="erreur"] .barre > div { background: var(--rouge); }
+  .job[data-etat="torrent"] .barre > div {
+    background: repeating-linear-gradient(-45deg, #aa5cc3 0 8px, #8d4aa3 8px 16px); background-size: 200% 100%; animation: rayures 1s linear infinite;
+  }
+  @keyframes rayures { to { background-position: -22.6px 0; } }
+  .barre.cachee { display: none; }
+  details.fichiers { margin-top: 9px; font-size: 13px; color: var(--doux); }
+  details.fichiers summary { cursor: pointer; list-style: none; display: flex; gap: 6px; align-items: baseline; overflow-wrap: anywhere; }
+  details.fichiers summary::-webkit-details-marker { display: none; }
+  details.fichiers summary::before { content: "▸"; font-size: 11px; transition: transform .15s; display: inline-block; }
+  details.fichiers[open] summary::before { transform: rotate(90deg); }
+  details.fichiers ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+  details.fichiers li { background: #ffffff0a; border-radius: 8px; padding: 7px 10px; display: grid; gap: 2px; }
+  .f-nom { color: var(--texte); overflow-wrap: anywhere; }
+  .f-dest { overflow-wrap: anywhere; font-size: 12.5px; }
+  .f-etat { font-size: 12px; }
+  .f-etat.ok { color: var(--vert); }
+  .f-etat.erreur { color: var(--rouge); }
+  .ferme { position: fixed; inset: 0; z-index: 80; background: #04070af0; display: grid; place-items: center; padding: 16px; }
+  .ferme .carte { padding: 24px 26px; max-width: 460px; }
+  .ferme h2 { margin: 0 0 8px; }
+  .ferme p { margin: 0; color: var(--doux); }
+
+  /* Grand écran : le tiroir se range à côté de la page au lieu de la recouvrir. */
+  @media (min-width: 1280px) {
+    body.tiroir-ouvert { padding-right: var(--largeur-tiroir); }
+    body.tiroir-ouvert .nav, body.tiroir-ouvert .detail { right: var(--largeur-tiroir); }
+    body.tiroir-ouvert .tiroir { box-shadow: none; }
+    body.tiroir-ouvert .panier { left: calc((100vw - var(--largeur-tiroir)) / 2); width: min(880px, calc(100vw - var(--largeur-tiroir) - 24px)); }
+  }
+
+  /* ---------- écran tactile : cibles plus grandes ---------- */
+  @media (pointer: coarse) {
+    .chip { padding: 7px 13px; }
+    .ep-hotes .chip { padding: 6px 11px; }
+    .ep-ligne { padding: 9px 10px; }
+    .ep-case input, .f-case input { width: 22px; height: 22px; }
+  }
+
+  /* ---------- tablette et téléphone ---------- */
+  @media (max-width: 900px) {
+    .avec-clavier .recherche-corps { grid-template-columns: 1fr; }
+    .clavier { position: static; max-width: 460px; }
+    .hero-contenu { max-width: 62%; }
+  }
+  @media (max-width: 760px) {
+    :root { --haut-nav: 108px; --l-affiche: clamp(108px, 30vw, 150px); }
+    .nav { flex-wrap: wrap; align-content: flex-start; height: var(--haut-nav); padding-top: 8px; gap: 2px; }
+    .logo { height: 48px; margin-right: 0; }
+    .logo span { display: none; }
+    .onglets { order: 10; flex: 1 0 100%; margin: 2px calc(-1 * var(--marge)) 0; padding: 0 var(--marge); }
+    .onglet { font-size: 15px; padding: 8px 12px; }
+    .nav #compte { padding: 0; width: 40px; height: 40px; justify-content: center; border: 0; background: none; margin: 0; }
+    .nav #compte > span:last-child { display: none; }
+    .icone { width: 40px; height: 40px; }
+    .hero {
+      height: auto; min-height: 0; flex-direction: column; align-items: center; justify-content: flex-end; text-align: center;
+      padding: calc(var(--haut-nav) + 12px) var(--marge) 58px;
+    }
+    .hero::after { background: linear-gradient(0deg, var(--fond) 0%, #0b1118b3 45%, #0b111866 100%); }
+    .hero-affiche { position: static; order: -1; height: min(52vh, 340px); max-height: none; margin-bottom: 20px; }
+    .hero-contenu { max-width: 100%; }
+    .hero-titre { font-size: clamp(26px, 7.4vw, 38px); }
+    .hero-resume { -webkit-line-clamp: 2; font-size: 14.5px; }
+    .hero-actions { justify-content: center; }
+    .hero-points { left: 50%; transform: translateX(-50%); bottom: 18px; }
+    .hero:not([hidden]) + .rangees { margin-top: 0; }
+    .rangee-piste { gap: 10px; }
+    .barre-recherche { grid-template-columns: minmax(0, 1fr) auto; }
+    .champ-recherche { height: 52px; padding-left: 14px; }
+    .champ-recherche input { font-size: 17px; }
+    .barre-recherche > .principal { height: 52px; padding: 0 16px; }
+    .site { display: none; }
+    .resultats.grille { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 18px 10px; }
+    .detail-hero { flex-direction: column; align-items: center; text-align: center; gap: 18px; margin-top: -30px; }
+    .detail-affiche { width: min(46vw, 210px); }
+    .detail-puces, .detail-actions { justify-content: center; }
+    .tuiles { grid-template-columns: 1fr; }
+    .r-pied .principal { flex: 1 1 100%; }
+    .ep-ligne { grid-template-columns: 1fr auto; }
+    .ep-hotes { grid-column: 1 / -1; }
+    .actions .espace { display: none; }
+    #zone .segments { flex: 1; }
+    #zone .segments button { flex: 1; }
+    .panier { bottom: 8px; padding: 10px 12px; }
+  }
+  @media (max-width: 420px) {
+  }
+  /* Sur téléphone, le clavier du téléphone suffit (le bouton reste si on l'avait activé). */
+  @media (max-width: 760px) and (hover: none) {
+    #vueRecherche:not(.avec-clavier) #btnClavier { display: none; }
+  }
+
+  /* ---------- grand affichage (télé) : tout plus gros, anneau de sélection plus épais ---------- */
+  body.grand { --largeur-tiroir: 480px; }
+  body.grand .nav, body.grand .page, body.grand .detail-defilement, body.grand .tiroir-interieur, body.grand .panier, body.grand dialog { zoom: 1.3; }
+  body.grand :focus-visible { outline-width: 3px; }
+  body.grand .hero { min-height: clamp(380px, 58vh, 640px); }
+  body.grand .affiche { gap: 16px; }
+  body.grand .rangee-piste { padding-top: 18px; padding-bottom: 18px; }
+  body.grand .affiche:focus-visible .affiche-image { transform: scale(1.09); box-shadow: 0 0 0 4px #fff, 0 18px 40px #000e; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+  }
+</style>
+<link rel="stylesheet" href="/app/media.css">
+<link rel="manifest" href="/app/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/app/icone-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+</head>
+<body>
+<!-- Barre de navigation, comme sur les plateformes : rubriques à gauche, outils à droite. -->
+<header id="nav" class="nav">
+  <a id="logoAccueil" class="logo" href="#" title="Accueil">
+    <svg viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#58b9ff"/><stop offset="1" stop-color="#1a6dff"/></linearGradient></defs><rect width="32" height="32" rx="8" fill="url(#lg)"/><path d="M16 7v13m-6-6 6 6 6-6M9 25h14" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span>Débrideur</span>
+  </a>
+  <nav id="onglets" class="onglets" aria-label="Rubriques"></nav>
+  <span class="espace"></span>
+  <button id="btnRecherche" class="icone" type="button" title="Rechercher" aria-label="Rechercher">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+  </button>
+  <button id="btnAjouter" class="icone" type="button" title="Ajouter un lien, un magnet ou un .torrent" aria-label="Ajouter un lien">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+  </button>
+  <span id="compte" class="badge" title="Compte AllDebrid"><span class="point"></span><span>…</span></span>
+  <button id="btnTiroir" class="icone avec-pastille" type="button" title="Téléchargements" aria-label="Téléchargements" aria-controls="tiroir" aria-expanded="false">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M5 21h14"/></svg>
+    <span id="tiroirActifs" class="pastille" hidden></span>
+  </button>
+  <button id="btnReglages" class="icone" type="button" title="Réglages" aria-label="Réglages">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+  </button>
+  <button id="btnProfil" class="btn-profil" type="button" aria-haspopup="menu" aria-expanded="false" title="Profil"></button>
+</header>
+
+<div class="page">
+  <!-- Accueil : une grande affiche à la une, puis des rangées qui défilent de côté. -->
+  <main id="vueAccueil" class="vue">
+    <section id="hero" class="hero" aria-roledescription="carrousel" aria-label="À la une" hidden>
+      <div id="heroFond" class="hero-fond" aria-hidden="true"></div>
+      <div class="hero-contenu">
+        <p id="heroSurTitre" class="hero-sur-titre"></p>
+        <h1 id="heroTitre" class="hero-titre"></h1>
+        <p id="heroMeta" class="hero-meta"></p>
+        <p id="heroResume" class="hero-resume"></p>
+        <div class="hero-actions">
+          <button id="heroPrincipal" class="bouton principal grand" type="button"></button>
+          <button id="heroSecondaire" class="bouton grand verre" type="button" hidden></button>
+        </div>
+      </div>
+      <img id="heroAffiche" class="hero-affiche" alt="" referrerpolicy="no-referrer" hidden>
+      <div id="heroPoints" class="hero-points" role="tablist" aria-label="Choisir l'affiche à la une"></div>
+    </section>
+    <div id="rangees" class="rangees" aria-live="polite"></div>
+    <p id="etatAccueil" class="etat-accueil"></p>
+  </main>
+
+  <!-- Recherche : grand champ, clavier à l'écran pour la télécommande, résultats en grille. -->
+  <main id="vueRecherche" class="vue" hidden>
+    <section id="recherche" aria-label="Recherche">
+      <form id="formRecherche" class="barre-recherche" role="search">
+        <div class="champ-recherche">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input id="q" type="search" autocomplete="off" spellcheck="false" enterkeyhint="search" aria-label="Rechercher un film, une série, un manga">
+          <button id="site" class="site" type="button" title="Changer de site (Réglages)"></button>
+        </div>
+        <button class="bouton principal" type="submit">Rechercher</button>
+        <div class="filtres">
+          <button id="btnClavier" class="bouton" type="button" aria-pressed="false" title="Clavier à l'écran (pour la télécommande)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></svg>
+            Clavier
+          </button>
+          <select id="categorie" aria-label="Rubrique de la recherche" title="Ajouté à la fin de la recherche" hidden></select>
+        </div>
+      </form>
+      <div class="recherche-corps">
+        <div id="clavier" class="clavier" hidden aria-label="Clavier à l'écran"></div>
+        <div class="recherche-resultats">
+          <div id="etatRecherche" role="status"></div>
+          <div id="suggestions" class="suggestions" hidden></div>
+          <div id="outils" class="outils" hidden>
+            <button id="btnFiltres" class="bouton" type="button" aria-expanded="false" aria-controls="panneauFiltres">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h18M6 12h12M10 19h4"/></svg>
+              Filtres <span id="nbFiltres" class="compteur" hidden></span>
+            </button>
+            <select id="tri" aria-label="Trier les résultats"></select>
+            <button id="btnVerifier" class="bouton" type="button" title="Vérifie chez AllDebrid, sans les débrider, les liens de tous les résultats affichés (du premier au dernier)">Vérifier les liens</button>
+            <span id="progressionVerif" class="progression" hidden></span>
+            <span class="espace"></span>
+            <div class="segments vues" role="radiogroup" aria-label="Affichage des résultats">
+              <button type="button" role="radio" data-vue="liste" title="Liste" aria-label="Liste">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+              </button>
+              <button type="button" role="radio" data-vue="grille" title="Affiches" aria-label="Affiches">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+              </button>
+            </div>
+          </div>
+          <div id="panneauFiltres" class="panneau-filtres" hidden>
+            <div class="f-section"><div class="f-titre">Langue</div><div class="chips" id="fLangues"></div></div>
+            <div class="f-section"><div class="f-titre">Qualité</div><div class="chips" id="fQualites"></div></div>
+            <div class="f-section"><div class="f-titre">Genres <span class="f-note">(au moins un)</span></div><div class="chips" id="fGenres"></div></div>
+            <div class="f-ligne">
+              <div class="f-section">
+                <div class="f-titre">Année</div>
+                <div class="f-annees">
+                  <input id="fAnneeMin" type="number" inputmode="numeric" min="1900" max="2100" placeholder="de" aria-label="Année minimum">
+                  <span>–</span>
+                  <input id="fAnneeMax" type="number" inputmode="numeric" min="1900" max="2100" placeholder="à" aria-label="Année maximum">
+                </div>
+              </div>
+              <div class="f-section"><div class="f-titre">Note</div><div class="chips" id="fNotes"></div></div>
+            </div>
+            <div class="f-pied"><span class="aide" id="fAide"></span><button id="fReinit" class="lien-bouton" type="button">Tout réinitialiser</button></div>
+          </div>
+          <div id="resultats" class="resultats" hidden></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Bibliothèque : tes films et séries sur le PC (infos TMDB), lecture comme sur une plateforme. -->
+  <main id="vueBibliotheque" class="vue" hidden></main>
+
+  <!-- Sélection multiple : épisodes de plusieurs saisons, films de plusieurs fiches… envoyés d'un coup. -->
+  <div id="panier" class="panier" hidden role="region" aria-label="Sélection à envoyer">
+    <details id="panierDetails">
+      <summary><strong id="panierNombre"></strong> <span id="panierResume"></span></summary>
+      <ul id="panierListe"></ul>
+    </details>
+    <div class="panier-actions">
+      <span id="panierMessage" class="r-choix"></span>
+      <span id="panierMode"></span>
+      <button id="panierVider" class="lien-bouton" type="button">Vider</button>
+      <button id="panierEnvoyer" class="bouton principal" type="button">Envoyer à AllDebrid</button>
+    </div>
+  </div>
+
+  <footer>
+    <div id="reseau"></div>
+    <div id="dossiers"></div>
+  </footer>
+</div>
+
+<!-- Fiche d'un contenu, plein écran : affiche, infos, saisons, versions, sources. -->
+<div id="detail" class="detail" hidden role="dialog" aria-modal="true" aria-labelledby="detailTitre">
+  <div id="detailFond" class="detail-fond" aria-hidden="true"></div>
+  <div id="detailDefilement" class="detail-defilement" tabindex="-1">
+    <button id="fermerDetail" class="detail-fermer icone" type="button" title="Retour (Échap)" aria-label="Fermer la fiche">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+    </button>
+    <div class="detail-hero">
+      <img id="detailAffiche" class="detail-affiche" alt="" referrerpolicy="no-referrer" hidden>
+      <div class="detail-infos">
+        <h1 id="detailTitre"></h1>
+        <p id="detailMeta" class="detail-meta"></p>
+        <div id="detailPuces" class="detail-puces"></div>
+        <div class="detail-actions">
+          <a id="detailFiche" class="bouton verre" target="_blank" rel="noopener noreferrer">Voir la fiche sur le site ↗</a>
+        </div>
+      </div>
+    </div>
+    <div id="detailCorps" class="detail-corps"></div>
+  </div>
+</div>
+
+<!-- Ajouter à la main : magnet, lien d'hébergeur, dl-protect, .torrent. -->
+<dialog id="ajout">
+  <div class="dlg-tete"><h2>Ajouter un lien ou un torrent</h2></div>
+  <div class="dlg-corps">
+    <section id="zone">
+      <textarea id="sources" spellcheck="false" autocomplete="off"
+        placeholder="Colle un magnet, un lien 1fichier, dl-protect, un lien .torrent… (un par ligne)&#10;ou glisse un fichier .torrent sur la page"></textarea>
+      <div class="actions">
+        <div class="segments" role="radiogroup" aria-label="Type de contenu">
+          <button type="button" role="radio" data-mode="auto" aria-checked="true" title="Devine tout seul : S01E02 → série, sinon film">Auto</button>
+          <button type="button" role="radio" data-mode="film" aria-checked="false">Film</button>
+          <button type="button" role="radio" data-mode="serie" aria-checked="false">Série</button>
+          <button type="button" role="radio" data-mode="manga" aria-checked="false" title="Rangé comme une série, dans le dossier des mangas (Réglages)">Manga</button>
+        </div>
+        <span class="espace"></span>
+        <button id="btnMagnets" class="bouton" type="button" title="Torrents déjà prêts dans ton compte AllDebrid">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+          Mes torrents
+        </button>
+        <label class="bouton" title="Choisir des fichiers .torrent">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.4 11-8.5 8.5a5.5 5.5 0 0 1-7.8-7.8l8.5-8.5a3.7 3.7 0 0 1 5.2 5.2l-8.5 8.5a1.8 1.8 0 0 1-2.6-2.6l7.8-7.8"/></svg>
+          .torrent
+          <input id="choixTorrent" type="file" accept=".torrent,application/x-bittorrent" multiple hidden>
+        </label>
+      </div>
+      <div id="retour" role="status"></div>
+    </section>
+  </div>
+  <div class="dlg-pied">
+    <span class="msg"></span>
+    <button class="bouton" type="button" onclick="this.closest('dialog').close()">Fermer</button>
+    <button id="envoyer" class="bouton principal" type="button">Télécharger</button>
+  </div>
+</dialog>
+
+<!-- Téléchargements : tiroir sur la droite, repliable (à côté de la page sur grand écran, par-dessus sinon). -->
+<aside id="tiroir" class="tiroir" aria-label="Téléchargements">
+  <div class="tiroir-interieur">
+    <div class="tiroir-tete">
+      <h2>Téléchargements</h2>
+      <span class="espace"></span>
+      <button id="btnSync" class="bouton petit" type="button" title="Relit tout de suite les dossiers Films et Séries">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 3v6h-6"/></svg>
+        Actualiser la bibliothèque
+      </button>
+      <button id="fermerTiroir" class="icone" type="button" title="Replier" aria-label="Replier les téléchargements">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+      </button>
+    </div>
+    <div class="tiroir-outils">
+      <div class="segments" id="filtreJobs" role="radiogroup" aria-label="Afficher"></div>
+      <button id="nettoyer" class="lien-bouton" type="button" hidden>Retirer les terminés</button>
+    </div>
+    <div id="syncMessage" class="aide" role="status"></div>
+    <div class="tiroir-corps">
+      <div id="liste"></div>
+      <div id="vide"></div>
+    </div>
+  </div>
+</aside>
+
+<div id="ferme" class="ferme" hidden>
+  <div class="carte">
+    <h2>Débrideur fermé</h2>
+    <p>Relance-le avec le raccourci « Débrideur » : les téléchargements en cours reprendront où ils en étaient.</p>
+  </div>
+</div>
+
+<dialog id="magnets">
+  <div class="dlg-tete"><h2>Mes torrents AllDebrid</h2></div>
+  <div class="dlg-corps">
+    <p class="aide">Torrents déjà prêts dans ton compte. Ils seront rangés selon le choix Auto / Film / Série.</p>
+    <div id="listeMagnets" class="liste-magnets">Chargement…</div>
+  </div>
+  <div class="dlg-pied">
+    <span class="msg" id="msgMagnets"></span>
+    <button class="bouton" type="button" onclick="this.closest('dialog').close()">Fermer</button>
+  </div>
+</dialog>
+
+<dialog id="reglages">
+  <form method="dialog" id="formReglages">
+    <div class="dlg-tete"><h2>Réglages</h2></div>
+    <div class="dlg-corps">
+      <label>Clé API AllDebrid
+        <input id="cCle" type="password" autocomplete="off" spellcheck="false" placeholder="Colle ta clé ici">
+        <p class="aide">À créer sur <a href="https://alldebrid.fr/apikeys/" target="_blank" rel="noopener">alldebrid.fr/apikeys</a>. Elle reste sur ce PC.</p>
+      </label>
+      <label>Site de recherche
+        <input id="cSite" spellcheck="false" inputmode="url" autocomplete="off" placeholder="https://site-exemple.fr">
+        <p class="aide">L'adresse du site : sa barre de recherche est trouvée toute seule. Si ça ne marche pas, mets l'adresse d'une page de résultats en remplaçant les mots cherchés par <code>{q}</code>.</p>
+      </label>
+      <label>Dossier des films
+        <span class="champ-dossier"><input id="cFilms" spellcheck="false"><button class="bouton" type="button" data-parcourir="cFilms">Parcourir…</button></span>
+      </label>
+      <label>Dossier des séries
+        <span class="champ-dossier"><input id="cSeries" spellcheck="false"><button class="bouton" type="button" data-parcourir="cSeries">Parcourir…</button></span>
+      </label>
+      <label>Dossier des mangas (facultatif)
+        <span class="champ-dossier"><input id="cMangas" spellcheck="false" placeholder="Vide = avec les séries"><button class="bouton" type="button" data-parcourir="cMangas">Parcourir…</button></span>
+      </label>
+      <label>Téléchargements en même temps
+        <select id="cSimultanes">
+          <option value="1">1 (l'un après l'autre)</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>8</option>
+        </select>
+        <p class="aide">Les autres attendent leur tour dans la liste. Change tout de suite, même en cours de téléchargement.</p>
+      </label>
+      <label>Connexions par fichier
+        <select id="cConnexions">
+          <option>1</option><option>2</option><option>4</option><option>6</option><option>8</option><option>12</option><option>16</option>
+        </select>
+        <p class="aide">Plus de connexions = plus rapide, tant que ta ligne et AllDebrid suivent (ils ne donnent pas de limite). Si un serveur en refuse, les connexions en trop se ferment toutes seules. Au total : téléchargements × connexions.</p>
+      </label>
+      <label>Langue de l'application / App language
+        <select id="cLangue"><option value="fr">Français</option><option value="en">English</option></select>
+        <p class="aide">Les infos des films (TMDB) suivent la langue choisie. Sur cet appareil.</p>
+      </label>
+      <label>Clé TMDB (affiches, résumés, casting de ta bibliothèque)
+        <input id="cTmdb" type="password" autocomplete="off" spellcheck="false" placeholder="Colle le jeton ici">
+        <p class="aide">Sur <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener">themoviedb.org → Paramètres → API</a> : copie le <strong>jeton d'accès en lecture à l'API</strong> (le long, qui commence par eyJ). La « clé d'API » marche aussi : une seule des deux suffit.</p>
+      </label>
+      <label class="f-case">
+        <input id="cGrand" type="checkbox"> Grand affichage (pour la télé)
+      </label>
+      <div class="reglage-bloc">
+        <div class="f-titre">Téléphone et télé</div>
+        <div id="cAdresses"></div>
+      </div>
+      <div class="reglage-bloc">
+        <div class="f-titre">Mises à jour</div>
+        <p class="aide" id="cVersion"></p>
+        <div class="champ-dossier"><button class="bouton" type="button" id="btnVerifierMaj">Vérifier les mises à jour</button><button class="lien-bouton" type="button" id="btnAssistant">Relancer l'assistant de configuration</button></div>
+      </div>
+      <div class="zone-arret">
+        <button id="btnArreter" class="bouton danger" type="button">Arrêter le Débrideur</button>
+        <p class="aide">Ferme le programme sur ce PC (plus besoin de la ligne de commande). Relance-le avec le raccourci « Débrideur » : les téléchargements en cours reprendront où ils en étaient.</p>
+      </div>
+    </div>
+    <div class="dlg-pied">
+      <span class="msg" id="msgReglages"></span>
+      <button class="bouton" value="annuler" formnovalidate>Fermer</button>
+      <button class="bouton principal" id="sauverReglages" type="button">Enregistrer</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="/app/i18n-en.js"></script>
+<script src="/app/i18n-en-media.js"></script>
+<script src="/app/i18n.js"></script>
+<script src="/app/profils.js"></script>
+<script src="/app/bibliotheque.js"></script>
+<script src="/app/lecteur.js"></script>
+<script src="/app/assistant.js"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+let mode = 'auto';
+let dernier = { jobs: [], config: {} };
+let minuterie = null;
+
+const LIBELLES = {
+  attente: 'En attente', preparation: 'Préparation', torrent: 'Torrent chez AllDebrid', file: 'En file',
+  telechargement: 'Téléchargement', termine: 'Terminé', erreur: 'Erreur', annule: 'Annulé',
+};
+const TYPES = { magnet: 'Magnet', torrent: 'Torrent', 'torrent-url': 'Torrent', lien: 'Lien' };
+const ACTIFS = new Set(['attente', 'preparation', 'torrent', 'file', 'telechargement']);
+
+const taille = (o) => {
+  if (!o) return '0 o';
+  const u = ['o', 'Ko', 'Mo', 'Go', 'To'];
+  const i = Math.min(4, Math.floor(Math.log(o) / Math.log(1024)));
+  return `${(o / 1024 ** i).toLocaleString('fr-FR', { maximumFractionDigits: i >= 3 ? 1 : 0 })} ${u[i]}`;
+};
+const duree = (s) => {
+  if (s == null || !isFinite(s)) return '';
+  if (s < 60) return `${Math.max(1, Math.round(s))} s`;
+  if (s < 3600) return `${Math.floor(s / 60)} min ${String(Math.floor(s % 60)).padStart(2, '0')}`;
+  return `${Math.floor(s / 3600)} h ${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}`;
+};
+
+async function api(chemin, options = {}) {
+  const profil = typeof jetonProfil === 'string' && jetonProfil ? { 'X-Profil': jetonProfil } : {};
+  const r = await fetch(chemin, { ...options, headers: { 'Content-Type': 'application/json', ...profil, ...(options.headers || {}) } });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.erreur || `Erreur ${r.status}`);
+  return j;
+}
+
+function retour(texte, classe = '') {
+  const el = $('#retour');
+  el.textContent = texte;
+  el.className = classe;
+}
+
+// ---------- envoi ----------
+
+// Le choix Auto / Film / Série est partagé par la zone de collage et la recherche.
+function choisirMode(m) {
+  mode = m;
+  document.querySelectorAll('.segments [data-mode]').forEach((x) => x.setAttribute('aria-checked', String(x.dataset.mode === m)));
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('.segments [data-mode]');
+  if (b) choisirMode(b.dataset.mode);
+});
+
+async function envoyer() {
+  const sources = $('#sources').value.trim();
+  if (!sources) return $('#sources').focus();
+  $('#envoyer').disabled = true;
+  try {
+    const r = await api('/api/jobs', { method: 'POST', body: JSON.stringify({ sources, mode }) });
+    if (r.ajoutes.length) $('#sources').value = r.refuses.join('\n');
+    const msgs = [];
+    if (r.ajoutes.length) msgs.push(`${r.ajoutes.length} ajouté${r.ajoutes.length > 1 ? 's' : ''}`);
+    if (r.refuses.length) msgs.push(`pas reconnu : ${r.refuses.map((s) => s.slice(0, 60)).join(', ')}`);
+    retour(msgs.join(' · '), r.refuses.length ? 'ko' : 'ok');
+    // Tout est parti : on referme la fenêtre et on montre les téléchargements.
+    if (r.ajoutes.length && !r.refuses.length) {
+      $('#ajout').close();
+      retour('');
+    }
+    if (r.ajoutes.length) montrerTelechargements();
+    rafraichir();
+  } catch (e) {
+    retour(e.message, 'ko');
+  } finally {
+    $('#envoyer').disabled = false;
+  }
+}
+$('#envoyer').addEventListener('click', envoyer);
+$('#sources').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) envoyer();
+});
+
+async function envoyerTorrents(fichiers) {
+  let n = 0;
+  for (const f of fichiers) {
+    try {
+      const r = await fetch(`/api/torrent?mode=${mode}&nom=${encodeURIComponent(f.name)}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/x-bittorrent' }, body: f,
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.erreur || `Erreur ${r.status}`);
+      n++;
+    } catch (e) {
+      ouvrirAjout();
+      retour(`${f.name} : ${e.message}`, 'ko');
+    }
+  }
+  if (n && n === fichiers.length && $('#ajout').open) $('#ajout').close();
+  if (n) {
+    retour(`${n} torrent${n > 1 ? 's' : ''} ajouté${n > 1 ? 's' : ''}`, 'ok');
+    montrerTelechargements();
+  }
+  rafraichir();
+}
+$('#choixTorrent').addEventListener('change', (e) => {
+  envoyerTorrents([...e.target.files]);
+  e.target.value = '';
+});
+
+let profondeur = 0;
+addEventListener('dragenter', (e) => {
+  e.preventDefault();
+  profondeur++;
+  document.body.classList.add('depot');
+});
+addEventListener('dragleave', () => {
+  if (--profondeur <= 0) {
+    profondeur = 0;
+    document.body.classList.remove('depot');
+  }
+});
+addEventListener('dragover', (e) => e.preventDefault());
+addEventListener('drop', (e) => {
+  e.preventDefault();
+  profondeur = 0;
+  document.body.classList.remove('depot');
+  const torrents = [...e.dataTransfer.files].filter((f) => /\.torrent$/i.test(f.name));
+  if (torrents.length) return envoyerTorrents(torrents);
+  if (e.dataTransfer.files.length) {
+    ouvrirAjout();
+    return retour('Seuls les fichiers .torrent sont acceptés.', 'ko');
+  }
+  const texte = e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain');
+  if (texte) {
+    ouvrirAjout();
+    $('#sources').value = `${$('#sources').value.trim()}\n${texte.trim()}`.trim();
+  }
+});
+// Fenêtre « Ajouter des liens » : liens collés, magnets, fichiers .torrent.
+function ouvrirAjout() {
+  if (!$('#ajout').open) $('#ajout').showModal();
+  $('#sources').focus();
+}
+
+// ---------- liste ----------
+
+function creerCarte(j) {
+  const el = document.createElement('article');
+  el.className = 'job carte';
+  el.dataset.id = j.id;
+  el.innerHTML = `
+    <div class="job-tete">
+      <span class="job-type"></span>
+      <div class="job-titre"></div>
+      <div class="job-boutons">
+        <button data-action="annuler">Annuler</button>
+        <button data-action="relancer">Relancer</button>
+        <button data-action="retirer" title="Retirer de la liste" aria-label="Retirer de la liste">✕</button>
+      </div>
+    </div>
+    <ol class="etapes" aria-label="Étapes">
+      <li data-etape="1">AllDebrid</li><li data-etape="2">Ton PC</li><li data-etape="3">Bibliothèque</li>
+    </ol>
+    <div class="job-ligne"><span class="job-etat"></span><span class="job-chiffres"></span></div>
+    <div class="barre"><div></div></div>
+    <details class="fichiers" hidden><summary></summary><ul></ul></details>`;
+  el.querySelector('.job-boutons').addEventListener('click', async (e) => {
+    const action = e.target.closest('button')?.dataset.action;
+    if (!action) return;
+    try {
+      if (action === 'retirer') await api(`/api/jobs/${j.id}`, { method: 'DELETE' });
+      else await api(`/api/jobs/${j.id}/${action}`, { method: 'POST' });
+    } catch (err) {
+      retour(err.message, 'ko');
+    }
+    rafraichir();
+  });
+  return el;
+}
+
+function dossierCommun(fichiers) {
+  const dirs = [...new Set(fichiers.filter((f) => !f.sousTitre).map((f) => f.dest.replace(/[\\/][^\\/]*$/, '')))];
+  if (dirs.length === 1) return dirs[0];
+  // plusieurs saisons : on remonte au dossier de la série
+  const parents = [...new Set(dirs.map((d) => d.replace(/[\\/][^\\/]*$/, '')))];
+  return parents.length === 1 ? parents[0] : `${dirs.length} dossiers`;
+}
+
+function majCarte(el, j) {
+  el.dataset.etat = j.etat;
+  el.querySelector('.job-type').textContent = TYPES[j.type] || j.type;
+  el.querySelector('.job-titre').textContent = j.titre;
+  el.querySelector('[data-action="annuler"]').hidden = !ACTIFS.has(j.etat);
+  el.querySelector('[data-action="relancer"]').hidden = !['erreur', 'annule'].includes(j.etat);
+  el.querySelector('[data-action="retirer"]').hidden = ACTIFS.has(j.etat);
+
+  // Étapes : 1 = AllDebrid (débridage ou récupération du torrent), 2 = téléchargement chez toi, 3 = rangé dans la bibliothèque.
+  const recue = j.fichiers.length > 0;
+  let etape = { attente: 1, preparation: 1, torrent: 1, file: 2, telechargement: 2, termine: 4 }[j.etat];
+  if (!etape) etape = recue ? 2 : 1; // erreur ou annulation : on montre où ça s'est arrêté
+  el.querySelectorAll('.etapes li').forEach((li) => {
+    const n = Number(li.dataset.etape);
+    li.className = n < etape ? 'fait' : n === etape ? 'actif' : '';
+  });
+
+  let etat = LIBELLES[j.etat] || j.etat;
+  if (j.message) etat = j.etat === 'telechargement' || j.etat === 'termine' ? `${etat} · ${j.message}` : j.message;
+  el.querySelector('.job-etat').textContent = etat;
+
+  let chiffres = '';
+  let pct = null;
+  if (j.etat === 'torrent' && j.torrent) {
+    const t = j.torrent;
+    pct = t.total ? (t.fait / t.total) * 100 : 0;
+    const reste = t.vitesse > 0 && t.total > t.fait ? (t.total - t.fait) / t.vitesse : null;
+    chiffres = [
+      t.total ? `${taille(t.fait)} / ${taille(t.total)}` : '',
+      t.vitesse ? `${taille(t.vitesse)}/s` : '',
+      t.sources != null ? `${t.sources} source${t.sources > 1 ? 's' : ''}` : '',
+      reste ? `reste ${duree(reste)}` : '',
+    ].filter(Boolean).join(' · ');
+  } else if (j.total) {
+    pct = (j.fait / j.total) * 100;
+    if (j.etat === 'telechargement') {
+      chiffres = [`${taille(j.fait)} / ${taille(j.total)}`, j.vitesse ? `${taille(j.vitesse)}/s` : '', j.reste ? `reste ${duree(j.reste)}` : '']
+        .filter(Boolean).join(' · ');
+    } else if (j.etat === 'termine') {
+      chiffres = taille(j.total);
+      pct = 100;
+    } else chiffres = `${taille(j.fait)} / ${taille(j.total)}`;
+  } else if (j.etat === 'termine') pct = 100;
+  el.querySelector('.job-chiffres').textContent = chiffres;
+  const barre = el.querySelector('.barre');
+  barre.classList.toggle('cachee', pct == null);
+  barre.firstElementChild.style.width = `${Math.min(100, pct || 0)}%`;
+
+  const details = el.querySelector('details');
+  const videos = j.fichiers.filter((f) => !f.sousTitre);
+  details.hidden = !j.fichiers.length;
+  if (j.fichiers.length) {
+    const n = videos.length;
+    details.querySelector('summary').textContent = `${n} vidéo${n > 1 ? 's' : ''} → ${dossierCommun(j.fichiers)}`;
+    const ul = details.querySelector('ul');
+    const cle = j.fichiers.map((f) => `${f.dest}|${f.etat}|${Math.floor((f.fait / (f.taille || 1)) * 100)}`).join('#');
+    if (ul.dataset.cle !== cle) {
+      ul.dataset.cle = cle;
+      ul.replaceChildren(...j.fichiers.map((f) => {
+        const li = document.createElement('li');
+        const nom = document.createElement('span');
+        nom.className = 'f-nom';
+        nom.textContent = f.dest.split(/[\\/]/).pop();
+        const dest = document.createElement('span');
+        dest.className = 'f-dest';
+        dest.textContent = f.dest;
+        const st = document.createElement('span');
+        st.className = `f-etat ${f.etat === 'ok' || f.etat === 'deja' ? 'ok' : f.etat === 'erreur' ? 'erreur' : ''}`;
+        st.textContent = {
+          ok: `Rangé · ${taille(f.taille)}`, deja: 'Déjà présent, pas retéléchargé', erreur: 'Erreur',
+          'en cours': `${taille(f.fait)} / ${taille(f.taille)}`, attente: `En attente · ${taille(f.taille)}`,
+        }[f.etat] || f.etat;
+        li.append(nom, dest, st);
+        return li;
+      }));
+    }
+  }
+}
+
+// Ordre de la liste : ce qui télécharge, puis ce qui se prépare, la file d'attente (dans l'ordre où
+// ça partira), les erreurs, et enfin les terminés, du plus récent au plus ancien.
+const RANG_ETAT = { telechargement: 0, preparation: 1, torrent: 1, file: 2, attente: 2, erreur: 3, annule: 4, termine: 5 };
+const FILTRES_JOBS = [
+  ['tout', 'Tout', () => true],
+  ['cours', 'En cours', (j) => ACTIFS.has(j.etat)],
+  ['finis', 'Terminés', (j) => j.etat === 'termine'],
+  ['erreurs', 'Erreurs', (j) => j.etat === 'erreur' || j.etat === 'annule'],
+];
+const VIDES_JOBS = {
+  tout: "Rien pour l'instant. Choisis un résultat de recherche ou colle un lien : le fichier arrivera tout seul dans ta bibliothèque.",
+  cours: 'Rien en cours.',
+  finis: 'Aucun téléchargement terminé.',
+  erreurs: 'Aucune erreur.',
+};
+let filtreJobs = 'tout';
+const idsConnus = new Set();
+let premierRendu = true;
+
+function comparerJobs(a, b) {
+  const ra = RANG_ETAT[a.etat] ?? 9;
+  const rb = RANG_ETAT[b.etat] ?? 9;
+  if (ra !== rb) return ra - rb;
+  if (ra <= 2) return (a.cree || 0) - (b.cree || 0);
+  return (b.fini || b.cree || 0) - (a.fini || a.cree || 0);
+}
+
+function rendre() {
+  const liste = $('#liste');
+  const tous = [...dernier.jobs].sort(comparerJobs);
+  const filtre = FILTRES_JOBS.find(([k]) => k === filtreJobs) || FILTRES_JOBS[0];
+  const jobs = tous.filter(filtre[2]);
+  const ids = new Set(jobs.map((j) => j.id));
+  for (const el of [...liste.children]) if (!ids.has(el.dataset.id)) el.remove();
+  jobs.forEach((j, i) => {
+    let el = liste.querySelector(`[data-id="${j.id}"]`);
+    if (!el) {
+      el = creerCarte(j);
+      // Un téléchargement qui vient d'arriver s'éclaire un instant.
+      if (!premierRendu && !idsConnus.has(j.id)) el.classList.add('nouveau');
+    }
+    if (liste.children[i] !== el) liste.insertBefore(el, liste.children[i] || null);
+    majCarte(el, j);
+  });
+  tous.forEach((j) => idsConnus.add(j.id));
+  premierRendu = false;
+  $('#vide').hidden = jobs.length > 0;
+  $('#vide').textContent = VIDES_JOBS[filtreJobs] || VIDES_JOBS.tout;
+  $('#nettoyer').hidden = !tous.some((j) => j.etat === 'termine');
+  const nbActifs = tous.filter((j) => ACTIFS.has(j.etat)).length;
+  $('#tiroirActifs').hidden = !nbActifs;
+  $('#tiroirActifs').textContent = String(nbActifs);
+  for (const b of $('#filtreJobs').children) {
+    const n = tous.filter(FILTRES_JOBS.find(([k]) => k === b.dataset.filtre)[2]).length;
+    b.querySelector('.n').textContent = n ? String(n) : '';
+  }
+
+  const c = dernier.config || {};
+  const adresses = (dernier.adresses || []).map((a) => `http://${a}:${dernier.port}`);
+  $('#reseau').innerHTML = '';
+  if (adresses.length) {
+    $('#reseau').append('Depuis ton téléphone ou ta télé : ');
+    adresses.forEach((a, i) => {
+      if (i) $('#reseau').append(' ou ');
+      const code = document.createElement('code');
+      code.textContent = a;
+      $('#reseau').append(code);
+    });
+  }
+  if (c.dossiers) {
+    $('#dossiers').textContent = `Films → ${c.dossiers.films} · Séries → ${c.dossiers.series} · La bibliothèque est mise à jour après chaque téléchargement.`;
+  }
+  majSite();
+  majCategories();
+
+  const actifs = jobs.filter((j) => ACTIFS.has(j.etat));
+  const enCours = actifs.find((j) => j.etat === 'telechargement');
+  document.title = enCours && enCours.total ? `${Math.floor((enCours.fait / enCours.total) * 100)} % · Débrideur` : 'Débrideur';
+}
+
+async function rafraichir() {
+  clearTimeout(minuterie);
+  try {
+    dernier = await api('/api/etat');
+    rendre();
+  } catch {}
+  const actif = dernier.jobs.some((j) => ACTIFS.has(j.etat));
+  minuterie = setTimeout(rafraichir, document.hidden ? 8000 : actif ? 1000 : 4000);
+}
+document.addEventListener('visibilitychange', () => !document.hidden && rafraichir());
+
+$('#nettoyer').addEventListener('click', async () => {
+  await api('/api/nettoyer', { method: 'POST' }).catch((e) => retour(e.message, 'ko'));
+  rafraichir();
+});
+
+// ---------- tiroir des téléchargements ----------
+
+function lirePreference(cle, defaut) {
+  try {
+    const v = localStorage.getItem(cle);
+    return v == null ? defaut : JSON.parse(v);
+  } catch {
+    return defaut;
+  }
+}
+function ecrirePreference(cle, v) {
+  try {
+    localStorage.setItem(cle, JSON.stringify(v));
+  } catch {}
+}
+function ouvrirTiroir(ouvert, { memoriser = true } = {}) {
+  $('#tiroir').classList.toggle('ouvert', ouvert);
+  document.body.classList.toggle('tiroir-ouvert', ouvert);
+  $('#btnTiroir').setAttribute('aria-expanded', String(ouvert));
+  $('#tiroir').inert = !ouvert;
+  if (memoriser) ecrirePreference('tiroirOuvert', ouvert);
+}
+$('#btnTiroir').addEventListener('click', () => ouvrirTiroir(!$('#tiroir').classList.contains('ouvert')));
+$('#fermerTiroir').addEventListener('click', () => {
+  ouvrirTiroir(false);
+  $('#btnTiroir').focus();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && $('#tiroir').classList.contains('ouvert') && !document.querySelector('dialog[open]') && window.innerWidth < 1280) ouvrirTiroir(false);
+});
+// Ouvert d'office sur grand écran (il ne cache rien), fermé sur téléphone.
+ouvrirTiroir(lirePreference('tiroirOuvert', window.innerWidth >= 1280), { memoriser: false });
+// Quelque chose vient d'être envoyé : on montre le tiroir pour le voir arriver.
+function montrerTelechargements() {
+  filtreJobs = 'tout';
+  majFiltreJobs();
+  ouvrirTiroir(true);
+}
+
+function majFiltreJobs() {
+  for (const b of $('#filtreJobs').children) b.setAttribute('aria-checked', String(b.dataset.filtre === filtreJobs));
+}
+$('#filtreJobs').replaceChildren(
+  ...FILTRES_JOBS.map(([k, texte]) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.setAttribute('role', 'radio');
+    b.dataset.filtre = k;
+    b.append(texte);
+    const n = document.createElement('span');
+    n.className = 'n';
+    b.append(n);
+    b.addEventListener('click', () => {
+      filtreJobs = k;
+      majFiltreJobs();
+      rendre();
+    });
+    return b;
+  }),
+);
+majFiltreJobs();
+
+// Bibliothèque : relit tout de suite les dossiers Films et Séries.
+$('#btnSync').addEventListener('click', async () => {
+  const msg = $('#syncMessage');
+  $('#btnSync').disabled = true;
+  msg.className = 'aide';
+  msg.textContent = 'Lecture des dossiers…';
+  try {
+    await api('/api/bibliotheque/scanner', { method: 'POST', body: '{}' });
+    msg.className = 'aide ok';
+    msg.textContent = "Bibliothèque relue : les nouveaux fichiers apparaissent dans l'onglet Bibliothèque.";
+  } catch (e) {
+    msg.className = 'aide ko';
+    msg.textContent = e.message;
+  } finally {
+    $('#btnSync').disabled = false;
+    setTimeout(() => (msg.textContent = ''), 8000);
+  }
+});
+
+// Grand affichage (télé) : d'office sur un très grand écran sans souris, sinon au choix dans les Réglages.
+function appliquerGrand(grand) {
+  document.body.classList.toggle('grand', grand);
+}
+// Télé reconnue à son navigateur (Samsung, LG, Android TV, Fire TV…) ou très grand écran sans souris.
+const estTele = () =>
+  /SmartTV|SMART-TV|Tizen|Web0S|webOS|NetCast|BRAVIA|Android TV|GoogleTV|AFT[A-Z]|HbbTV|CrKey|Roku|Viera|PhilipsTV|Hisense|VIDAA/i.test(navigator.userAgent) ||
+  matchMedia('(min-width: 1700px) and (hover: none)').matches ||
+  new URLSearchParams(location.search).has('tele'); // ouvert par l'application télé
+appliquerGrand(lirePreference('grandAffichage', estTele()));
+// Dernière action au clavier (ou à la télécommande) ? Sert à placer la sélection sans gêner la souris.
+let modeClavier = false;
+addEventListener('keydown', (e) => !e.ctrlKey && !e.metaKey && (modeClavier = true), true);
+addEventListener('pointerdown', () => (modeClavier = false), true);
+
+// ---------- compte et réglages ----------
+
+async function chargerCompte(frais = false) {
+  const badge = $('#compte');
+  try {
+    const c = await api(`/api/compte${frais ? '?frais' : ''}`);
+    if (c.erreur) {
+      badge.className = 'badge ko';
+      badge.lastElementChild.textContent = c.code === 'NO_KEY' ? 'Clé API à configurer' : c.erreur;
+      if (c.code === 'NO_KEY' && dernier.config?.assistantFini && !sessionStorageSur('reglagesOuverts')) ouvrirReglages();
+      return;
+    }
+    badge.className = c.premium ? 'badge ok' : 'badge ko';
+    const date = c.jusqua ? new Date(c.jusqua).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+    badge.lastElementChild.textContent = c.premium ? `${c.pseudo} · premium${date ? ` jusqu'au ${date}` : ''}` : `${c.pseudo} · pas premium`;
+  } catch {
+    badge.className = 'badge';
+    badge.lastElementChild.textContent = 'Débrideur injoignable';
+  } finally {
+    // Sur un petit écran, seul le point reste visible : le texte passe dans l'infobulle.
+    badge.title = `Compte AllDebrid : ${badge.lastElementChild.textContent}`;
+  }
+}
+function sessionStorageSur(cle) {
+  try {
+    const deja = sessionStorage.getItem(cle);
+    sessionStorage.setItem(cle, '1');
+    return deja;
+  } catch {
+    return null;
+  }
+}
+$('#compte').addEventListener('click', () => $('#compte').classList.contains('ko') && ouvrirReglages());
+
+function ouvrirReglages(champ) {
+  const c = dernier.config || {};
+  $('#cCle').value = '';
+  $('#cCle').placeholder = c.cle ? `Clé enregistrée (…${c.cleFin}) — colle une autre clé pour la changer` : 'Colle ta clé ici';
+  $('#cSite').value = c.siteRecherche || '';
+  $('#cFilms').value = c.dossiers?.films || '';
+  $('#cSeries').value = c.dossiers?.series || '';
+  $('#cMangas').value = c.dossiers?.mangas || '';
+  $('#cAdresses').replaceChildren(blocAdresses({ adresses: dernier.adresses || [], port: dernier.port }));
+  $('#cVersion').textContent = `Version installée : ${c.version || '?'}`;
+  // Valeur enregistrée hors de la liste (ancienne version : 3) → la plus proche au-dessus.
+  const proche = (sel, v) => [...sel.options].map((o) => Number(o.value)).find((n) => n >= v) ?? Number(sel.options[sel.options.length - 1].value);
+  $('#cConnexions').value = String(proche($('#cConnexions'), c.connexions || 4));
+  $('#cSimultanes').value = String(proche($('#cSimultanes'), c.simultanes || 1));
+  $('#cLangue').value = LANGUE;
+  $('#cTmdb').value = '';
+  $('#cTmdb').placeholder = c.tmdb ? `Clé enregistrée (…${c.tmdbFin}) — colle une autre clé pour la changer` : 'Colle le jeton ici';
+  $('#cGrand').checked = document.body.classList.contains('grand');
+  armerArret(false);
+  $('#msgReglages').textContent = '';
+  $('#msgReglages').className = 'msg';
+  if (!$('#reglages').open) $('#reglages').showModal();
+  if (typeof champ === 'string') $(champ).focus();
+  else if (!c.cle) $('#cCle').focus();
+}
+$('#btnReglages').addEventListener('click', ouvrirReglages);
+
+$('#sauverReglages').addEventListener('click', async () => {
+  const msg = $('#msgReglages');
+  msg.className = 'msg';
+  msg.textContent = $('#cCle').value.trim() || $('#cTmdb').value.trim() ? 'Vérification de la clé…' : 'Enregistrement…';
+  $('#sauverReglages').disabled = true;
+  try {
+    const r = await api('/api/config', {
+      method: 'POST',
+      body: JSON.stringify({
+        cleApi: $('#cCle').value, siteRecherche: $('#cSite').value, films: $('#cFilms').value, series: $('#cSeries').value, mangas: $('#cMangas').value, connexions: $('#cConnexions').value,
+        simultanes: $('#cSimultanes').value, tmdb: $('#cTmdb').value,
+      }),
+    });
+    dernier.config = r.config;
+    ecrirePreference('grandAffichage', $('#cGrand').checked);
+    appliquerGrand($('#cGrand').checked);
+    majClavier();
+    // Nouveau site de recherche : on montre ses nouveautés (sauf si une recherche est affichée).
+    // Autre site : on refait l'accueil avec ses nouveautés.
+    cacheRubriques.clear();
+    majCategories();
+    construireAccueil(rubriqueAccueil ?? '');
+    $('#reglages').close();
+    if ($('#cLangue').value !== LANGUE) return changerLangue($('#cLangue').value);
+    chargerCompte(true);
+    rendre();
+  } catch (e) {
+    msg.className = 'msg ko';
+    msg.textContent = e.message;
+  } finally {
+    $('#sauverReglages').disabled = false;
+  }
+});
+
+// Réglages : choisir un dossier du serveur, vérifier les mises à jour, relancer l'assistant.
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-parcourir]');
+  if (!b) return;
+  e.preventDefault();
+  const champ = $('#' + b.dataset.parcourir);
+  const titre = b.closest('label')?.firstChild?.textContent.trim() || 'Dossier';
+  const x = await choisirDossier({ titre, depart: champ.value || $('#cSeries').value });
+  if (x) champ.value = x;
+  b.focus();
+});
+$('#btnVerifierMaj').addEventListener('click', async () => {
+  const b = $('#btnVerifierMaj');
+  b.disabled = true;
+  $('#cVersion').textContent = 'Vérification…';
+  const e = await verifierMisesAJour({ forcer: true, silencieux: false });
+  b.disabled = false;
+  if (e.erreur && !e.actuelle) return ($('#cVersion').textContent = e.erreur);
+  $('#cVersion').textContent = e.disponible ? `Nouvelle version ${e.derniere} disponible (installée : ${e.actuelle})` : e.erreur || `À jour : version ${e.actuelle}`;
+  if (e.disponible) {
+    $('#reglages').close();
+    fenetreMiseAJour(e);
+  }
+});
+$('#btnAssistant').addEventListener('click', () => {
+  $('#reglages').close();
+  try {
+    sessionStorage.setItem('etapeAssistant', 'bienvenue');
+  } catch {}
+  demarrerAssistant({ forcer: true });
+});
+
+// Arrêter le Débrideur : deux appuis (le premier arme, le second confirme), sans fenêtre de confirmation.
+let minuterieArret = null;
+function armerArret(arme) {
+  clearTimeout(minuterieArret);
+  const b = $('#btnArreter');
+  b.classList.toggle('confirmer', arme);
+  b.textContent = arme ? 'Confirmer l\'arrêt' : 'Arrêter le Débrideur';
+  if (arme) minuterieArret = setTimeout(() => armerArret(false), 5000);
+}
+$('#btnArreter').addEventListener('click', async () => {
+  if (!$('#btnArreter').classList.contains('confirmer')) return armerArret(true);
+  armerArret(false);
+  $('#btnArreter').disabled = true;
+  try {
+    await api('/api/arreter', { method: 'POST', body: '{}' });
+  } catch {}
+  clearTimeout(minuterie);
+  $('#reglages').close();
+  $('#ferme').hidden = false;
+});
+
+// ---------- torrents du compte ----------
+
+async function ouvrirMagnets() {
+  const liste = $('#listeMagnets');
+  $('#msgMagnets').textContent = '';
+  liste.textContent = 'Chargement…';
+  if (!$('#magnets').open) $('#magnets').showModal();
+  try {
+    const { magnets } = await api('/api/magnets');
+    if (!magnets.length) return (liste.textContent = 'Aucun torrent prêt dans ton compte.');
+    const dejaAjoutes = new Set(dernier.jobs.map((j) => j.titre));
+    const avecVideo = magnets.filter((m) => m.videos !== 0);
+    const sansVideo = magnets.filter((m) => m.videos === 0);
+    const lignes = avecVideo.map((m) => ligneMagnet(m, dejaAjoutes));
+    if (!avecVideo.length) {
+      const vide = document.createElement('p');
+      vide.className = 'aide';
+      vide.textContent = 'Aucun torrent avec des vidéos dans ton compte.';
+      lignes.push(vide);
+    }
+    if (sansVideo.length) {
+      const bouton = document.createElement('button');
+      bouton.className = 'lien-bouton';
+      bouton.type = 'button';
+      bouton.textContent = `Voir aussi les ${sansVideo.length} autres, sans vidéo (jeux, logiciels…)`;
+      bouton.addEventListener('click', () => bouton.replaceWith(...sansVideo.map((m) => ligneMagnet(m, dejaAjoutes))));
+      lignes.push(bouton);
+    }
+    liste.replaceChildren(...lignes);
+  } catch (e) {
+    liste.textContent = e.message;
+  }
+}
+
+function ligneMagnet(m, dejaAjoutes) {
+  const ligne = document.createElement('div');
+  ligne.className = m.videos === 0 ? 'magnet sans-video' : 'magnet';
+  const texte = document.createElement('div');
+  texte.className = 'm-texte';
+  const nom = document.createElement('span');
+  nom.className = 'm-nom';
+  nom.textContent = m.nom;
+  const info = document.createElement('span');
+  info.className = 'm-info';
+  info.textContent = [
+    taille(m.taille),
+    m.videos ? `${m.videos} vidéo${m.videos > 1 ? 's' : ''}` : m.videos === 0 ? 'pas de vidéo' : '',
+    m.date ? new Date(m.date).toLocaleDateString('fr-FR') : '',
+  ].filter(Boolean).join(' · ');
+  texte.append(nom, info);
+  const b = document.createElement('button');
+  b.className = 'bouton';
+  b.textContent = dejaAjoutes.has(m.nom) ? 'Dans la liste' : 'Télécharger';
+  b.addEventListener('click', async () => {
+    b.disabled = true;
+    try {
+      await api('/api/jobs', { method: 'POST', body: JSON.stringify({ magnetId: m.id, titre: m.nom, mode }) });
+      b.textContent = 'Ajouté ✓';
+      montrerTelechargements();
+      rafraichir();
+    } catch (e) {
+      b.disabled = false;
+      $('#msgMagnets').className = 'msg ko';
+      $('#msgMagnets').textContent = e.message;
+    }
+  });
+  ligne.append(texte, b);
+  return ligne;
+}
+$('#btnMagnets').addEventListener('click', ouvrirMagnets);
+
+// ---------- recherche sur un site ----------
+
+const ICONES = {
+  chevron: '<svg class="r-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>',
+  film: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 3v18M17 3v18M3 8h4M3 16h4M17 8h4M17 16h4"/></svg>',
+};
+const TYPES_SOURCE = { hebergeur: 'Direct', protege: 'Protégé', magnet: 'Magnet', torrent: 'Torrent' };
+const envoyees = new Set();
+let rechercheEnCours = null;
+let numeroResultat = 0;
+
+const hoteDe = (s) => {
+  try {
+    return new URL(String(s).replace(/\{q\}/g, 'x')).hostname.replace(/^www\./, '');
+  } catch {
+    return '';
+  }
+};
+const element = (balise, classe, texte) => {
+  const el = document.createElement(balise);
+  if (classe) el.className = classe;
+  if (texte != null) el.textContent = texte;
+  return el;
+};
+const sansAccents = (s) => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '');
+const unique = (tab) => [...new Set(tab.filter(Boolean))];
+// Préférences d'affichage gardées dans ce navigateur (rien d'important : sans elles, valeurs par défaut).
+const memoire = {
+  lire(cle, defaut) {
+    try {
+      const v = localStorage.getItem(cle);
+      return v == null ? defaut : JSON.parse(v);
+    } catch {
+      return defaut;
+    }
+  },
+  ecrire(cle, v) {
+    try {
+      localStorage.setItem(cle, JSON.stringify(v));
+    } catch {}
+  },
+};
+
+function majSite() {
+  const hote = hoteDe(dernier.config?.siteRecherche || '');
+  const texte = hote || 'Choisir un site';
+  if ($('#site').textContent === texte) return;
+  $('#site').textContent = texte;
+  $('#q').placeholder = hote ? `Rechercher sur ${hote}…` : "Rechercher… (choisis d'abord le site)";
+}
+$('#site').addEventListener('click', () => ouvrirReglages('#cSite'));
+
+// Rubriques du site (Films, Séries, Mangas) : onglets de l'accueil, et menu de la recherche
+// (le choix est ajouté à la fin de la recherche, ex. « &p=series » ; « Tout » cherche partout).
+function majCategories() {
+  const choix = dernier.config?.categoriesRecherche?.choix || [];
+  const menu = $('#categorie');
+  const cle = JSON.stringify(choix);
+  if (menu.dataset.cle === cle) return;
+  menu.dataset.cle = cle;
+  const avant = menu.value;
+  menu.replaceChildren(
+    ...[['', 'Tout'], ...choix].map(([valeur, texte]) => {
+      const o = element('option', '', texte);
+      o.value = valeur;
+      return o;
+    }),
+  );
+  menu.hidden = !choix.length;
+  menu.value = choix.some(([v]) => v === avant) ? avant : '';
+  $('#onglets').replaceChildren(
+    ...[['', 'Accueil'], ...choix].map(([valeur, texte]) => {
+      const b = element('button', 'onglet', texte);
+      b.type = 'button';
+      b.dataset.rubrique = valeur;
+      b.addEventListener('click', () => choisirRubrique(valeur));
+      return b;
+    }),
+  );
+  const biblio = element('button', 'onglet', 'Bibliothèque');
+  biblio.type = 'button';
+  biblio.dataset.vue = 'bibliotheque';
+  biblio.addEventListener('click', () => afficherVue('bibliotheque'));
+  $('#onglets').append(biblio);
+  majOnglets();
+}
+$('#categorie').addEventListener('change', () => {
+  const q = $('#q').value.trim();
+  if (q) lancerRecherche(q);
+});
+
+function etatRecherche(texte, classe = '') {
+  $('#etatRecherche').textContent = texte;
+  $('#etatRecherche').className = classe;
+}
+
+// ---------- filtres, tri et vue ----------
+
+const LANGUES_FILTRE = [['multi', 'MULTI'], ['vf', 'VF'], ['vostfr', 'VOSTFR'], ['vo', 'VO']];
+const QUALITES_FILTRE = [['4k', '4K'], ['1080p', '1080p'], ['720p', '720p / HD'], ['autre', 'SD / autre']];
+const NOTES_FILTRE = [[0, 'Toutes'], [5, '5+'], [6, '6+'], [7, '7+'], [8, '8+']];
+const TRIS = [['pertinence', 'Pertinence'], ['site', 'Ordre du site'], ['az', 'Titre A → Z'], ['za', 'Titre Z → A'], ['recent', 'Plus récents'], ['ancien', 'Plus anciens'], ['note', 'Mieux notés']];
+
+const filtres = {
+  langues: new Set(memoire.lire('filtreLangues', [])),
+  qualites: new Set(memoire.lire('filtreQualites', [])),
+  genres: new Set(),
+  anneeMin: null,
+  anneeMax: null,
+  noteMin: memoire.lire('filtreNote', 0),
+};
+let tri = memoire.lire('triRecherche', 'pertinence');
+let vue = memoire.lire('vueRecherche', 'grille');
+
+const cleGenre = (g) => sansAccents(g).toLowerCase().trim();
+const genresDe = (v) => (v.genres || '').split(/\s*,\s*/).filter(Boolean);
+function familleQualite(q) {
+  const s = (q || '').toLowerCase();
+  if (/2160p|\b4k|uhd/.test(s)) return '4k';
+  if (/1080[pi]|fhd|full-?hd/.test(s)) return '1080p';
+  if (/720p|\bhd\b|hd-?light|mhd/.test(s)) return '720p';
+  return 'autre';
+}
+const lireNote = (n) => {
+  const m = /^([\d.]+)\/(\d+)$/.exec(n || '');
+  return m ? (Number(m[1]) / Number(m[2])) * 10 : null;
+};
+
+// Une fiche passe si sa langue et sa qualité conviennent ; une langue inconnue passe toujours.
+function versionPasse(v) {
+  if (filtres.langues.size && v.familles?.length && !v.familles.some((f) => filtres.langues.has(f))) return false;
+  if (filtres.qualites.size && !filtres.qualites.has(familleQualite(v.qualite))) return false;
+  return true;
+}
+function groupePasse(g) {
+  if (!g.vs.length) return false;
+  if (filtres.genres.size && ![...g.genres.keys()].some((k) => filtres.genres.has(k))) return false;
+  if (filtres.anneeMin && (!g.annee || g.annee < filtres.anneeMin)) return false;
+  if (filtres.anneeMax && (!g.annee || g.annee > filtres.anneeMax)) return false;
+  if (filtres.noteMin && (g.note == null || g.note < filtres.noteMin)) return false;
+  return true;
+}
+const nbFiltres = () =>
+  filtres.langues.size + filtres.qualites.size + filtres.genres.size + !!filtres.anneeMin + !!filtres.anneeMax + !!filtres.noteMin;
+
+function comparer(a, b) {
+  const titre = (x) => sansAccents(x.titre.textContent).replace(/^(le|la|les|l'|the|un|une)\s+/i, '');
+  const sansValeurApres = (x, y) => (x == null) - (y == null);
+  switch (tri) {
+    case 'az':
+      return titre(a).localeCompare(titre(b), 'fr', { sensitivity: 'base', numeric: true });
+    case 'za':
+      return titre(b).localeCompare(titre(a), 'fr', { sensitivity: 'base', numeric: true });
+    case 'recent':
+      return sansValeurApres(a.annee, b.annee) || (b.annee || 0) - (a.annee || 0) || a.rang - b.rang;
+    case 'ancien':
+      return sansValeurApres(a.annee, b.annee) || (a.annee || 0) - (b.annee || 0) || a.rang - b.rang;
+    case 'note':
+      return sansValeurApres(a.note, b.note) || (b.note || 0) - (a.note || 0) || a.rang - b.rang;
+    case 'pertinence':
+      return pertinence(a) - pertinence(b) || a.rang - b.rang;
+    default:
+      return a.rang - b.rang;
+  }
+}
+// Comme sur les plateformes : le titre exact d'abord, puis ceux qui commencent par la recherche,
+// puis ceux qui la contiennent, puis le reste (dans l'ordre du site).
+function pertinence(g) {
+  const q = normaliserTitre(recherche?.q || '');
+  if (!q) return 3;
+  const t = normaliserTitre(sansAnnee(g.versions[0].titre));
+  if (t === q) return 0;
+  if (t.startsWith(`${q} `)) return 1;
+  if (` ${t} `.includes(` ${q} `)) return 2;
+  return 3;
+}
+
+// Recalcule tout l'affichage : groupes visibles, ordre, compteurs des filtres, message d'état.
+function appliquer() {
+  if (!recherche) return;
+  const groupes = [...recherche.groupes.values()];
+  for (const g of groupes) majGroupe(g);
+  const liste = $('#resultats');
+  for (const g of groupes.sort(comparer)) liste.append(g.el);
+  majPanneauFiltres();
+  etatResultats(recherche.pageEnCours);
+}
+
+const puceFiltre = (texte, actif, action, nombre) => {
+  const b = element('button', 'chip', texte);
+  b.type = 'button';
+  b.setAttribute('aria-pressed', String(actif));
+  if (nombre != null) b.append(element('span', 'chip-n', String(nombre)));
+  b.addEventListener('click', action);
+  return b;
+};
+const basculerDans = (ensemble, cle, memo) => () => {
+  if (ensemble.has(cle)) ensemble.delete(cle);
+  else ensemble.add(cle);
+  if (memo) memoire.ecrire(memo, [...ensemble]);
+  appliquer();
+};
+
+function majPanneauFiltres() {
+  const groupes = recherche ? [...recherche.groupes.values()] : [];
+  const combien = (test) => groupes.filter(test).length;
+  $('#fLangues').replaceChildren(
+    ...LANGUES_FILTRE.map(([f, t]) =>
+      puceFiltre(t, filtres.langues.has(f), basculerDans(filtres.langues, f, 'filtreLangues'), combien((g) => g.versions.some((v) => v.familles?.includes(f)))),
+    ),
+  );
+  $('#fQualites').replaceChildren(
+    ...QUALITES_FILTRE.map(([q, t]) =>
+      puceFiltre(t, filtres.qualites.has(q), basculerDans(filtres.qualites, q, 'filtreQualites'), combien((g) => g.versions.some((v) => familleQualite(v.qualite) === q))),
+    ),
+  );
+  // Genres des résultats, les plus fréquents d'abord.
+  const genres = new Map();
+  for (const g of groupes) for (const [k, nom] of g.genres) genres.set(k, { nom: genres.get(k)?.nom || nom, n: (genres.get(k)?.n || 0) + 1 });
+  for (const k of filtres.genres) if (!genres.has(k)) genres.set(k, { nom: k, n: 0 });
+  $('#fGenres').replaceChildren(
+    ...[...genres]
+      .sort((a, b) => b[1].n - a[1].n || a[1].nom.localeCompare(b[1].nom, 'fr'))
+      .map(([k, { nom, n }]) => puceFiltre(nom, filtres.genres.has(k), basculerDans(filtres.genres, k), n)),
+  );
+  $('#fNotes').replaceChildren(
+    ...NOTES_FILTRE.map(([n, t]) =>
+      puceFiltre(t, filtres.noteMin === n, () => {
+        filtres.noteMin = n;
+        memoire.ecrire('filtreNote', n);
+        appliquer();
+      }),
+    ),
+  );
+  const n = nbFiltres();
+  $('#nbFiltres').hidden = !n;
+  $('#nbFiltres').textContent = String(n);
+}
+
+$('#btnFiltres').addEventListener('click', () => {
+  const p = $('#panneauFiltres');
+  p.hidden = !p.hidden;
+  $('#btnFiltres').setAttribute('aria-expanded', String(!p.hidden));
+});
+let delaiAnnee = null;
+for (const [id, cle] of [['#fAnneeMin', 'anneeMin'], ['#fAnneeMax', 'anneeMax']]) {
+  $(id).addEventListener('input', () => {
+    clearTimeout(delaiAnnee);
+    delaiAnnee = setTimeout(() => {
+      const n = parseInt($(id).value, 10);
+      filtres[cle] = n >= 1900 && n <= 2100 ? n : null;
+      appliquer();
+    }, 300);
+  });
+}
+$('#fReinit').addEventListener('click', () => {
+  for (const ens of [filtres.langues, filtres.qualites, filtres.genres]) ens.clear();
+  Object.assign(filtres, { anneeMin: null, anneeMax: null, noteMin: 0 });
+  $('#fAnneeMin').value = $('#fAnneeMax').value = '';
+  memoire.ecrire('filtreLangues', []);
+  memoire.ecrire('filtreQualites', []);
+  memoire.ecrire('filtreNote', 0);
+  appliquer();
+});
+
+$('#tri').replaceChildren(
+  ...TRIS.map(([v, t]) => {
+    const o = element('option', '', t);
+    o.value = v;
+    return o;
+  }),
+);
+$('#tri').value = TRIS.some(([v]) => v === tri) ? tri : 'site';
+$('#tri').addEventListener('change', () => {
+  tri = $('#tri').value;
+  memoire.ecrire('triRecherche', tri);
+  appliquer();
+});
+
+function majVue() {
+  $('#resultats').classList.toggle('grille', vue === 'grille');
+  document.querySelectorAll('.vues [data-vue]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.vue === vue)));
+}
+document.querySelectorAll('.vues [data-vue]').forEach((b) =>
+  b.addEventListener('click', () => {
+    vue = b.dataset.vue;
+    memoire.ecrire('vueRecherche', vue);
+    majVue();
+  }),
+);
+majVue();
+
+// ---------- vues : accueil et recherche ----------
+
+let vueActive = 'accueil';
+let rubriqueAccueil = null; // rubrique affichée sur l'accueil (« » = tout)
+
+const normaliserTitre = (s) =>
+  sansAccents(String(s || '').replace(/œ/gi, 'oe').replace(/æ/gi, 'ae'))
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+const sansAnnee = (t) => String(t || '').replace(/\s*\((19|20)\d\d\)$/, '');
+
+function majOnglets() {
+  for (const b of $('#onglets').children) {
+    if ((vueActive === 'accueil' && b.dataset.rubrique === rubriqueAccueil) || (vueActive === 'bibliotheque' && b.dataset.vue === 'bibliotheque')) b.setAttribute('aria-current', 'page');
+    else b.removeAttribute('aria-current');
+  }
+}
+
+function afficherVue(vue, { historique = true } = {}) {
+  if (vue === vueActive) {
+    if (vue === 'recherche') focusRecherche();
+    return;
+  }
+  vueActive = vue;
+  $('#vueAccueil').hidden = vue !== 'accueil';
+  $('#vueRecherche').hidden = vue !== 'recherche';
+  $('#vueBibliotheque').hidden = vue !== 'bibliotheque';
+  document.body.dataset.vue = vue;
+  majOnglets();
+  window.scrollTo({ top: 0 });
+  if (vue === 'recherche') {
+    if (historique) history.pushState({ debrideur: 'recherche' }, '');
+    majClavier();
+    if (!recherche) montrerSuggestions();
+    focusRecherche();
+  } else if (vue === 'bibliotheque') {
+    if (historique && history.state?.debrideur === 'recherche') history.replaceState({ debrideur: 'bibliotheque' }, '');
+    else if (historique) history.pushState({ debrideur: 'bibliotheque' }, '');
+    construireBibliotheque();
+  } else {
+    if (historique && (history.state?.debrideur === 'recherche' || history.state?.debrideur === 'bibliotheque')) {
+      ignorerRetour = true;
+      history.back();
+    }
+    if (rubriqueAccueil === null) construireAccueil('');
+  }
+}
+// Avec le clavier à l'écran (télé), on se place sur ses touches : le champ ouvrirait le clavier de la télé.
+// Sur un écran tactile, on ne donne pas le focus au champ d'office (le clavier du téléphone cacherait tout).
+function focusRecherche() {
+  if ($('#clavier').hidden && matchMedia('(hover: none)').matches && $('#q').value) return;
+  requestAnimationFrame(() => {
+    const cible = !$('#clavier').hidden ? $('#clavier').querySelector('.touche[data-lettre="a"]') : $('#q');
+    cible?.focus({ preventScroll: true });
+  });
+}
+
+// Un onglet (Accueil, Films, Séries, Mangas) : son accueil, et la recherche se fera dans cette rubrique.
+function choisirRubrique(valeur) {
+  if (!recherche && [...$('#categorie').options].some((o) => o.value === valeur)) $('#categorie').value = valeur;
+  if (vueActive !== 'accueil') afficherVue('accueil');
+  if (rubriqueAccueil !== valeur) construireAccueil(valeur);
+  majOnglets();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+$('#btnRecherche').addEventListener('click', () => afficherVue('recherche'));
+$('#logoAccueil').addEventListener('click', (e) => {
+  e.preventDefault();
+  if (detailOuvert) fermerDetail();
+  choisirRubrique('');
+});
+$('#btnAjouter').addEventListener('click', ouvrirAjout);
+// La barre du haut devient opaque dès qu'on fait défiler la page.
+addEventListener('scroll', () => $('#nav').classList.toggle('pleine', scrollY > 24), { passive: true });
+
+// Retour du navigateur, du téléphone ou de la télécommande : on ferme la fiche, puis on revient à l'accueil.
+addEventListener('popstate', () => {
+  if (ignorerRetour) {
+    ignorerRetour = false;
+    return;
+  }
+  if (retourLecteur({ depuisHistorique: true }) || retourBiblio({ depuisHistorique: true })) return;
+  if (detailOuvert) return fermerDetail({ historique: false });
+  if (vueActive === 'recherche' || vueActive === 'bibliotheque') afficherVue('accueil', { historique: false });
+});
+
+// ---------- accueil : affiche à la une et rangées ----------
+
+const cacheRubriques = new Map(); // rubrique → { expire, promesse }
+function nouveautesRubrique(valeur) {
+  const c = cacheRubriques.get(valeur);
+  if (c && Date.now() < c.expire) return c.promesse;
+  const promesse = api(`/api/accueil${valeur ? `?cat=${encodeURIComponent(valeur)}` : ''}`).then((r) => {
+    const groupes = [];
+    for (const x of r.resultats) {
+      const g = contenuDe(x);
+      if (!groupes.includes(g)) groupes.push(g);
+    }
+    return groupes;
+  });
+  promesse.catch(() => cacheRubriques.delete(valeur));
+  cacheRubriques.set(valeur, { expire: Date.now() + 5 * 60e3, promesse });
+  return promesse;
+}
+const cacheTendances = new Map();
+function tendancesType(type) {
+  if (!cacheTendances.has(type)) {
+    const p = api(`/api/tendances?type=${type}`).then((r) => r.rangees || []);
+    p.catch(() => cacheTendances.delete(type));
+    cacheTendances.set(type, p);
+  }
+  return cacheTendances.get(type);
+}
+
+// Le titre iTunes correspond-il à un contenu déjà connu du site ? (mêmes titre et année)
+function trouverContenu(item) {
+  const cles = item.type === 'series' ? [normaliserTitre(item.titre)] : [normaliserTitre(`${item.titre} ${item.annee}`), normaliserTitre(item.titre)];
+  for (const c of cles) if (contenus.has(c)) return contenus.get(c);
+  return null;
+}
+
+// Un titre des tendances : on cherche sur le site, dans la bonne rubrique.
+function rechercherTitre(texte, type) {
+  const choix = dernier.config?.categoriesRecherche?.choix || [];
+  const motif = type === 'series' ? /serie/i : /film/i;
+  const cat = choix.find(([v]) => motif.test(v))?.[0];
+  $('#q').value = texte;
+  afficherVue('recherche');
+  lancerRecherche(texte, { categorie: cat ?? '' });
+}
+
+function cadreAffiche(image, titre, rang) {
+  const cadre = element('span', 'affiche-image');
+  const vide = element('span', 'affiche-vide', titre);
+  if (image) {
+    const img = new Image();
+    img.alt = '';
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    img.referrerPolicy = 'no-referrer';
+    img.addEventListener('error', () => img.replaceWith(vide));
+    img.src = image;
+    cadre.append(img);
+  } else cadre.append(vide);
+  if (rang) cadre.append(element('span', 'affiche-rang', String(rang)));
+  return cadre;
+}
+
+function carteContenu(g, rang) {
+  majGroupe(g);
+  const vs = g.versions;
+  const titre = sansAnnee(vs[0].titre);
+  const b = element('button', 'affiche');
+  b.type = 'button';
+  b.setAttribute('aria-haspopup', 'dialog');
+  const saisons = unique(vs.map((v) => v.saison));
+  const sous = g.serie ? (saisons.length > 1 ? `${saisons.length} saisons` : saisons[0] || 'Série') : g.annee || '';
+  const familles = unique(vs.flatMap((v) => v.familles || [])).slice(0, 3);
+  const infos = element('span', 'affiche-infos');
+  const ligne = element('span', 'affiche-sous', [sous, vs.length > 1 && `${vs.length} versions`].filter(Boolean).join(' · '));
+  const langues = element('span', 'affiche-langues');
+  langues.append(...familles.map((f) => element('span', `puce langue l-${f}`, { multi: 'MULTI', vf: 'VF', vostfr: 'VOSTFR', vo: 'VO' }[f])));
+  infos.append(element('span', 'affiche-titre', titre), ligne, langues);
+  b.append(cadreAffiche(imageDe(g), titre, rang), infos);
+  b.setAttribute('aria-label', `${titre}${sous ? `, ${sous}` : ''}`);
+  b.addEventListener('click', () => ouvrirDetail(g, b));
+  return b;
+}
+
+function carteSuggestion(item, rang) {
+  const g = trouverContenu(item);
+  const b = element('button', `affiche suggestion${g ? ' dispo' : ''}`);
+  b.type = 'button';
+  const infos = element('span', 'affiche-infos');
+  infos.append(
+    element('span', 'affiche-titre', item.titre),
+    element('span', 'affiche-sous', [item.saison || item.annee, item.genre].filter(Boolean).join(' · ')),
+  );
+  if (g) infos.append(element('span', 'affiche-dispo', 'Sur le site'));
+  b.append(cadreAffiche(item.image, item.titre, rang), infos);
+  b.title = g ? 'Disponible sur le site : voir les versions' : 'Chercher ce titre sur le site';
+  b.addEventListener('click', () => (g ? ouvrirDetail(g, b) : rechercherTitre(item.recherche, item.type)));
+  return b;
+}
+
+const ICONE_GAUCHE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>';
+const ICONE_DROITE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>';
+
+// Une rangée qui défile de côté (flèches à la souris, glisser au doigt, flèches de la télécommande).
+function rangee(titre, cartes, { numerote = false, info = '' } = {}) {
+  const section = element('section', 'rangee');
+  const tete = element('div', 'rangee-tete');
+  tete.append(element('h2', '', titre));
+  if (info) tete.append(element('span', 'rangee-info', info));
+  const cadre = element('div', 'rangee-cadre');
+  const piste = element('div', `rangee-piste${numerote ? ' numerotee' : ''}`);
+  piste.append(...cartes);
+  const fleche = (sens, html, libelle) => {
+    const f = element('button', `rangee-fleche ${sens}`);
+    f.type = 'button';
+    f.tabIndex = -1;
+    f.setAttribute('aria-label', libelle);
+    f.innerHTML = html;
+    f.addEventListener('click', () => piste.scrollBy({ left: (sens === 'gauche' ? -1 : 1) * piste.clientWidth * 0.85, behavior: 'smooth' }));
+    return f;
+  };
+  const gauche = fleche('gauche', ICONE_GAUCHE, 'Précédents');
+  const droite = fleche('droite', ICONE_DROITE, 'Suivants');
+  const majFleches = () => {
+    gauche.hidden = piste.scrollLeft < 8;
+    droite.hidden = piste.scrollLeft + piste.clientWidth >= piste.scrollWidth - 8;
+  };
+  piste.addEventListener('scroll', majFleches, { passive: true });
+  requestAnimationFrame(majFleches);
+  cadre.append(gauche, piste, droite);
+  section.append(tete, cadre);
+  return section;
+}
+const rangeeAttente = () => {
+  const r = rangee('', Array.from({ length: 8 }, () => element('span', 'affiche squelette')));
+  r.classList.add('attente');
+  return r;
+};
+
+// Affiche à la une : défile toute seule (sauf si on la survole ou si on est dessus à la télécommande).
+let heroItems = [];
+let heroIndex = 0;
+let heroMinuterie = null;
+function afficherHero(items) {
+  heroItems = items.filter((h) => h.image).slice(0, 6);
+  $('#hero').hidden = !heroItems.length;
+  if (!heroItems.length) return;
+  $('#heroPoints').replaceChildren(
+    ...heroItems.map((h, i) => {
+      const b = element('button', 'hero-point');
+      b.type = 'button';
+      b.setAttribute('role', 'tab');
+      b.setAttribute('aria-label', h.titre);
+      b.tabIndex = -1;
+      b.addEventListener('click', () => montrerHero(i));
+      return b;
+    }),
+  );
+  montrerHero(0);
+  clearInterval(heroMinuterie);
+  heroMinuterie = setInterval(() => {
+    const occupe = $('#hero').matches(':hover, :focus-within') || document.hidden || vueActive !== 'accueil' || detailOuvert;
+    if (!occupe && heroItems.length > 1) montrerHero(heroIndex + 1);
+  }, 9000);
+}
+function montrerHero(i) {
+  heroIndex = (i + heroItems.length) % heroItems.length;
+  const h = heroItems[heroIndex];
+  // Image de fond nette (bibliothèque, TMDB) si on l'a ; sinon l'affiche floutée en fond et l'affiche à droite.
+  $('#heroFond').style.backgroundImage = `url("${(h.fond || h.image).replace(/"/g, '%22')}")`;
+  $('#hero').classList.toggle('avec-fond', !!h.fond);
+  $('#heroAffiche').hidden = !!h.fond;
+  if (!h.fond) $('#heroAffiche').src = h.image;
+  $('#heroSurTitre').textContent = h.surTitre || '';
+  $('#heroTitre').textContent = h.titre;
+  $('#heroTitre').classList.toggle('long', String(h.titre || '').length > 30);
+  $('#heroMeta').textContent = h.meta || '';
+  $('#heroResume').textContent = h.resume || '';
+  $('#heroResume').hidden = !h.resume;
+  $('#heroPrincipal').textContent = h.principal.texte;
+  $('#heroPrincipal').onclick = h.principal.action;
+  $('#heroSecondaire').hidden = !h.secondaire;
+  if (h.secondaire) {
+    $('#heroSecondaire').textContent = h.secondaire.texte;
+    $('#heroSecondaire').onclick = h.secondaire.action;
+  }
+  [...$('#heroPoints').children].forEach((b, k) => b.setAttribute('aria-selected', String(k === heroIndex)));
+  const contenu = $('#hero');
+  contenu.classList.remove('anime');
+  void contenu.offsetWidth;
+  contenu.classList.add('anime');
+}
+const heroDepuisTendance = (item, surTitre) => {
+  const g = trouverContenu(item);
+  return {
+    titre: item.titre,
+    surTitre,
+    meta: [item.annee, item.saison, item.genre, g && 'Disponible sur le site'].filter(Boolean).join('  ·  '),
+    resume: item.resume,
+    image: item.image,
+    principal: g ? { texte: '▶  Voir les versions', action: () => ouvrirDetail(g, $('#heroPrincipal')) } : { texte: 'Chercher sur le site', action: () => rechercherTitre(item.recherche, item.type) },
+    secondaire: g ? { texte: 'Chercher d\'autres versions', action: () => rechercherTitre(item.recherche, item.type) } : null,
+  };
+};
+const heroDepuisContenu = (g, surTitre) => {
+  majGroupe(g);
+  const vs = g.versions;
+  const saisons = unique(vs.map((v) => v.saison));
+  return {
+    titre: sansAnnee(vs[0].titre),
+    surTitre,
+    meta: [g.annee, g.serie && (saisons.length > 1 ? `${saisons.length} saisons` : saisons[0]), [...(g.genres?.values() || [])].slice(0, 2).join(', '), g.note != null && `★ ${g.note.toFixed(1)}`]
+      .filter(Boolean)
+      .join('  ·  '),
+    resume: '',
+    image: imageDe(g),
+    principal: { texte: '▶  Voir les versions', action: () => ouvrirDetail(g, $('#heroPrincipal')) },
+    secondaire: null,
+  };
+};
+
+// Construit l'accueil d'une rubrique (« » = tout) : nouveautés du site, tops en France, genres.
+let accueilEnCours = null;
+async function construireAccueil(rubrique) {
+  rubriqueAccueil = rubrique;
+  majOnglets();
+  const jeton = (accueilEnCours = Symbol('accueil'));
+  const choix = dernier.config?.categoriesRecherche?.choix || [];
+  const site = !!dernier.config?.siteRecherche;
+  const type = (v) => (/manga|anim/i.test(v) ? 'mangas' : /serie/i.test(v) ? 'series' : /film/i.test(v) ? 'films' : null);
+  const nomDe = (v) => choix.find(([x]) => x === v)?.[1] || '';
+  const rubriques = rubrique ? [rubrique] : choix.length ? choix.map(([v]) => v) : [''];
+  const t = rubrique ? type(rubrique) : null;
+  const typesTendances = !rubrique ? ['films', 'series'] : t === 'series' ? ['series'] : ['films'];
+  $('#rangees').replaceChildren(rangeeAttente(), rangeeAttente(), rangeeAttente());
+  $('#etatAccueil').textContent = '';
+
+  const persoPromis = rangeesPerso(rubrique);
+  const [sites, tendancesListes] = await Promise.all([
+    site ? Promise.all(rubriques.map(async (v) => ({ v, nom: nomDe(v), groupes: await nouveautesRubrique(v).catch(() => []) }))) : Promise.resolve([]),
+    Promise.all(typesTendances.map((x) => tendancesType(x).catch(() => []))),
+  ]);
+  if (jeton !== accueilEnCours) return;
+  const tendancesFilms = typesTendances.includes('films') ? tendancesListes[typesTendances.indexOf('films')] : [];
+  const tendancesSeries = typesTendances.includes('series') ? tendancesListes[typesTendances.indexOf('series')] : [];
+  const top = (liste, id) => liste.find((r) => r.id === id);
+
+  const lignes = [];
+  const ligneSite = (s) =>
+    s?.groupes.length && rangee(s.nom ? `Nouveautés · ${s.nom}` : 'Nouveautés', s.groupes.map((g) => carteContenu(g)), { info: `${s.groupes.length} sur ${hoteDe(dernier.config.siteRecherche)}` });
+  const ligneTendance = (r) => r && rangee(r.titre, r.items.map((it, i) => carteSuggestion(it, r.numerote ? i + 1 : 0)), { numerote: r.numerote, info: r.numerote ? 'iTunes Store' : '' });
+  // Genres des nouveautés du site (au moins 4 titres), pour une rubrique précise.
+  const lignesGenres = (groupes) => {
+    const parGenre = new Map();
+    for (const g of groupes) for (const [k, nom] of g.genres || []) parGenre.set(k, { nom: parGenre.get(k)?.nom || nom, groupes: [...(parGenre.get(k)?.groupes || []), g] });
+    return [...parGenre.values()]
+      .filter((x) => x.groupes.length >= 4)
+      .sort((a, b) => b.groupes.length - a.groupes.length)
+      .slice(0, 5)
+      .map((x) => rangee(`${x.nom} · nouveautés`, x.groupes.map((g) => carteContenu(g))));
+  };
+
+  const parType = (x) => sites.find((s) => type(s.v) === x);
+  if (!rubrique) {
+    lignes.push(ligneSite(parType('films') || sites[0]), ligneTendance(top(tendancesFilms, 'top')));
+    lignes.push(ligneSite(parType('series')), ligneTendance(top(tendancesSeries, 'series')));
+    lignes.push(ligneSite(parType('mangas')));
+    for (const s of sites) if (![parType('films'), parType('series'), parType('mangas'), sites[0]].includes(s)) lignes.push(ligneSite(s));
+    // Puis les genres, films et séries en alternance.
+    const genresFilms = tendancesFilms.filter((r) => r.id !== 'top');
+    const genresSeries = tendancesSeries.filter((r) => r.id !== 'series');
+    for (let i = 0; i < Math.max(genresFilms.length, genresSeries.length); i++) lignes.push(ligneTendance(genresFilms[i]), ligneTendance(genresSeries[i]));
+  } else {
+    const s = sites[0];
+    lignes.push(ligneSite(s));
+    if (t === 'series') lignes.push(ligneTendance(top(tendancesSeries, 'series')));
+    else if (t !== 'mangas') lignes.push(ligneTendance(top(tendancesFilms, 'top')));
+    lignes.push(...lignesGenres(s?.groupes || []));
+    if (t === 'mangas') lignes.push(ligneTendance(top(tendancesFilms, 'animation')));
+    else if (t === 'series') lignes.push(...tendancesSeries.filter((r) => r.id !== 'series').map(ligneTendance));
+    else lignes.push(...tendancesFilms.filter((r) => r.id !== 'top').map(ligneTendance));
+  }
+  const rangees = lignes.filter(Boolean);
+  const perso = await persoPromis;
+  if (jeton !== accueilEnCours) return;
+  $('#rangees').replaceChildren(...perso, ...rangees);
+
+  // À la une : les films les plus vus en France (avec leur résumé), sinon les nouveautés du site.
+  const topFilms = top(tendancesFilms, 'top')?.items || [];
+  const topSeries = top(tendancesSeries, 'series')?.items || [];
+  let hero = [];
+  if (t === 'mangas' || (!topFilms.length && !topSeries.length)) hero = (sites[0]?.groupes || []).filter((g) => imageDe(g)).map((g) => heroDepuisContenu(g, 'Nouveauté'));
+  else if (t === 'series') hero = topSeries.map((it, i) => heroDepuisTendance(it, `N°${i + 1} des séries en France`));
+  else hero = topFilms.map((it, i) => heroDepuisTendance(it, `N°${i + 1} des films en France`));
+  afficherHero(hero);
+
+  if (!site) $('#etatAccueil').textContent = 'Choisis ton site de recherche dans les Réglages pour voir ses nouveautés ici.';
+  else if (!sites.some((s) => s.groupes.length)) $('#etatAccueil').textContent = `Aucune nouveauté reconnue sur ${hoteDe(dernier.config.siteRecherche)} : utilise la recherche.`;
+  // Télé : on se place sur l'affiche à la une, prêt à naviguer.
+  if (document.body.classList.contains('grand') && (!document.activeElement || document.activeElement === document.body)) $('#heroPrincipal').focus({ preventScroll: true });
+}
+
+// ---------- recherche à la télécommande : clavier à l'écran et résultats pendant la frappe ----------
+
+function construireClavier() {
+  const ecrire = (modifier) => {
+    const q = $('#q');
+    q.value = modifier(q.value);
+    q.dispatchEvent(new Event('input', { bubbles: true }));
+  };
+  const touche = (texte, action, { classe = '', libelle, lettre } = {}) => {
+    const b = element('button', `touche ${classe}`, texte);
+    b.type = 'button';
+    if (libelle) b.setAttribute('aria-label', libelle);
+    if (lettre) b.dataset.lettre = lettre;
+    b.addEventListener('click', action);
+    return b;
+  };
+  $('#clavier').replaceChildren(
+    touche('Espace', () => ecrire((v) => `${v} `), { classe: 'large', libelle: 'Espace' }),
+    touche('⌫', () => ecrire((v) => v.slice(0, -1)), { classe: 'double', libelle: 'Effacer une lettre' }),
+    touche('✕', () => ecrire(() => ''), { libelle: 'Tout effacer' }),
+    ...'abcdefghijklmnopqrstuvwxyz1234567890'.split('').map((c) => touche(c, () => ecrire((v) => v + c), { lettre: c })),
+  );
+}
+construireClavier();
+const clavierParDefaut = () => document.body.classList.contains('grand') || matchMedia('(hover: none) and (min-width: 960px)').matches;
+function majClavier() {
+  const montrer = lirePreference('clavierEcran', null) ?? clavierParDefaut();
+  $('#clavier').hidden = !montrer;
+  $('#btnClavier').setAttribute('aria-pressed', String(montrer));
+  $('#vueRecherche').classList.toggle('avec-clavier', montrer);
+}
+$('#btnClavier').addEventListener('click', () => {
+  ecrirePreference('clavierEcran', $('#clavier').hidden);
+  majClavier();
+  focusRecherche();
+});
+// Résultats pendant la frappe (comme sur les plateformes), une fois la frappe posée.
+let delaiFrappe = null;
+$('#q').addEventListener('input', () => {
+  clearTimeout(delaiFrappe);
+  const q = $('#q').value.trim();
+  if (q.length < 2 || !dernier.config?.siteRecherche) return;
+  delaiFrappe = setTimeout(() => {
+    if (q === $('#q').value.trim() && q !== recherche?.q) lancerRecherche(q);
+  }, 800);
+});
+
+// ---------- télécommande et clavier : se déplacer aux flèches d'élément en élément ----------
+
+const SELECTEUR_FOCUS = 'button:not([disabled]), a[href], input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea, summary';
+// Une case cachée dans une tuile se repère par sa tuile.
+const zoneDe = (el) => (el.matches('.source input') ? el.closest('.source') : el);
+const rectDe = (el) => zoneDe(el).getBoundingClientRect();
+function racinesNavigation() {
+  const dialogue = document.querySelector('dialog[open]');
+  if (dialogue) return [dialogue];
+  const pleins = [...document.querySelectorAll('.modal-plein:not([hidden])')];
+  if (pleins.length) return [pleins.sort((a, b) => (Number(getComputedStyle(b).zIndex) || 0) - (Number(getComputedStyle(a).zIndex) || 0))[0]];
+  if (detailOuvert) return [$('#detail'), $('#panier')];
+  return [document.body];
+}
+function focusables() {
+  return racinesNavigation()
+    .flatMap((r) => [...r.querySelectorAll(SELECTEUR_FOCUS)])
+    .filter((el) => {
+      if (el.closest('[hidden], [inert]') || el.tabIndex < 0) return false;
+      const r = rectDe(el);
+      return r.width > 0 && r.height > 0;
+    });
+}
+function prochainFocus(depuis, touche) {
+  const a = rectDe(depuis);
+  const ax = a.left + a.width / 2;
+  const ay = a.top + a.height / 2;
+  const horizontal = touche === 'ArrowLeft' || touche === 'ArrowRight';
+  let meilleur = null;
+  let score = Infinity;
+  for (const el of focusables()) {
+    if (el === depuis || zoneDe(el) === zoneDe(depuis)) continue;
+    const b = rectDe(el);
+    const bx = b.left + b.width / 2;
+    const by = b.top + b.height / 2;
+    let distance;
+    let ecart;
+    if (horizontal) {
+      if (touche === 'ArrowRight' ? bx <= ax + 1 : bx >= ax - 1) continue;
+      distance = Math.max(0, touche === 'ArrowRight' ? b.left - a.right : a.left - b.right);
+      // Seulement sur la même ligne (sinon on sauterait dans une autre rangée).
+      if (Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) <= 0) continue;
+      ecart = Math.abs(by - ay) * 0.3;
+    } else {
+      if (touche === 'ArrowDown' ? by <= ay + 1 : by >= ay - 1) continue;
+      distance = Math.max(0, touche === 'ArrowDown' ? b.top - a.bottom : a.top - b.bottom);
+      ecart = Math.abs(bx - ax) * 0.6;
+    }
+    const s = distance + ecart;
+    if (s < score) {
+      score = s;
+      meilleur = el;
+    }
+  }
+  return meilleur;
+}
+const champTexte = (el) => el.matches('input[type="search"], input[type="text"], input[type="number"], input[type="password"], input:not([type])');
+document.addEventListener('keydown', (e) => {
+  // OK de la télécommande sur une case à cocher ou une tuile : on la coche, comme un clic.
+  if (e.key === 'Enter' && document.activeElement?.matches('input[type="checkbox"], input[type="radio"]')) {
+    e.preventDefault();
+    document.activeElement.click();
+    return;
+  }
+  if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key) || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+  const actif = document.activeElement;
+  if (!actif || actif === document.body) {
+    // Rien de sélectionné : à la télé on se place sur le premier élément ; sur PC, les flèches font défiler.
+    if (!document.body.classList.contains('grand') && matchMedia('(hover: hover)').matches) return;
+    const premier = focusables()[0];
+    if (premier) {
+      e.preventDefault();
+      premier.focus();
+    }
+    return;
+  }
+  if (actif.tagName === 'SELECT' || actif.tagName === 'TEXTAREA') return;
+  // Après un clic de souris (pas d'anneau visible), les flèches gardent leur rôle : faire défiler.
+  if (!document.body.classList.contains('grand') && !actif.matches(':focus-visible')) return;
+  if (champTexte(actif) && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) return;
+  const suivant = prochainFocus(actif, e.key);
+  const vertical = e.key === 'ArrowUp' || e.key === 'ArrowDown';
+  if (!suivant) {
+    // Au bout de l'affiche à la une : gauche / droite passe à l'affiche précédente ou suivante.
+    if (!vertical && actif.closest('#hero') && heroItems.length > 1) {
+      e.preventDefault();
+      montrerHero(heroIndex + (e.key === 'ArrowRight' ? 1 : -1));
+    }
+    return;
+  }
+  e.preventDefault();
+  suivant.focus({ preventScroll: true });
+  // En haut de l'accueil (affiche, barre du haut), on remonte tout en haut ; sinon la ligne choisie vient au centre.
+  if (suivant.closest('.hero, #nav') && !detailOuvert && !suivant.closest('.modal-plein')) window.scrollTo({ top: 0, behavior: 'smooth' });
+  else if (suivant.closest('#clavier, #formRecherche, .lecteur')) return; // toujours à l'écran
+  else zoneDe(suivant).scrollIntoView({ block: vertical ? 'center' : 'nearest', inline: 'nearest', behavior: 'smooth' });
+});
+// Retour (Échap, touche Retour de la télécommande) : ferme la fiche, puis revient à l'accueil.
+document.addEventListener('keydown', (e) => {
+  const retour =
+    e.key === 'Escape' || e.key === 'GoBack' || e.key === 'BrowserBack' || e.keyCode === 461 || e.keyCode === 10009 ||
+    (e.key === 'Backspace' && !document.activeElement?.matches('input, textarea, select'));
+  if (!retour || document.querySelector('dialog[open]')) return;
+  if ((e.key !== 'Backspace' || !champTexte(document.activeElement || document.body)) && (retourAssistant() || retourProfils() || retourBiblio())) {
+    e.preventDefault();
+    return;
+  }
+  if (detailOuvert) {
+    e.preventDefault();
+    fermerDetail();
+  } else if (vueActive === 'bibliotheque' && e.key !== 'Escape') {
+    e.preventDefault();
+    afficherVue('accueil');
+  } else if (vueActive === 'recherche' && e.key !== 'Escape') {
+    e.preventDefault();
+    afficherVue('accueil');
+  } else if (vueActive === 'recherche' && e.key === 'Escape' && !champTexte(document.activeElement || document.body)) {
+    afficherVue('accueil');
+  } else if (dansAppliTele && vueActive === 'accueil' && e.key !== 'Escape') {
+    // Application télé : Retour sur l'accueil quitte, au second appui (comme les plateformes).
+    e.preventDefault();
+    if (Date.now() - dernierRetourAccueil < 2500) return versAppli('debrideur-quitter');
+    dernierRetourAccueil = Date.now();
+    const m = element('div', 'lc-message', 'Appuie encore sur Retour pour quitter');
+    m.style.position = 'fixed';
+    document.body.append(m);
+    setTimeout(() => m.remove(), 2500);
+  }
+});
+// Applications télé : Samsung et LG affichent cette page dans un cadre ; Android TV et Fire TV la chargent
+// directement et fournissent l'objet DebrideurAppli. Touche rouge : changer de serveur.
+const pontAppli = window.DebrideurAppli || null;
+const dansAppliTele = !!pontAppli || window.parent !== window;
+function versAppli(type) {
+  if (pontAppli) {
+    if (type === 'debrideur-quitter') pontAppli.quitter();
+    else if (type === 'debrideur-serveur') pontAppli.changerServeur();
+  } else window.parent.postMessage({ type }, '*');
+}
+let dernierRetourAccueil = 0;
+if (dansAppliTele) {
+  document.addEventListener('keydown', (e) => {
+    if (e.keyCode === 403 || e.key === 'ColorF0Red') versAppli('debrideur-serveur');
+  });
+  // Touche reçue par l'application pendant que la page n'avait pas la main : on la rejoue ici.
+  window.addEventListener('message', (e) => {
+    const d = e.data || {};
+    if (d.type !== 'debrideur-touche') return;
+    const key = d.keyCode === 10009 || d.keyCode === 461 ? 'GoBack' : d.key;
+    (document.activeElement || document.body).dispatchEvent(new KeyboardEvent('keydown', { key, keyCode: d.keyCode, bubbles: true, cancelable: true }));
+  });
+}
+
+// ---------- lancement de la recherche ----------
+
+$('#formRecherche').addEventListener('submit', (e) => {
+  e.preventDefault();
+  clearTimeout(delaiFrappe);
+  const q = $('#q').value.trim();
+  if (!dernier.config?.siteRecherche) return ouvrirReglages('#cSite');
+  if (!q) return viderRecherche();
+  // Sur téléphone, on range le clavier pour voir les résultats.
+  if (matchMedia('(hover: none)').matches) $('#q').blur();
+  lancerRecherche(q);
+});
+
+// Toutes les pages de résultats sont lues (3 à la fois, 20 au plus par rubrique pour ménager le site),
+// et les fiches d'un même contenu sont regroupées au fur et à mesure.
+const PAGES_MAX = 20;
+const PAGES_EN_PARALLELE = 3;
+let recherche = null;
+
+// Avant d'afficher d'autres résultats : on abandonne la recherche et les vérifications en cours.
+function nouvelleListe() {
+  rechercheEnCours?.abort();
+  fileFiches.length = 0;
+  retirerLiens([...dansFile]);
+  verifTout = null;
+  majVerifTout();
+  $('#progressionVerif').hidden = true;
+  // Les filtres propres à une liste (genres, années) repartent de zéro.
+  filtres.genres.clear();
+  Object.assign(filtres, { anneeMin: null, anneeMax: null });
+  $('#fAnneeMin').value = $('#fAnneeMax').value = '';
+  const menu = $('#categorie');
+  const cat = menu.hidden ? '' : menu.value;
+  return { ctrl: (rechercheEnCours = new AbortController()), cat, nomCat: cat ? menu.selectedOptions[0]?.textContent : '' };
+}
+
+// Champ vide : plus de résultats, on propose les titres du moment.
+function viderRecherche() {
+  nouvelleListe();
+  recherche = null;
+  $('#resultats').replaceChildren();
+  $('#resultats').hidden = true;
+  $('#outils').hidden = true;
+  $('#panneauFiltres').hidden = true;
+  etatRecherche('');
+  montrerSuggestions();
+}
+
+// Recherches populaires : les titres les plus vus en France, à lancer d'un clic (pratique à la télécommande).
+let jetonSuggestions = 0;
+async function montrerSuggestions() {
+  const zone = $('#suggestions');
+  const jeton = ++jetonSuggestions;
+  if (recherche || !dernier.config?.siteRecherche) {
+    zone.hidden = true;
+    return;
+  }
+  const [films, series] = await Promise.all([tendancesType('films').catch(() => []), tendancesType('series').catch(() => [])]);
+  // Une recherche est partie entre-temps : on ne remet pas les suggestions par-dessus.
+  if (recherche || jeton !== jetonSuggestions) return;
+  const items = [];
+  const tops = [films.find((r) => r.id === 'top')?.items || [], series.find((r) => r.id === 'series')?.items || []];
+  for (let i = 0; items.length < 16 && i < 20; i++) for (const liste of tops) if (liste[i] && items.length < 16) items.push(liste[i]);
+  if (!items.length) {
+    zone.hidden = true;
+    return;
+  }
+  const liste = element('div', 'suggestions-liste');
+  liste.append(
+    ...items.map((it) => {
+      const b = element('button', 'suggestion-ligne');
+      b.type = 'button';
+      b.append(element('span', 'suggestion-type', it.type === 'series' ? 'Série' : 'Film'), element('span', 'suggestion-titre', it.titre));
+      b.addEventListener('click', () => rechercherTitre(it.recherche, it.type));
+      return b;
+    }),
+  );
+  zone.replaceChildren(element('h2', '', 'Recherches populaires'), liste);
+  zone.hidden = false;
+}
+
+// « Tout » : le site ne cherche que dans les films sans rubrique, alors on cherche dans chaque
+// rubrique (films, séries, mangas) à la fois et on réunit les résultats.
+async function lancerRecherche(q, { categorie } = {}) {
+  if (categorie !== undefined && [...$('#categorie').options].some((o) => o.value === categorie)) $('#categorie').value = categorie;
+  const { ctrl, cat, nomCat } = nouvelleListe();
+  const { signal } = ctrl;
+  jetonSuggestions++;
+  $('#suggestions').hidden = true;
+  const choix = dernier.config?.categoriesRecherche?.choix || [];
+  const rubriques = cat || !choix.length ? [cat] : choix.map(([v]) => v);
+  const enParallele = rubriques.length > 1 ? 2 : PAGES_EN_PARALLELE;
+  const charger = (c, page) => api(`/api/recherche?q=${encodeURIComponent(q)}&page=${page}${c ? `&cat=${encodeURIComponent(c)}` : ''}`, { signal });
+  etatRecherche(`Recherche de « ${q} »${nomCat ? ` dans ${nomCat}` : ''} sur ${hoteDe(dernier.config.siteRecherche)}…`, 'charge');
+  const premieres = await Promise.all(rubriques.map((c) => charger(c, 1).then((r) => ({ c, r }), (erreur) => ({ c, erreur }))));
+  if (signal.aborted) return;
+  const lues = premieres.filter((x) => x.r);
+  if (!lues.length) {
+    etatRecherche(premieres[0].erreur.message, 'ko');
+    $('#resultats').hidden = true;
+    $('#outils').hidden = true;
+    return;
+  }
+  // Des résultats exacts dans une rubrique : on écarte les approximations des autres.
+  const exactes = lues.filter((x) => !x.r.approximatif);
+  const gardees = exactes.length ? exactes : lues;
+  recherche = {
+    q, nomCat, site: lues[0].r.site, groupes: new Map(), fiches: new Set(), verifiees: 0,
+    pages: gardees.length, total: gardees.reduce((n, x) => n + Math.min(x.r.pages.total, PAGES_MAX), 0),
+    erreurs: premieres.length - lues.length, approximatif: !exactes.length, pageEnCours: null,
+  };
+  $('#resultats').replaceChildren();
+  for (const x of gardees) ajouterResultats(x.r.resultats);
+
+  const progression = () => {
+    recherche.pageEnCours = `${recherche.pages} / ${Math.max(recherche.total, recherche.pages)}`;
+    etatResultats(recherche.pageEnCours);
+  };
+  const suite = async ({ c, r }) => {
+    if (r.pages.suivante && r.pages.devine) {
+      // Le site ne montre pas ses numéros de page : on avance tant qu'il y a du nouveau.
+      for (let p = 2; p <= PAGES_MAX; p++) {
+        recherche.total = Math.max(recherche.total, recherche.pages + 1);
+        progression();
+        let rp;
+        try {
+          rp = await charger(c, p);
+        } catch {
+          if (signal.aborted) return;
+          recherche.erreurs++;
+          break;
+        }
+        if (signal.aborted) return;
+        if (!rp.resultats.length) break;
+        recherche.pages++;
+        if (!rp.approximatif) ajouterResultats(rp.resultats);
+        if (!rp.pages.suivante) break;
+      }
+    } else if (r.pages.suivante) {
+      let total = Math.min(r.pages.total, PAGES_MAX);
+      const enVol = new Map();
+      let prochaine = 2;
+      const remplir = () => {
+        while (enVol.size < enParallele && prochaine <= total) {
+          const p = prochaine++;
+          enVol.set(p, charger(c, p).catch((erreur) => ({ erreur })));
+        }
+      };
+      // Les réponses sont traitées dans l'ordre des pages, pour garder l'ordre du site.
+      for (let p = 2; p <= total; p++) {
+        remplir();
+        progression();
+        const rp = await enVol.get(p);
+        enVol.delete(p);
+        if (signal.aborted) return;
+        if (rp.erreur) {
+          recherche.erreurs++;
+          continue;
+        }
+        const nouveau = Math.min(Math.max(total, rp.pages.total), PAGES_MAX);
+        recherche.total += nouveau - total;
+        total = nouveau;
+        recherche.pages++;
+        if (!rp.approximatif) ajouterResultats(rp.resultats);
+      }
+    }
+  };
+  await Promise.all(gardees.map(suite));
+  if (signal.aborted) return;
+  recherche.pageEnCours = null;
+  appliquer();
+}
+
+function etatResultats(pageEnCours) {
+  const { q, nomCat, site, groupes } = recherche;
+  const ou = `${nomCat ? `${nomCat} · ` : ''}${site}`;
+  const tous = [...groupes.values()];
+  const montres = tous.filter((g) => !g.el.hidden);
+  if (!tous.length) {
+    return pageEnCours ? etatRecherche(`Recherche dans les pages suivantes… (${pageEnCours})`, 'charge') : etatRecherche(`Aucun résultat pour « ${q} » (${ou}).`);
+  }
+  const fiches = montres.reduce((n, g) => n + g.vs.length, 0);
+  const masques = tous.length - montres.length;
+  const quoi = `${montres.length} contenu${montres.length > 1 ? 's' : ''}${fiches > montres.length ? ` (${fiches} fiches)` : ''}`;
+  const morceaux = [`${quoi} · ${ou}`];
+  if (masques) morceaux.push(`${masques} masqué${masques > 1 ? 's' : ''} par les filtres`);
+  if (pageEnCours) return etatRecherche(`${morceaux.join(' · ')} · lecture des pages ${pageEnCours}…`, 'charge');
+  if (recherche.pages > 1) morceaux.push(`${recherche.pages} pages lues`);
+  if (recherche.erreurs) morceaux.push(`${recherche.erreurs} page${recherche.erreurs > 1 ? 's' : ''} illisible${recherche.erreurs > 1 ? 's' : ''}`);
+  if (recherche.approximatif) morceaux.push('approximatifs : aucun titre ne contient tous tes mots');
+  etatRecherche(`${morceaux.join(' · ')}${montres.length ? ' · choisis-en un' : ''}`);
+}
+
+// ---------- contenus : un par titre, partagés entre l'accueil et la recherche ----------
+// Un même titre vu sur l'accueil puis dans une recherche est le même contenu : ses versions
+// s'additionnent, et sa fiche (versions, sources) est la même partout.
+
+const contenus = new Map(); // clé de regroupement → contenu
+const groupeDe = new Map(); // adresse d'une fiche du site → contenu
+
+function contenuDe(x) {
+  let g = contenus.get(x.cle);
+  if (!g) {
+    g = { id: `g${++numeroResultat}`, cle: x.cle, rang: 0, versions: [], vs: [], choisie: null, tuiles: new Map(), surveillances: [] };
+    contenus.set(x.cle, g);
+    construireGroupe(g);
+  }
+  if (!g.versions.some((v) => v.url === x.url)) g.versions.push(x);
+  groupeDe.set(x.url, g);
+  return g;
+}
+
+function ajouterResultats(resultats) {
+  for (const x of resultats) {
+    if (recherche.fiches.has(x.url)) continue;
+    recherche.fiches.add(x.url);
+    const g = contenuDe(x);
+    if (!recherche.groupes.has(g.cle)) {
+      g.rang = recherche.groupes.size;
+      recherche.groupes.set(g.cle, g);
+      $('#resultats').append(g.el);
+    }
+  }
+  appliquer();
+  $('#resultats').hidden = !recherche.fiches.size;
+  $('#outils').hidden = !recherche.fiches.size;
+}
+
+// Carte de la liste de résultats (affiche en vue « Affiches », ligne en vue « Liste »).
+function construireGroupe(g) {
+  g.el = element('div', 'resultat');
+  const b = element('button', 'r-bouton');
+  b.type = 'button';
+  b.setAttribute('aria-haspopup', 'dialog');
+  g.vignette = element('span', 'r-image');
+  g.vignette.innerHTML = ICONES.film;
+  const texte = element('span', 'r-texte');
+  g.titre = element('span', 'r-titre');
+  g.detail = element('span', 'r-detail');
+  g.meta = element('span', 'r-meta');
+  texte.append(g.titre, g.detail, g.meta);
+  b.append(g.vignette, texte);
+  b.insertAdjacentHTML('beforeend', ICONES.chevron);
+  // Le contenu de la fiche (versions, sources) vit à part : il s'affiche dans la fiche plein écran.
+  g.panneau = element('div', 'r-sources');
+  g.zoneVersions = element('div', 'versions');
+  g.zoneSources = element('div', 'zone-sources');
+  g.panneau.append(g.zoneVersions, g.zoneSources);
+  g.el.append(b);
+  b.addEventListener('click', () => ouvrirDetail(g, b));
+}
+
+const puceLangue = (v) => element('span', `puce langue l-${v.familles?.[0] || 'vo'}`, v.langue);
+const trierSaisons = (vs) => [...vs].sort((a, b) => (a.saisonNum ?? 1e6) - (b.saisonNum ?? 1e6));
+const imageDe = (g) => g.versions.find((v) => v.image)?.image || '';
+
+// Infos communes d'un contenu (genres, première année, meilleure note) et sa carte de résultat.
+function majGroupe(g) {
+  g.genres = new Map();
+  for (const v of g.versions) for (const x of genresDe(v)) if (!g.genres.has(cleGenre(x))) g.genres.set(cleGenre(x), x);
+  const annees = g.versions.map((v) => Number(v.annee)).filter(Boolean);
+  const notes = g.versions.map((v) => lireNote(v.note)).filter((n) => n != null);
+  g.annee = annees.length ? Math.min(...annees) : null;
+  g.note = notes.length ? Math.max(...notes) : null;
+  g.serie = g.versions.some((v) => v.serie);
+  g.vs = g.versions.filter(versionPasse);
+  const visible = groupePasse(g);
+  g.el.hidden = !visible;
+  if (!visible) return;
+  const vs = g.vs;
+  const v0 = vs[0];
+  g.titre.textContent = v0.titre;
+  const image = imageDe(g);
+  if (image && g.vignette.tagName !== 'IMG') {
+    const img = new Image();
+    img.className = 'r-image';
+    img.alt = '';
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    img.referrerPolicy = 'no-referrer';
+    const vide = g.vignette;
+    img.addEventListener('error', () => img.replaceWith((g.vignette = vide)));
+    img.src = image;
+    g.vignette.replaceWith(img);
+    g.vignette = img;
+  }
+  // Puces : saisons ou nombre de versions, langues, qualités.
+  const puces = [];
+  if (g.serie) {
+    const saisons = unique(trierSaisons(vs).map((v) => v.saison));
+    if (saisons.length) puces.push(element('span', 'puce nombre', saisons.length > 2 ? `${saisons.length} saisons` : saisons.join(' · ')));
+    if (vs.length > 1) puces.push(element('span', 'puce', `${vs.length} versions`));
+  } else if (vs.length > 1) puces.push(element('span', 'puce nombre', `${vs.length} versions`));
+  const langues = new Map();
+  for (const v of vs) if (v.langue && !langues.has(v.langue)) langues.set(v.langue, v);
+  puces.push(...[...langues.values()].slice(0, 4).map(puceLangue));
+  const qualites = unique(vs.map((v) => v.qualite));
+  puces.push(...qualites.slice(0, 3).map((q) => element('span', 'puce', q)));
+  if (qualites.length > 3) puces.push(element('span', 'puce', `+${qualites.length - 3}`));
+  g.detail.replaceChildren(...puces);
+  const genres = [...g.genres.values()].slice(0, 3).join(', ');
+  g.meta.textContent = [g.serie && g.annee, genres, g.note != null && `★ ${g.note.toFixed(1)}`].filter(Boolean).join(' · ') || (vs.length === 1 ? v0.chemin : '');
+  if (detailOuvert === g) {
+    majEnteteDetail(g);
+    rendreVersions(g);
+  }
+}
+
+// ---------- fiche d'un contenu, plein écran ----------
+
+let detailOuvert = null;
+let retourFocus = null;
+let ignorerRetour = false; // retour d'historique déclenché par nous (fermeture au clic)
+
+function majEnteteDetail(g) {
+  const vs = g.vs.length ? g.vs : g.versions;
+  const v0 = vs[0];
+  const image = imageDe(g);
+  $('#detailFond').style.backgroundImage = image ? `url("${image.replace(/"/g, '%22')}")` : '';
+  $('#detailAffiche').hidden = !image;
+  if (image && $('#detailAffiche').src !== image) $('#detailAffiche').src = image;
+  $('#detailTitre').textContent = v0.titre;
+  const saisons = unique(trierSaisons(vs).map((v) => v.saison));
+  const genres = [...g.genres.values()].slice(0, 3).join(', ');
+  $('#detailMeta').textContent = [
+    g.serie && g.annee,
+    g.serie ? (saisons.length > 1 ? `${saisons.length} saisons` : saisons[0]) : '',
+    `${vs.length} version${vs.length > 1 ? 's' : ''}`,
+    genres,
+    g.note != null && `★ ${g.note.toFixed(1)}`,
+  ]
+    .filter(Boolean)
+    .join('  ·  ');
+  const langues = new Map();
+  for (const v of vs) if (v.langue && !langues.has(v.langue)) langues.set(v.langue, v);
+  $('#detailPuces').replaceChildren(...[...langues.values()].map(puceLangue), ...unique(vs.map((v) => v.qualite)).slice(0, 6).map((q) => element('span', 'puce', q)));
+  $('#detailFiche').href = (vs.find((v) => v.url === g.choisie) || v0).url;
+}
+
+function ouvrirDetail(g, depuis = document.activeElement) {
+  const dejaOuvert = !!detailOuvert;
+  if (detailOuvert && detailOuvert !== g) fermerDetail({ historique: false, rendreFocus: false });
+  detailOuvert = g;
+  retourFocus = depuis;
+  majGroupe(g);
+  // Les filtres de langue ou de qualité ne doivent pas vider une fiche : sinon, toutes les versions.
+  if (!g.vs.length) g.vs = [...g.versions];
+  majEnteteDetail(g);
+  $('#detailCorps').replaceChildren(g.panneau);
+  $('#detail').hidden = false;
+  document.body.classList.add('detail-ouvert');
+  $('#detailDefilement').scrollTop = 0;
+  rendreVersions(g);
+  if (g.vs.length === 1 && !g.versions.some((v) => v.url === g.choisie)) g.choisie = g.vs[0].url;
+  const version = g.versions.find((v) => v.url === g.choisie);
+  if (version) chargerSources(g, version);
+  else g.zoneSources.replaceChildren(element('p', 'aide', 'Choisis une version pour voir ses sources.'));
+  if (!dejaOuvert) history.pushState({ debrideur: 'detail' }, '');
+  // Télécommande : on se place sur la première saison ou version, sinon sur « Retour ».
+  // À la souris, la fiche prend le focus sans anneau (les flèches font défiler).
+  requestAnimationFrame(() => {
+    if (!modeClavier && !document.body.classList.contains('grand')) return $('#detailDefilement').focus({ preventScroll: true });
+    (g.zoneVersions.querySelector('.saison[aria-selected="true"], input') || $('#fermerDetail')).focus({ preventScroll: true });
+  });
+}
+
+function fermerDetail({ historique = true, rendreFocus = true } = {}) {
+  const g = detailOuvert;
+  if (!g) return;
+  detailOuvert = null;
+  (g.surveillances || []).forEach((arret) => arret());
+  g.surveillances = [];
+  g.zoneSources.querySelector('.bloc-sources')?.arreter?.();
+  g.panneau.remove();
+  $('#detail').hidden = true;
+  document.body.classList.remove('detail-ouvert');
+  if (historique && history.state?.debrideur === 'detail') {
+    ignorerRetour = true;
+    history.back();
+  }
+  if (rendreFocus && retourFocus?.isConnected) retourFocus.focus({ preventScroll: true });
+}
+$('#fermerDetail').addEventListener('click', () => fermerDetail());
+// Clic sur le fond flou (en haut) : on referme, comme sur les plateformes.
+$('#detail').addEventListener('click', (e) => {
+  if (e.target === $('#detailDefilement') || e.target === $('#detail')) fermerDetail();
+});
+
+// Versions d'un même contenu : onglets de saisons pour une série (comme Prime Video), puis
+// une tuile par fiche du site (langue, qualité, épisodes). Une version n'est vérifiée que
+// quand sa tuile apparaît à l'écran.
+function rendreVersions(g) {
+  const vs = g.vs;
+  (g.surveillances || []).forEach((arret) => arret());
+  g.surveillances = [];
+  g.tuiles.clear();
+  g.zoneVersions.hidden = vs.length < 2;
+  if (vs.length < 2) return;
+  const sections = new Map();
+  for (const v of trierSaisons(vs)) {
+    if (!sections.has(v.saison || '')) sections.set(v.saison || '', []);
+    sections.get(v.saison || '').push(v);
+  }
+  const saisons = [...sections.keys()];
+  const avecOnglets = saisons.filter(Boolean).length > 1;
+  const blocs = [];
+  if (avecOnglets) {
+    if (!sections.has(g.saisonActive)) {
+      const choisie = vs.find((v) => v.url === g.choisie);
+      g.saisonActive = choisie && sections.has(choisie.saison || '') ? choisie.saison || '' : saisons[0];
+    }
+    const onglets = element('div', 'saisons');
+    onglets.setAttribute('role', 'tablist');
+    onglets.setAttribute('aria-label', 'Saisons');
+    for (const s of saisons) {
+      const b = element('button', 'saison', s || 'Autres');
+      b.type = 'button';
+      b.setAttribute('role', 'tab');
+      b.dataset.saison = s;
+      b.setAttribute('aria-selected', String(s === g.saisonActive));
+      const n = sections.get(s).length;
+      b.append(element('span', 'saison-n', `${n} version${n > 1 ? 's' : ''}`));
+      b.addEventListener('click', () => {
+        g.saisonActive = s;
+        rendreVersions(g);
+        g.zoneVersions.querySelector(`.saison[data-saison="${CSS.escape(s)}"]`)?.focus({ preventScroll: true });
+      });
+      onglets.append(b);
+    }
+    const grille = element('div', 'tuiles');
+    grille.append(...sections.get(g.saisonActive).map((v) => tuileVersion(g, v)));
+    blocs.push(onglets, grille);
+  } else {
+    for (const [saison, liste] of sections) {
+      const bloc = element('div', 'v-saison');
+      if (saison || sections.size > 1) bloc.append(element('div', 'v-sous-titre', saison || 'Sans saison'));
+      const grille = element('div', 'tuiles');
+      grille.append(...liste.map((v) => tuileVersion(g, v)));
+      bloc.append(grille);
+      blocs.push(bloc);
+    }
+  }
+  const texte = avecOnglets
+    ? `${saisons.filter(Boolean).length} saisons · ${vs.length} versions : choisis la saison, puis la version`
+    : `${vs.length} versions : choisis-en une`;
+  g.zoneVersions.replaceChildren(element('div', 'v-titre', texte), ...blocs);
+}
+
+function tuileVersion(g, v) {
+  const label = element('label', 'source version');
+  label.title = `${v.brut || v.titre}\n${v.url}`;
+  const input = element('input');
+  input.type = 'radio';
+  input.name = `${g.id}-v`;
+  input.value = v.url;
+  input.checked = g.choisie === v.url;
+  input.addEventListener('change', () => {
+    g.choisie = v.url;
+    $('#detailFiche').href = v.url;
+    chargerSources(g, v);
+  });
+  const corps = element('span', 's-corps');
+  const texte = element('span', 's-texte');
+  const tete = element('span', 's-hote');
+  if (v.langue) tete.append(puceLangue(v), ' ');
+  tete.append([v.qualite, v.episodes].filter(Boolean).join(' · ') || (v.langue ? '' : 'Version'));
+  // L'état des liens a sa propre ligne : il ne cache plus la langue ni la qualité.
+  const dispo = element('span', 'v-dispo');
+  texte.append(tete, element('span', 's-libelle', [g.serie && v.annee, v.chemin].filter(Boolean).join(' · ')), dispo);
+  corps.append(element('span', 's-coche'), texte);
+  label.append(input, corps);
+  g.tuiles.set(v.url, dispo);
+  majDispo(dispo, resumes.get(v.url));
+  label._entrer = () => demanderVerification(v);
+  label._quitter = () => oublierVerification(v);
+  g.surveillances.push(surveiller(label));
+  return label;
+}
+
+// ---------- disponibilité des liens (AllDebrid, sans débrider) ----------
+// Par défaut, seuls les liens affichés à l'écran (et un peu en dessous) sont vérifiés ; un lien qui
+// sort de l'écran avant son tour est retiré de la file. Les boutons « Vérifier les liens » vérifient
+// tout, du premier au dernier, avec un compteur et un temps restant estimé.
+
+const pagesFiches = new Map(); // adresse de fiche → promesse de ses sources
+const etatsLiens = new Map(); // lien d'hébergeur → état renvoyé par AllDebrid
+const resumes = new Map(); // adresse de fiche → { total, dispo, morts, autres, episode } | { attente } | { erreur }
+
+function ficheDe(url) {
+  if (!pagesFiches.has(url)) {
+    pagesFiches.set(
+      url,
+      api(`/api/recherche/sources?url=${encodeURIComponent(url)}`).catch((e) => {
+        pagesFiches.delete(url);
+        throw e;
+      }),
+    );
+  }
+  return pagesFiches.get(url);
+}
+const verifiables = (r) => r.sources.filter((s) => s.type === 'hebergeur' || s.type === 'protege');
+// Liens qui résument une fiche : jamais le streaming ; pour une série, ceux du premier épisode
+// (un par hébergeur) ; sinon 20 liens au plus.
+function echantillon(r) {
+  const dl = verifiables(r).filter((s) => !s.streaming);
+  const avecEpisode = dl.filter((s) => s.episode != null);
+  if (new Set(avecEpisode.map((s) => s.episode)).size > 1) {
+    const premier = Math.min(...avecEpisode.map((s) => s.episode));
+    return { liens: avecEpisode.filter((s) => s.episode === premier), episode: premier };
+  }
+  return { liens: dl.slice(0, 20), episode: null };
+}
+function resumer(r) {
+  const { liens, episode } = echantillon(r);
+  const etats = liens.map((s) => etatsLiens.get(s.url));
+  return {
+    total: etats.length,
+    dispo: etats.filter((e) => e?.dispo === true).length,
+    morts: etats.filter((e) => e?.dispo === false).length,
+    autres: r.sources.filter((s) => s.type === 'magnet' || s.type === 'torrent').length,
+    episode,
+  };
+}
+
+// --- file des liens : paquets de 10, deux paquets à la fois (le serveur limite en plus son rythme) ---
+
+const fileLiens = [];
+const dansFile = new Set();
+const liensEnVerification = new Set();
+const abonnes = new Map(); // lien → fonctions à rappeler quand son état est connu
+const ecouteursFile = new Set(); // rappelés après chaque paquet (compteurs de progression)
+let paquetsEnCours = 0;
+
+function suivreLien(lien, maj) {
+  if (!abonnes.has(lien)) abonnes.set(lien, new Set());
+  abonnes.get(lien).add(maj);
+  return () => abonnes.get(lien)?.delete(maj);
+}
+const aVerifier = (l) => !etatsLiens.has(l) && !dansFile.has(l) && !liensEnVerification.has(l);
+function demanderLiens(liens, { devant = false } = {}) {
+  const nouveaux = [...new Set(liens)].filter(aVerifier);
+  if (!nouveaux.length) return;
+  nouveaux.forEach((l) => dansFile.add(l));
+  if (devant) fileLiens.unshift(...nouveaux);
+  else fileLiens.push(...nouveaux);
+  pomperLiens();
+}
+function retirerLiens(liens) {
+  const enlever = new Set(liens.filter((l) => dansFile.has(l)));
+  if (!enlever.size) return;
+  for (let i = fileLiens.length - 1; i >= 0; i--) if (enlever.has(fileLiens[i])) fileLiens.splice(i, 1);
+  enlever.forEach((l) => dansFile.delete(l));
+}
+function pomperLiens() {
+  while (paquetsEnCours < 2 && fileLiens.length) {
+    const lot = fileLiens.splice(0, 10);
+    lot.forEach((l) => {
+      dansFile.delete(l);
+      liensEnVerification.add(l);
+    });
+    paquetsEnCours++;
+    api('/api/recherche/verifier', { method: 'POST', body: JSON.stringify({ liens: lot }) })
+      .then(({ etats }) => {
+        for (const [l, e] of Object.entries(etats)) etatsLiens.set(l, e);
+      })
+      .catch((e) => {
+        for (const l of lot) etatsLiens.set(l, { dispo: null, message: e.message });
+      })
+      .finally(() => {
+        paquetsEnCours--;
+        for (const l of lot) {
+          liensEnVerification.delete(l);
+          for (const f of [...(abonnes.get(l) || [])]) f();
+        }
+        for (const f of [...ecouteursFile]) f();
+        pomperLiens();
+      });
+  }
+}
+// Vérifie ces liens tout de suite (en tête de file) et attend leur état.
+function verifierLiensMaintenant(liens) {
+  const attendus = [...new Set(liens)].filter((l) => !etatsLiens.has(l));
+  if (!attendus.length) return Promise.resolve();
+  return new Promise((fin) => {
+    let reste = attendus.length;
+    const desabonnements = attendus.map((l) =>
+      suivreLien(l, () => {
+        if (--reste) return;
+        desabonnements.forEach((d) => d());
+        fin();
+      }),
+    );
+    retirerLiens(attendus);
+    demanderLiens(attendus, { devant: true });
+  });
+}
+
+// --- visibilité : un élément affiché demande ses liens, un élément sorti de l'écran les rend ---
+// el._liens() → [liens prioritaires, autres liens] ; el._quitter() facultatif.
+const observateur = new IntersectionObserver(
+  (entrees) => {
+    for (const e of entrees) if (!e.isIntersecting) (e.target._quitter || (() => retirerLiens(e.target._liens?.().flat() || [])))();
+    const visibles = entrees.filter((e) => e.isIntersecting).map((e) => e.target);
+    visibles.sort((a, b) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1));
+    // D'abord le lien principal de chaque élément visible, puis les autres, dans l'ordre de la page.
+    for (const el of visibles) el._entrer ? el._entrer() : demanderLiens(el._liens?.()[0] || []);
+    for (const el of visibles) if (!el._entrer) demanderLiens(el._liens?.()[1] || []);
+  },
+  { rootMargin: '0px 0px 300px 0px' },
+);
+function surveiller(el) {
+  observateur.observe(el);
+  return () => {
+    observateur.unobserve(el);
+    if (el._quitter) el._quitter();
+    else retirerLiens(el._liens?.().flat() || []);
+  };
+}
+
+// --- fiches (versions) : 2 à la fois, déclenchées par la visibilité ou par « Vérifier les liens » ---
+
+const fileFiches = [];
+let fichesEnCours = 0;
+async function verifierFiche(v) {
+  resumes.set(v.url, { attente: true });
+  majEtats(v.url);
+  try {
+    const r = await ficheDe(v.url);
+    await verifierLiensMaintenant(echantillon(r).liens.map((s) => s.url));
+    resumes.set(v.url, resumer(r));
+  } catch (e) {
+    resumes.set(v.url, { erreur: e.message });
+  }
+  majEtats(v.url);
+  if (verifTout?.urls.has(v.url)) verifTout.faits++;
+  majVerifTout();
+}
+function demanderVerification(v, prioritaire = false) {
+  const r = resumes.get(v.url);
+  if ((r && !r.erreur) || fileFiches.includes(v)) return;
+  if (prioritaire) fileFiches.unshift(v);
+  else fileFiches.push(v);
+  pomperFiches();
+}
+function oublierVerification(v) {
+  const i = fileFiches.indexOf(v);
+  if (i >= 0 && !verifTout?.urls.has(v.url)) fileFiches.splice(i, 1);
+}
+function pomperFiches() {
+  while (fichesEnCours < 2 && fileFiches.length) {
+    const v = fileFiches.shift();
+    fichesEnCours++;
+    verifierFiche(v).finally(() => {
+      fichesEnCours--;
+      pomperFiches();
+    });
+  }
+}
+
+// --- bouton « Vérifier les liens » de la liste : toutes les fiches affichées, dans l'ordre ---
+
+let verifTout = null; // { urls, total, faits, debut }
+const dureeRestante = (debut, faits, total) => {
+  if (!faits) return '';
+  const s = ((Date.now() - debut) / 1000 / faits) * (total - faits);
+  return s < 60 ? ` · reste ~${Math.max(1, Math.round(s))} s` : ` · reste ~${Math.round(s / 60)} min`;
+};
+function majVerifTout() {
+  const bouton = $('#btnVerifier');
+  const prog = $('#progressionVerif');
+  if (!verifTout) {
+    bouton.textContent = 'Vérifier les liens';
+    return;
+  }
+  const { faits, total, debut } = verifTout;
+  if (faits >= total) {
+    verifTout = null;
+    bouton.textContent = 'Vérifier les liens';
+    prog.hidden = false;
+    prog.textContent = `✓ ${total} fiche${total > 1 ? 's' : ''} vérifiée${total > 1 ? 's' : ''}`;
+    return;
+  }
+  bouton.textContent = 'Arrêter';
+  prog.hidden = false;
+  prog.textContent = `Vérification ${faits} / ${total} fiches${dureeRestante(debut, faits, total)}`;
+}
+$('#btnVerifier').addEventListener('click', () => {
+  if (verifTout) {
+    // Arrêt : les fiches pas encore commencées sortent de la file.
+    for (let i = fileFiches.length - 1; i >= 0; i--) if (verifTout.urls.has(fileFiches[i].url)) fileFiches.splice(i, 1);
+    $('#progressionVerif').textContent = `Arrêté à ${verifTout.faits} / ${verifTout.total} fiches`;
+    verifTout = null;
+    return majVerifTout();
+  }
+  if (!recherche) return;
+  const versions = [...recherche.groupes.values()]
+    .filter((g) => !g.el.hidden)
+    .sort(comparer)
+    .flatMap((g) => g.vs)
+    .filter((v) => !resumes.get(v.url) || resumes.get(v.url).erreur);
+  if (!versions.length) {
+    $('#progressionVerif').hidden = false;
+    $('#progressionVerif').textContent = '✓ Tout est déjà vérifié';
+    return;
+  }
+  verifTout = { urls: new Set(versions.map((v) => v.url)), total: versions.length, faits: 0, debut: Date.now() };
+  for (const v of versions) demanderVerification(v);
+  majVerifTout();
+});
+
+function majDispo(el, r) {
+  if (!el) return;
+  el.className = 'v-dispo';
+  el.title = '';
+  if (!r) return void (el.textContent = '');
+  if (r.attente) {
+    el.classList.add('attente');
+    el.textContent = 'Vérification…';
+  } else if (r.erreur) {
+    el.textContent = '? non vérifié';
+    el.title = r.erreur;
+  } else if (r.dispo && r.episode != null) {
+    el.classList.add('ok');
+    el.textContent = `✓ ${r.dispo} hébergeur${r.dispo > 1 ? 's' : ''} en ligne`;
+    el.title = `D'après les liens de l'épisode ${r.episode}`;
+  } else if (r.dispo) {
+    el.classList.add('ok');
+    el.textContent = `✓ ${r.dispo} lien${r.dispo > 1 ? 's' : ''} en ligne`;
+  } else if (r.morts) {
+    el.classList.add('ko');
+    el.textContent = r.autres ? '✗ liens morts (reste torrent)' : '✗ liens morts';
+  } else el.textContent = r.autres ? 'Torrent / magnet' : r.total ? '? à confirmer' : 'Aucun lien';
+}
+
+// Une fiche vient d'être vérifiée : on met à jour la tuile de sa version.
+function majEtats(url) {
+  const g = groupeDe.get(url);
+  if (g) majDispo(g.tuiles.get(url), resumes.get(url));
+}
+
+// Numéro d'épisode d'après le nom du fichier : « Serie.S01E03.mkv », « Episode 3 »…
+function episodeDe(noms = []) {
+  const eps = noms
+    .map((n) => n.match(/S\d{1,2}[ ._-]?E(\d{1,4})/i) || n.match(/(?:^|[ ._-])(?:E|Ep|Episode)[ ._-]?(\d{1,4})(?=[ ._-]|$)/i))
+    .filter(Boolean)
+    .map((m) => Number(m[1]));
+  if (!eps.length) return null;
+  const min = Math.min(...eps);
+  const max = Math.max(...eps);
+  return { min, texte: min === max ? `Ép. ${min}` : `Ép. ${min}–${max}` };
+}
+
+function majTuilesSources(bloc) {
+  const echec = resumes.get(bloc.dataset.url)?.erreur;
+  for (const label of bloc.querySelectorAll('.source[data-lien]')) {
+    const el = label.querySelector('.s-etat');
+    if (!el) continue;
+    const e = etatsLiens.get(label.dataset.lien);
+    const morte = e?.dispo === false;
+    label.classList.toggle('morte', morte);
+    label.querySelector('input').disabled = morte;
+    el.className = 's-etat';
+    el.title = '';
+    if (!e) {
+      if (dansFile.has(label.dataset.lien) || liensEnVerification.has(label.dataset.lien)) {
+        el.classList.add('attente');
+        el.textContent = 'Vérification chez AllDebrid…';
+      } else if (echec) {
+        el.textContent = '? non vérifié';
+        el.title = echec;
+      } else el.textContent = '';
+      continue;
+    }
+    if (e.dispo) {
+      el.classList.add('ok');
+      el.textContent = `✓ ${e.fichiers > 1 ? `${e.fichiers} fichiers` : e.nom || 'En ligne'}${e.taille ? ` · ${taille(e.taille)}` : ''}`;
+      el.title = (e.noms || []).join('\n');
+      // Derrière un protecteur : le vrai hébergeur, et l'épisode d'après le nom du fichier.
+      if (e.hote) label.querySelector('.s-hote-nom').textContent = e.hote;
+      const ep = episodeDe(e.noms);
+      const puce = label.querySelector('.s-ep');
+      puce.hidden = !ep;
+      if (ep) {
+        puce.textContent = ep.texte;
+        label.dataset.episode = String(ep.min);
+      }
+    } else {
+      el.classList.add(morte ? 'ko' : 'inconnu');
+      el.textContent = `${morte ? '✗' : '?'} ${e.message || ''}`;
+    }
+  }
+  // Dans chaque section, les tuiles se rangent par épisode dès qu'on les connaît.
+  for (const tuiles of bloc.querySelectorAll('.tuiles')) {
+    const items = [...tuiles.children];
+    if (items.filter((l) => l.dataset.episode).length < 2) continue;
+    items
+      .sort((a, b) => (Number(a.dataset.episode) || 1e9) - (Number(b.dataset.episode) || 1e9) || a.dataset.rang - b.dataset.rang)
+      .forEach((l) => tuiles.append(l));
+  }
+}
+
+// ---------- sources d'une version ----------
+
+async function chargerSources(g, x) {
+  // Un bloc neuf à chaque version choisie : les écouteurs de l'ancienne disparaissent avec lui,
+  // et ses liens pas encore vérifiés sortent de la file.
+  g.zoneSources.querySelector('.bloc-sources')?.arreter?.();
+  const bloc = element('div', 'bloc-sources');
+  bloc.id = `${g.id}-s${++numeroResultat}`;
+  bloc.dataset.url = x.url;
+  bloc.arrets = [];
+  bloc.arreter = () => bloc.arrets.splice(0).forEach((arret) => arret());
+  bloc.append(element('p', 'aide chargement', 'Lecture de la fiche et de ses liens…'));
+  g.zoneSources.replaceChildren(bloc);
+  try {
+    const r = await ficheDe(x.url);
+    if (bloc.isConnected) rendreSources(bloc, x, r);
+  } catch (e) {
+    if (!bloc.isConnected) return;
+    const reessayer = element('button', 'bouton', 'Réessayer');
+    reessayer.type = 'button';
+    reessayer.addEventListener('click', () => chargerSources(g, x));
+    const pied = element('div', 'r-pied');
+    pied.append(element('span', 'r-choix ko', e.message), lienFiche(x.url), reessayer);
+    bloc.replaceChildren(pied);
+  }
+}
+
+function lienFiche(url) {
+  const a = element('a', 'bouton', 'Voir la fiche ↗');
+  a.href = url;
+  a.target = '_blank';
+  a.rel = 'noopener noreferrer';
+  return a;
+}
+
+function segmentsMode() {
+  const d = element('div', 'segments');
+  d.setAttribute('role', 'radiogroup');
+  d.setAttribute('aria-label', 'Ranger comme');
+  for (const [m, t] of [['auto', 'Auto'], ['film', 'Film'], ['serie', 'Série'], ['manga', 'Manga']]) {
+    const b = element('button', '', t);
+    b.type = 'button';
+    b.dataset.mode = m;
+    b.setAttribute('role', 'radio');
+    b.setAttribute('aria-checked', String(mode === m));
+    if (m === 'auto') b.title = 'Devine tout seul : S01E02 → série, sinon film';
+    d.append(b);
+  }
+  return d;
+}
+
+function apercuLien(url) {
+  if (/^magnet:/i.test(url)) return `magnet · ${(url.match(/btih:([a-z0-9]+)/i)?.[1] || '').slice(0, 12)}…`;
+  try {
+    const u = new URL(url);
+    const reste = decodeURIComponent(u.pathname + u.search);
+    return `${u.hostname.replace(/^www\./, '')}${reste.length > 40 ? `${reste.slice(0, 40)}…` : reste}`;
+  } catch {
+    return url;
+  }
+}
+
+// Une source de film : case à cocher, qui l'ajoute à la sélection commune (en bas de l'écran).
+function tuileSource(s, i, groupe) {
+  const label = element('label', envoyees.has(s.url) ? 'source envoyee' : 'source');
+  label.title = s.url;
+  label.dataset.lien = s.url;
+  label.dataset.rang = String(i);
+  const cle = `src:${s.url}`;
+  const input = element('input');
+  input.type = 'checkbox';
+  input.checked = panier.has(cle);
+  input.addEventListener('change', () => {
+    if (input.checked) mettreAuPanier(cle, { lien: s.url, groupe, item: etatsLiens.get(s.url)?.hote || s.hebergeur, rang: undefined });
+    else retirerDuPanier(cle);
+  });
+  const corps = element('span', 's-corps');
+  const texte = element('span', 's-texte');
+  const hote = element('span', 's-hote');
+  const ep = element('span', 'puce nombre s-ep');
+  ep.hidden = true;
+  hote.append(ep, element('span', 's-hote-nom', s.hebergeur));
+  texte.append(hote, element('span', 's-libelle', s.libelle || apercuLien(s.url)));
+  if (s.type === 'hebergeur' || s.type === 'protege') texte.append(element('span', 's-etat'));
+  corps.append(element('span', 's-coche'), texte, element('span', `s-type ${s.type}`, TYPES_SOURCE[s.type] || s.type));
+  label.append(input, corps);
+  return label;
+}
+
+// ---------- sélection multiple : tout envoyer d'un coup ----------
+// Épisodes de plusieurs saisons, films de plusieurs fiches… : tout ce qui est coché va dans la
+// sélection (gardée en changeant de fiche ou de recherche), envoyée en une fois. Le Débrideur les
+// télécharge ensuite selon le réglage « Téléchargements en même temps ».
+const panier = new Map(); // clé → { lien, groupe, item, rang }
+const ecouteursPanier = new Set(); // vues à rafraîchir quand la sélection change
+let messagePanier = null;
+
+// « 1, 2, 3, 5, 7, 8 » → « 1–3, 5, 7–8 »
+function plages(nums) {
+  const tries = [...new Set(nums)].sort((a, b) => a - b);
+  const sortie = [];
+  for (let i = 0; i < tries.length; i++) {
+    let j = i;
+    while (j + 1 < tries.length && tries[j + 1] === tries[j] + 1) j++;
+    sortie.push(j > i ? `${tries[i]}–${tries[j]}` : String(tries[i]));
+    i = j;
+  }
+  return sortie.join(', ');
+}
+
+function mettreAuPanier(cle, entree) {
+  panier.set(cle, entree);
+  majPanier();
+}
+function retirerDuPanier(cles) {
+  for (const c of [].concat(cles)) panier.delete(c);
+  majPanier();
+}
+function majPanier() {
+  const n = panier.size;
+  const groupes = new Map();
+  for (const [cle, e] of panier) {
+    if (!groupes.has(e.groupe)) groupes.set(e.groupe, []);
+    groupes.get(e.groupe).push({ cle, ...e });
+  }
+  $('#panierNombre').textContent = n ? `${n} sélectionné${n > 1 ? 's' : ''}` : '';
+  $('#panierResume').textContent = n ? `dans ${groupes.size} fiche${groupes.size > 1 ? 's' : ''} · voir le détail` : '';
+  $('#panierListe').replaceChildren(
+    ...[...groupes].map(([groupe, items]) => {
+      const li = element('li');
+      const texte = element('span');
+      const eps = items.filter((x) => Number.isFinite(x.rang)).map((x) => x.rang);
+      const autres = items.filter((x) => !Number.isFinite(x.rang)).map((x) => x.item);
+      texte.append(element('strong', '', groupe), ` : ${[eps.length ? `ép. ${plages(eps)}` : '', ...autres].filter(Boolean).join(', ')}`);
+      const retirer = element('button', 'lien-bouton', '✕');
+      retirer.type = 'button';
+      retirer.title = 'Retirer de la sélection';
+      retirer.setAttribute('aria-label', `Retirer ${groupe}`);
+      retirer.addEventListener('click', () => retirerDuPanier(items.map((x) => x.cle)));
+      li.append(texte, retirer);
+      return li;
+    }),
+  );
+  $('#panierEnvoyer').textContent = n > 1 ? `Envoyer ${n} à AllDebrid` : 'Envoyer à AllDebrid';
+  $('#panierEnvoyer').hidden = !n;
+  $('#panierVider').hidden = !n;
+  $('#panierMessage').className = `r-choix ${messagePanier?.classe || ''}`;
+  $('#panierMessage').textContent = messagePanier?.texte || '';
+  $('#panier').hidden = !n && !messagePanier;
+  document.body.classList.toggle('avec-panier', !$('#panier').hidden);
+  for (const f of [...ecouteursPanier]) f();
+}
+$('#panierMode').append(segmentsMode());
+$('#panierVider').addEventListener('click', () => {
+  panier.clear();
+  majPanier();
+});
+let delaiMessage = null;
+$('#panierEnvoyer').addEventListener('click', async () => {
+  // Dans l'ordre : fiche par fiche, épisodes croissants.
+  const entrees = [...panier.values()].sort((a, b) => a.groupe.localeCompare(b.groupe, 'fr', { numeric: true }) || (a.rang ?? 1e9) - (b.rang ?? 1e9));
+  // Lien retenu, sauf s'il est connu comme mort : alors un secours en ligne (ou au moins pas mort).
+  const meilleurLien = (e) => {
+    if (etatsLiens.get(e.lien)?.dispo !== false) return e.lien;
+    const secours = e.secours || [];
+    return secours.find((l) => etatsLiens.get(l)?.dispo) || secours.find((l) => etatsLiens.get(l)?.dispo !== false) || e.lien;
+  };
+  // Chaque lien part avec ses secours (autres hébergeurs pas connus comme morts) : si le lien est
+  // mort au moment du débridage, le Débrideur essaie le suivant tout seul.
+  const items = entrees.map((e) => {
+    const lien = meilleurLien(e);
+    const secours = [e.lien, ...(e.secours || [])].filter((l) => l !== lien && etatsLiens.get(l)?.dispo !== false);
+    return { lien, secours };
+  });
+  const liens = items.map((x) => x.lien);
+  $('#panierEnvoyer').disabled = true;
+  try {
+    const rep = await api('/api/jobs', { method: 'POST', body: JSON.stringify({ liens: items, mode }) });
+    if (!rep.ajoutes.length) throw new Error("Le Débrideur n'a reconnu aucun de ces liens.");
+    liens.forEach((l) => envoyees.add(l));
+    panier.clear();
+    const k = rep.ajoutes.length;
+    messagePanier = {
+      classe: 'ok',
+      texte: `${k} envoyé${k > 1 ? 's' : ''} à AllDebrid ✓${rep.refuses.length ? ` (${rep.refuses.length} refusé${rep.refuses.length > 1 ? 's' : ''})` : ''} · suis-les dans Téléchargements`,
+    };
+    montrerTelechargements();
+    rafraichir();
+  } catch (err) {
+    messagePanier = { classe: 'ko', texte: err.message };
+  } finally {
+    $('#panierEnvoyer').disabled = false;
+    majPanier();
+    clearTimeout(delaiMessage);
+    delaiMessage = setTimeout(() => {
+      messagePanier = null;
+      majPanier();
+    }, 6000);
+  }
+});
+
+// ---------- fiche de série : un épisode par ligne ----------
+// Chaque épisode a souvent un lien par hébergeur : on coche les épisodes voulus, l'hébergeur
+// préféré est pris d'office (on peut en choisir un autre par épisode), et tout part en un envoi.
+// Seules les lignes affichées à l'écran sont vérifiées ; « Vérifier tous les liens » fait le reste,
+// du premier épisode au dernier.
+const EPISODES_PAR_PAGE = 50;
+
+function rendreEpisodes(panneau, x, r) {
+  const parEpisode = new Map(); // numéro d'épisode (ou « autres ») → [{ s, i }]
+  r.sources.forEach((s, i) => {
+    if (s.streaming) return;
+    const cle = s.episode ?? 'autres';
+    if (!parEpisode.has(cle)) parEpisode.set(cle, []);
+    parEpisode.get(cle).push({ s, i });
+  });
+  const numeros = [...parEpisode.keys()].filter((k) => k !== 'autres').sort((a, b) => a - b);
+  if (parEpisode.has('autres')) numeros.push('autres');
+  const couverture = new Map();
+  for (const liens of parEpisode.values()) for (const h of new Set(liens.map((l) => l.s.hebergeur))) couverture.set(h, (couverture.get(h) || 0) + 1);
+  const hotes = [...couverture].sort((a, b) => b[1] - a[1]).map(([h]) => h);
+  let prefere = memoire.lire('hebergeurPrefere', '');
+  if (!hotes.includes(prefere)) prefere = hotes[0];
+  const choix = new Map();
+  // Les épisodes cochés vont dans la sélection commune (en bas de l'écran).
+  const groupe = [x.titre, x.saison, [x.langue, x.qualite].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
+  const cle = (ep) => `${x.url}#${ep}`;
+  const coche = (ep) => panier.has(cle(ep));
+  // Entrée de sélection : le lien retenu, et les autres hébergeurs en secours (pris à l'envoi si
+  // le lien retenu s'est révélé mort entre-temps).
+  const entree = (ep) => {
+    const choisi = lienDe(ep);
+    return {
+      lien: choisi.s.url,
+      secours: parEpisode.get(ep).filter((l) => l !== choisi).map((l) => l.s.url),
+      groupe,
+      item: nomEp(ep),
+      rang: ep === 'autres' ? undefined : ep,
+    };
+  };
+  const cocher = (ep) => panier.set(cle(ep), entree(ep));
+  let page = 0;
+  const nomEp = (ep) => (ep === 'autres' ? 'Autres liens' : `Épisode ${ep}`);
+  // Lien retenu pour un épisode : celui cliqué ; sinon l'hébergeur préféré, sauf s'il est mort
+  // (on prend alors un autre hébergeur en ligne, ou pas encore vérifié).
+  const lienDe = (ep) => {
+    const liens = parEpisode.get(ep);
+    const clique = liens.find((l) => l.i === choix.get(ep));
+    if (clique) return clique;
+    const pref = liens.find((l) => l.s.hebergeur === prefere);
+    if (pref && etatsLiens.get(pref.s.url)?.dispo !== false) return pref;
+    return liens.find((l) => etatsLiens.get(l.s.url)?.dispo) || liens.find((l) => etatsLiens.get(l.s.url)?.dispo !== false) || pref || liens[0];
+  };
+  // Liens d'un épisode : celui choisi d'abord, puis les autres hébergeurs.
+  const liensDe = (ep) => {
+    const p = lienDe(ep);
+    return [[p.s.url], parEpisode.get(ep).filter((l) => l !== p).map((l) => l.s.url)];
+  };
+  const etatHote = (h) => {
+    const l = parEpisode.get(numeros[0])?.find((x) => x.s.hebergeur === h);
+    const e = l && etatsLiens.get(l.s.url);
+    return e?.dispo ? ' ✓' : e?.dispo === false ? ' ✗' : '';
+  };
+
+  // --- en-tête : nombre d'épisodes, hébergeur préféré, tranche affichée, vérification complète ---
+  const tete = element('div', 'ep-tete');
+  const selHote = element('select');
+  selHote.setAttribute('aria-label', 'Hébergeur préféré');
+  const majHotes = () => {
+    selHote.replaceChildren(
+      ...hotes.map((h) => {
+        const o = element('option', '', `${h} (${couverture.get(h)} ép.)${etatHote(h)}`);
+        o.value = h;
+        return o;
+      }),
+    );
+    selHote.value = prefere;
+  };
+  selHote.addEventListener('change', () => {
+    prefere = selHote.value;
+    memoire.ecrire('hebergeurPrefere', prefere);
+    majLignes();
+  });
+  const champHote = element('label', 'ep-champ', 'Hébergeur ');
+  champHote.append(selHote);
+  tete.append(element('span', 'ep-total', `${numeros.filter((n) => n !== 'autres').length} épisodes`), champHote);
+  if (numeros.length > EPISODES_PAR_PAGE) {
+    const selPage = element('select');
+    selPage.setAttribute('aria-label', 'Épisodes affichés');
+    for (let p = 0; p * EPISODES_PAR_PAGE < numeros.length; p++) {
+      const tranche = numeros.slice(p * EPISODES_PAR_PAGE, (p + 1) * EPISODES_PAR_PAGE).filter((n) => n !== 'autres');
+      const o = element('option', '', tranche.length ? `Épisodes ${tranche[0]} à ${tranche.at(-1)}` : 'Autres liens');
+      o.value = String(p);
+      selPage.append(o);
+    }
+    selPage.addEventListener('change', () => {
+      page = Number(selPage.value);
+      majLignes();
+    });
+    tete.append(selPage);
+  }
+  const toutCocher = element('button', 'lien-bouton', 'Tout cocher');
+  toutCocher.type = 'button';
+  const btnTout = element('button', 'bouton petit', 'Vérifier tous les liens');
+  btnTout.type = 'button';
+  btnTout.title = 'Vérifie chez AllDebrid, sans les débrider, tous les liens de tous les épisodes, du premier au dernier';
+  const progression = element('span', 'progression');
+  tete.append(toutCocher, element('span', 'espace'), btnTout, progression);
+
+  // --- lignes : une par épisode, mises à jour une à une quand leurs liens sont vérifiés ---
+  const liste = element('div', 'ep-liste');
+  let arretsPage = [];
+  const ligne = (ep) => {
+    const el = element('div', 'ep-ligne');
+    const remplir = () => {
+      const choisi = lienDe(ep);
+      // Le lien retenu a pu changer (hébergeur mort → un autre) : la sélection suit.
+      if (coche(ep) && panier.get(cle(ep)).lien !== choisi.s.url) cocher(ep);
+      el.classList.toggle('envoyee', envoyees.has(choisi.s.url));
+      const libelle = element('label', 'ep-case');
+      const cb = element('input');
+      cb.type = 'checkbox';
+      cb.checked = coche(ep);
+      cb.addEventListener('change', () => {
+        if (cb.checked) mettreAuPanier(cle(ep), entree(ep));
+        else retirerDuPanier(cle(ep));
+      });
+      el._case = cb;
+      libelle.append(cb, element('span', '', nomEp(ep)));
+      const puces = element('div', 'ep-hotes');
+      for (const { s, i } of parEpisode.get(ep)) {
+        const e = etatsLiens.get(s.url);
+        const b = element('button', 'chip', s.hebergeur);
+        b.type = 'button';
+        b.setAttribute('aria-pressed', String(i === choisi.i));
+        if (e?.dispo) b.classList.add('vivant');
+        if (e?.dispo === false) b.classList.add('mort');
+        if (!e && (dansFile.has(s.url) || liensEnVerification.has(s.url))) b.classList.add('en-cours');
+        b.title = e ? (e.dispo ? `${e.nom}${e.taille ? ` · ${taille(e.taille)}` : ''}` : e.message || '') : s.nom || s.url;
+        b.addEventListener('click', () => {
+          choix.set(ep, i);
+          demanderLiens([s.url], { devant: true });
+          cocher(ep);
+          majPanier();
+        });
+        puces.append(b);
+      }
+      const etat = element('span', 'ep-etat');
+      const e = etatsLiens.get(choisi.s.url);
+      if (envoyees.has(choisi.s.url)) etat.textContent = 'envoyé ✓';
+      else if (e?.dispo) {
+        etat.classList.add('ok');
+        etat.textContent = `✓ ${e.taille ? taille(e.taille) : 'en ligne'}`;
+      } else if (e?.dispo === false) {
+        etat.classList.add('ko');
+        etat.textContent = '✗ mort';
+      } else if (dansFile.has(choisi.s.url) || liensEnVerification.has(choisi.s.url)) etat.classList.add('attente');
+      el.replaceChildren(libelle, puces, etat);
+    };
+    remplir();
+    // La sélection a changé : on coche/décoche sur place (la ligne n'est refaite qu'après un envoi).
+    el._majSelection = () => {
+      if (envoyees.has(lienDe(ep).s.url) !== el.classList.contains('envoyee')) return remplir();
+      el._case.checked = coche(ep);
+    };
+    // Visible à l'écran (ou presque) : ses liens entrent dans la file ; sorti avant son tour : ils en ressortent.
+    el._liens = () => liensDe(ep);
+    arretsPage.push(surveiller(el));
+    for (const { s } of parEpisode.get(ep)) arretsPage.push(suivreLien(s.url, remplir));
+    return el;
+  };
+  const majLignes = () => {
+    arretsPage.splice(0).forEach((arret) => arret());
+    liste.replaceChildren(...numeros.slice(page * EPISODES_PAR_PAGE, (page + 1) * EPISODES_PAR_PAGE).map(ligne));
+    majHotes();
+  };
+  // Toute la saison (toutes les pages), ou rien.
+  toutCocher.addEventListener('click', () => {
+    if (numeros.every(coche)) retirerDuPanier(numeros.map(cle));
+    else {
+      numeros.forEach(cocher);
+      majPanier();
+    }
+  });
+
+  // --- « Vérifier tous les liens » : du premier épisode au dernier, avec compteur et temps restant ---
+  let tout = null; // { liens, total, debut }
+  const majTout = () => {
+    if (!tout) return;
+    const faits = tout.liens.filter((l) => etatsLiens.has(l)).length;
+    const enLigne = tout.liens.filter((l) => etatsLiens.get(l)?.dispo).length;
+    if (faits >= tout.total) {
+      progression.textContent = `✓ ${tout.total} liens vérifiés · ${enLigne} en ligne`;
+      btnTout.textContent = 'Vérifier tous les liens';
+      ecouteursFile.delete(majTout);
+      tout = null;
+      majHotes();
+      return;
+    }
+    progression.textContent = `${faits} / ${tout.total} liens · ${enLigne} en ligne${dureeRestante(tout.debut, faits - tout.deja, tout.total - tout.deja)}`;
+  };
+  btnTout.addEventListener('click', () => {
+    if (tout) {
+      retirerLiens(tout.liens);
+      ecouteursFile.delete(majTout);
+      progression.textContent = `Arrêté : ${tout.liens.filter((l) => etatsLiens.has(l)).length} / ${tout.total} liens vérifiés`;
+      tout = null;
+      btnTout.textContent = 'Vérifier tous les liens';
+      return;
+    }
+    const liens = numeros.flatMap((ep) => liensDe(ep).flat());
+    tout = { liens, total: liens.length, deja: liens.filter((l) => etatsLiens.has(l)).length, debut: Date.now() };
+    btnTout.textContent = 'Arrêter';
+    ecouteursFile.add(majTout);
+    demanderLiens(liens);
+    majTout();
+  });
+  panneau.arrets?.push(() => {
+    arretsPage.splice(0).forEach((arret) => arret());
+    if (tout) retirerLiens(tout.liens);
+    ecouteursFile.delete(majTout);
+  });
+
+  // --- pied : combien d'épisodes de cette fiche sont dans la sélection ---
+  const compteur = element('span', 'r-choix');
+  const majPied = () => {
+    const n = numeros.filter(coche).length;
+    compteur.textContent = n
+      ? `${n} épisode${n > 1 ? 's' : ''} de cette fiche dans la sélection (en bas) · ajoute d'autres saisons puis envoie tout`
+      : 'Coche les épisodes voulus : ils vont dans la sélection en bas, avec ceux des autres saisons.';
+    toutCocher.textContent = numeros.every(coche) ? 'Tout décocher' : `Tout cocher (${numeros.length})`;
+  };
+  // La sélection change (ici ou ailleurs : « Vider », envoi…) : on remet les cases à jour.
+  const surPanier = () => {
+    for (const el of liste.children) el._majSelection?.();
+    majPied();
+  };
+  ecouteursPanier.add(surPanier);
+  panneau.arrets?.push(() => ecouteursPanier.delete(surPanier));
+
+  const pied = element('div', 'r-pied');
+  pied.append(compteur, lienFiche(r.adresse || x.url));
+  const nbStreaming = r.sources.filter((s) => s.streaming).length;
+  const aide = nbStreaming ? [element('p', 'aide', `${nbStreaming} liens de streaming masqués (lecture en ligne seulement).`)] : [];
+  panneau.replaceChildren(tete, liste, ...aide, pied);
+  majLignes();
+  majPied();
+}
+
+function rendreSources(panneau, x, r) {
+  const fiche = lienFiche(r.adresse || x.url);
+  if (!r.sources.length) {
+    const pied = element('div', 'r-pied');
+    pied.append(
+      element('span', 'r-choix', 'Aucun lien reconnu sur cette fiche : ils sont peut-être derrière un bouton, un compte ou chargés par JavaScript.'),
+      fiche,
+    );
+    return panneau.replaceChildren(pied);
+  }
+  // Fiche de série (plusieurs épisodes) : une ligne par épisode plutôt que des tuiles en vrac.
+  if (new Set(r.sources.filter((s) => !s.streaming && s.episode != null).map((s) => s.episode)).size > 1) return rendreEpisodes(panneau, x, r);
+
+  // Une rangée de tuiles par section de la fiche (qualité, saison…) ; le streaming à part, replié.
+  const STREAMING = '\u0000streaming';
+  const groupes = new Map();
+  r.sources.forEach((s, i) => {
+    const cle = s.streaming ? STREAMING : s.groupe;
+    groupes.set(cle, [...(groupes.get(cle) || []), [s, i]]);
+  });
+  const ordre = [...groupes].sort((a, b) => (a[0] === STREAMING) - (b[0] === STREAMING));
+  const nomSelection = [x.titre, [x.langue, x.qualite].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
+  const blocs = ordre.map(([groupe, liste]) => {
+    const fs = element('fieldset', 'groupe-sources');
+    if (groupe !== STREAMING && (groupe || groupes.size > 1)) fs.append(element('legend', '', groupe || 'Autres liens'));
+    const tuiles = element('div', 'tuiles');
+    tuiles.append(...liste.map(([s, i]) => tuileSource(s, i, nomSelection)));
+    fs.append(tuiles);
+    if (groupe !== STREAMING) return fs;
+    const replie = element('details', 'replie');
+    replie.append(element('summary', '', `Liens de streaming (${liste.length}) : lecture en ligne, souvent pas téléchargeables`), fs);
+    return replie;
+  });
+
+  const n = r.sources.length;
+  const choix = element('span', 'r-choix', `${n} source${n > 1 ? 's' : ''} : coche celle à télécharger, elle va dans la sélection en bas`);
+  const pied = element('div', 'r-pied');
+  pied.append(choix, fiche);
+  panneau.replaceChildren(...blocs, pied);
+  // La sélection change ailleurs (« Vider », envoi…) : on remet les cases et les « envoyée » à jour.
+  const surPanier = () => {
+    for (const label of panneau.querySelectorAll('.source[data-lien]')) {
+      label.querySelector('input').checked = panier.has(`src:${label.dataset.lien}`);
+      label.classList.toggle('envoyee', envoyees.has(label.dataset.lien));
+    }
+  };
+  ecouteursPanier.add(surPanier);
+  panneau.arrets?.push(() => ecouteursPanier.delete(surPanier));
+  // Chaque tuile vérifiable demande son lien quand elle apparaît à l'écran (pas le streaming replié).
+  for (const label of panneau.querySelectorAll('.source[data-lien]')) {
+    if (!label.querySelector('.s-etat')) continue;
+    const lien = label.dataset.lien;
+    label._liens = () => [[lien], []];
+    panneau.arrets?.push(surveiller(label), suivreLien(lien, () => majTuilesSources(panneau)));
+  }
+  majTuilesSources(panneau);
+}
+
+$('#btnProfil').addEventListener('click', () => ouvrirMenuProfil());
+
+(async () => {
+  await rafraichir();
+  chargerCompte();
+  // En arrivant : les nouveautés du site, en attendant une recherche.
+  if (history.state?.debrideur) history.replaceState(null, '');
+  majCategories();
+  construireAccueil('');
+  document.body.dataset.vue = 'accueil';
+})();
+// Profil choisi ou changé : historique, « Reprendre la lecture », fiche ouverte.
+let majVerifiee = false;
+function quandProfilChange() {
+  majRangeesPerso();
+  if (!majVerifiee && profilActif) {
+    majVerifiee = true;
+    setTimeout(() => verifierMisesAJour(), 1500);
+  }
+}
+demarrerAssistant().then((ouvert) => !ouvert && demarrerProfils());
+</script>
+</body>
+</html>

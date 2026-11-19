@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Application Débrideur pour télé Samsung (Tizen) : un simple client qui se connecte au serveur Débrideur
+     du réseau (le PC aujourd'hui, un mini-PC demain). Signée et installée par Apps2Samsung (« Install a file… »). -->
+<widget xmlns="http://www.w3.org/ns/widgets" xmlns:tizen="http://tizen.org/ns/widgets" id="http://debrideur.local/tele" version="1.0.0" viewmodes="maximized">
+  <tizen:application id="DbrdTele01.Debrideur" package="DbrdTele01" required_version="5.0"/>
+  <content src="index.html"/>
+  <feature name="http://tizen.org/feature/screen.size.normal.1080.1920"/>
+  <icon src="icon.png"/>
+  <name>Débrideur</name>
+  <description>Ta bibliothèque, la recherche et les téléchargements du Débrideur, sur la télé.</description>
+  <tizen:privilege name="http://tizen.org/privilege/internet"/>
+  <tizen:privilege name="http://tizen.org/privilege/tv.inputdevice"/>
+  <tizen:privilege name="http://tizen.org/privilege/application.launch"/>
+  <tizen:privilege name="http://developer.samsung.com/privilege/network.public"/>
+  <tizen:profile name="tv-samsung"/>
+  <tizen:setting screen-orientation="landscape" context-menu="disable" background-support="disable" encryption="disable" install-location="auto" hwkey-event="enable"/>
+  <access origin="*" subdomains="true"/>
+  <tizen:allow-navigation>*</tizen:allow-navigation>
+  <tizen:content-security-policy>default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; frame-src *; media-src * blob: data:; img-src * data: blob:</tizen:content-security-policy>
+</widget>

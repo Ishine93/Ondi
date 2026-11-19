@@ -1,0 +1,19 @@
+{
+  "name": "debrideur",
+  "version": "2.0.0",
+  "description": "Home media hub: search, AllDebrid downloads, a Prime-Video-like library and player for PC, phone and TV.",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node lancer.mjs",
+    "stop": "node lancer.mjs --arreter",
+    "test": "node --test tests/",
+    "paquets": "node outils/construire-paquets.mjs"
+  },
+  "debrideur": {
+    "depot": "Ishine93/Debrideur"
+  }
+}
