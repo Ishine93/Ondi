@@ -129,6 +129,7 @@
   }
   .onglet:hover { color: #fff; background: #ffffff12; }
   .onglet[aria-current="page"] { color: #fff; box-shadow: inset 0 -3px 0 var(--bleu); border-radius: 8px 8px 3px 3px; }
+  .nav-heure { flex: none; margin-left: 10px; font-size: 16px; font-weight: 650; color: #dfe6ee; font-variant-numeric: tabular-nums; white-space: nowrap; }
   /* Le badge du compte rétrécit avant les onglets (il ne garde que son point au besoin). */
   .nav #compte { margin: 0 4px; flex: 0 100 auto; min-width: 34px; overflow: hidden; }
   .nav #compte > span:last-child { overflow: hidden; text-overflow: ellipsis; }
@@ -700,6 +701,7 @@
     .nav #compte { padding: 0; width: 40px; height: 40px; justify-content: center; border: 0; background: none; margin: 0; }
     .nav #compte > span:last-child { display: none; }
     .icone { width: 40px; height: 40px; }
+    .nav-heure { margin-left: 6px; font-size: 14.5px; }
     .hero {
       height: auto; min-height: 0; flex-direction: column; align-items: center; justify-content: flex-end; text-align: center;
       padding: calc(var(--haut-nav) + 12px) var(--marge) 58px;
@@ -999,6 +1001,7 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
   </button>
   <button id="btnProfil" class="btn-profil" type="button" aria-haspopup="menu" aria-expanded="false" title="Profil"></button>
+  <time id="heureNav" class="nav-heure"></time>
 </header>
 
 <div class="page">
@@ -1883,6 +1886,23 @@ function ouvrirReglages(champ) {
   else if (!c.cle) $('#cCle').focus();
 }
 $('#btnReglages').addEventListener('click', ouvrirReglages);
+
+// Heure à droite du profil (24 h en français, 12 h en anglais), remise à jour à chaque changement de minute.
+(function heureNav() {
+  const el = $('#heureNav');
+  const format = new Intl.DateTimeFormat(LANGUE === 'en' ? 'en-US' : 'fr-FR', { hour: 'numeric', minute: '2-digit' });
+  let minuterie = null;
+  const maj = () => {
+    clearTimeout(minuterie);
+    const d = new Date();
+    el.textContent = format.format(d);
+    el.dateTime = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    minuterie = setTimeout(maj, 60_000 - (d.getSeconds() * 1000 + d.getMilliseconds()) + 50);
+  };
+  maj();
+  // Retour sur l'appli (télé sortie de veille, onglet revenu) : l'heure est juste tout de suite.
+  document.addEventListener('visibilitychange', () => !document.hidden && maj());
+})();
 
 $('#sauverReglages').addEventListener('click', async () => {
   const msg = $('#msgReglages');

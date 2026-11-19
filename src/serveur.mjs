@@ -509,6 +509,16 @@ const serveur = http.createServer(async (req, res) => {
         return json(res, 400, { erreur: e.message });
       }
     }
+    // Le lecteur signale ce qu'il a dû rattraper (position figée, flux coupé avant la fin) : noté dans le journal
+    // pour comprendre ce qui se passe sur une télé qu'on ne peut pas observer.
+    if (req.method === 'POST' && p === '/api/lecture/journal') {
+      const b = await lireJson(req);
+      const texte = (x, n) => String(x ?? '').replace(/[^\p{L}\p{N} .,:;'()/+-]/gu, ' ').slice(0, n);
+      const h = Math.max(0, Math.round(Number(b.position) || 0));
+      const heure = `${Math.floor(h / 3600)}:${String(Math.floor(h / 60) % 60).padStart(2, '0')}:${String(h % 60).padStart(2, '0')}`;
+      journal(`Lecteur${b.tele ? ' (télé)' : ''} : ${texte(b.quoi, 120)} à ${heure} (${texte(b.mode, 12)})`);
+      return json(res, 200, { ok: true });
+    }
     if (req.method === 'POST' && p === '/api/bibliotheque/scanner') {
       const b = await lireJson(req);
       scanner({ forcerMeta: !!b.infos });

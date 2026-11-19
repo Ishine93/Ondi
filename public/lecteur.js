@@ -289,28 +289,76 @@ function construireLecteur() {
     montrerControles(true);
     sauverPosition(true);
   });
-  video.addEventListener('timeupdate', () => {
-    majTemps();
-    majSousTitres();
-    if (Date.now() - L.derniereSauvegarde > 10_000) sauverPosition();
-    verifierFin();
-  });
+  video.addEventListener('timeupdate', () => avancer());
   video.addEventListener('ended', () => {
     // Fin des données avant la fin du film : le flux a été coupé (réseau, PC), ce n'est pas la fin.
-    if (L.session?.mode !== 'direct' && L.duree - tempsActuel() > 40) return reprendreFlux(t('Connexion interrompue : reprise…'));
+    if (L.session?.mode !== 'direct' && L.duree - tempsActuel() > 40) {
+      signaler('flux terminé avant la fin, reprise');
+      return reprendreFlux(t('Connexion interrompue : reprise…'));
+    }
     sauverPosition(true, true);
     const s = L.suivant?.();
     if (s) lireSuivant();
     else fermerLecteur();
   });
   video.addEventListener('error', () => erreurVideo());
+  L.surveillancePosition = setInterval(echantillonner, 250);
   montrerControles();
+}
+
+// Ce qui suit l'heure de la vidéo : barre, sous-titres, sauvegarde de la position, fin proche.
+function avancer() {
+  if (!L) return;
+  majTemps();
+  majSousTitres();
+  if (Date.now() - L.derniereSauvegarde > 10_000) sauverPosition();
+  verifierFin();
 }
 
 function tempsActuel() {
   if (!L) return 0;
   if (L.cible != null) return L.cible;
-  return L.session?.mode === 'direct' ? L.video.currentTime : L.debut + (L.video.currentTime || 0);
+  if (L.session?.mode === 'direct') return L.video.currentTime;
+  return L.debut + (L.horlogeLecteur && L.horloge ? L.horloge.pos : L.video.currentTime || 0);
+}
+
+// Horloge du lecteur pour les flux convertis ou repaquetés. Certaines télés (Samsung) arrêtent currentTime
+// quelques secondes après le début du flux alors que l'image continue (barre figée, reprise fausse, fin du film
+// prise pour une coupure). On tient donc notre propre horloge, recalée sur currentTime tant qu'il bouge et qui
+// avance toute seule quand la vidéo joue mais que currentTime reste figé. Figé 3 s alors que la vidéo joue :
+// c'est elle qui compte jusqu'à la fermeture du lecteur.
+function echantillonner() {
+  if (!L) return;
+  const v = L.video;
+  const maintenant = performance.now();
+  const ct = v.currentTime || 0;
+  const h = L.horloge || (L.horloge = { pos: ct, ct, a: maintenant, fige: 0 });
+  const ecoule = maintenant - h.a;
+  h.a = maintenant;
+  const joue = L.session && L.session.mode !== 'direct' && L.cible == null && L.aJoue && !v.paused && !v.ended && !v.seeking && v.readyState >= 3;
+  if (Math.abs(ct - h.ct) > 0.01) {
+    h.ct = ct;
+    h.pos = ct;
+    h.fige = 0;
+  } else if (joue) {
+    h.pos += (ecoule / 1000) * (v.playbackRate || 1);
+    h.fige += ecoule;
+    if (!L.horlogeLecteur && h.fige >= 3000) {
+      L.horlogeLecteur = true;
+      const d = Number.isFinite(v.duration) ? `${Math.round(v.duration * 10) / 10} s` : String(v.duration);
+      signaler(`heure de la vidéo figée à ${Math.round(ct * 10) / 10} s du flux (durée vue ${d}), horloge du lecteur utilisée`);
+    }
+  }
+  if (L.horlogeLecteur) avancer();
+  // Saut coincé plus de 10 s (lecture directe) : on relance au même endroit.
+  if (v.seeking && !v.paused && L.cible == null) {
+    L.sautCoince = (L.sautCoince || 0) + ecoule;
+    if (L.sautCoince > 10_000) {
+      L.sautCoince = 0;
+      signaler('saut coincé, flux relancé');
+      reprendreFlux(t('Lecture bloquée : reprise…'));
+    }
+  } else L.sautCoince = 0;
 }
 
 // Démarre (ou redémarre) la lecture à « position » : nouvelle session côté serveur sauf en lecture directe.
@@ -320,6 +368,7 @@ async function demarrer(position, { forcerConversion = false } = {}) {
   etat.attente.hidden = false;
   etat.cible = position;
   etat.aJoue = false;
+  etat.horloge = null;
   clearTimeout(etat.gardeImage);
   majTemps();
   try {
@@ -407,22 +456,20 @@ function allerA(position, { differe = false } = {}) {
       L.cible = null;
       verifierCouvertureSt();
     } else {
-      // Petit saut dans ce qui est déjà chargé : pas besoin de relancer le flux.
-      const local = position - L.debut;
-      const b = L.video.buffered;
-      for (let i = 0; i < b.length; i++) {
-        if (local >= b.start(i) && local <= b.end(i) - 1) {
-          L.video.currentTime = local;
-          L.cible = null;
-          verifierCouvertureSt();
-          return;
-        }
-      }
+      // Flux converti ou repaqueté : il ne se parcourt pas (pas de « Range »), même un petit saut le relance à
+      // la bonne position. Se déplacer dans ce qui était déjà chargé ramenait Chrome au début du flux et figeait
+      // l'heure des télés Samsung (barre bloquée, mauvaise reprise, fin du film prise pour une coupure).
       demarrer(position);
     }
   };
   if (differe) L.attenteSaut = setTimeout(agir, 650);
   else agir();
+}
+
+// Note dans le journal du PC ce que le lecteur a dû rattraper (10 fois par vidéo au plus).
+function signaler(quoi, position = tempsActuel()) {
+  if (!L || (L.signalements = (L.signalements || 0) + 1) > 10) return;
+  api('/api/lecture/journal', { method: 'POST', body: JSON.stringify({ quoi, position, mode: L.session?.mode, tele: L.caps.tele }) }).catch(() => {});
 }
 
 function basculerLecture() {
@@ -710,6 +757,7 @@ function fermerLecteur({ historique = true, sauver = true, garderEtat = false } 
   clearTimeout(L.attenteSaut);
   clearTimeout(L.surveillance);
   clearTimeout(L.gardeImage);
+  clearInterval(L.surveillancePosition);
   clearTimeout(minuterieControles);
   video.pause();
   video.removeAttribute('src');

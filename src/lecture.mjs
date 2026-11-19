@@ -50,6 +50,82 @@ export function echelleSousTitres(v, H) {
   return `scale=w=${W}:h=${H}:force_original_aspect_ratio=decrease:force_divisible_by=2`;
 }
 
+// ---------- durée annoncée dans le flux ----------
+// ffmpeg écrit un MP4 fragmenté dont l'en-tête (moov) annonce une durée nulle : la suite arrive morceau par
+// morceau. Les télés Samsung prennent alors la durée du premier morceau (2 s) et leur horloge (currentTime) s'y
+// arrête alors que l'image continue : barre figée, reprise fausse, fin du film prise pour une coupure.
+// On écrit la durée dans l'en-tête (mvhd, tkhd, mdhd) et on ajoute la durée totale des fragments (mehd).
+const CONTENANTS = new Set(['moov', 'trak', 'mdia', 'mvex']);
+export function annoncerDuree(moov, secondes) {
+  if (!(secondes > 0) || moov.length < 8 || moov.readUInt32BE(0) !== moov.length || moov.toString('latin1', 4, 8) !== 'moov') return moov;
+  const b = Buffer.from(moov);
+  let echelle = 0;
+  let mvex = -1;
+  let mehd = -1;
+  const ecrire = (p, v1, unites) => (v1 ? b.writeBigUInt64BE(BigInt(Math.round(secondes * unites)), p) : b.writeUInt32BE(Math.min(0xffffffff, Math.round(secondes * unites)), p));
+  const parcourir = (debut, fin) => {
+    for (let p = debut; p + 12 <= fin; ) {
+      const taille = b.readUInt32BE(p);
+      if (taille < 8 || p + taille > fin) return;
+      const type = b.toString('latin1', p + 4, p + 8);
+      const v1 = b[p + 8] === 1;
+      if (type === 'mvhd') {
+        echelle = b.readUInt32BE(p + (v1 ? 28 : 20));
+        ecrire(p + (v1 ? 32 : 24), v1, echelle);
+      } else if (type === 'tkhd' && echelle) ecrire(p + (v1 ? 36 : 28), v1, echelle);
+      else if (type === 'mdhd') ecrire(p + (v1 ? 32 : 24), v1, b.readUInt32BE(p + (v1 ? 28 : 20)));
+      else if (type === 'mehd' && echelle) {
+        mehd = p;
+        ecrire(p + 12, v1, echelle);
+      } else if (type === 'mvex') mvex = p;
+      if (CONTENANTS.has(type)) parcourir(p + 8, p + taille);
+      p += taille;
+    }
+  };
+  parcourir(8, b.length);
+  if (mvex < 0 || mehd >= 0 || !echelle) return b;
+  // mehd en tête de mvex : mvex et moov grandissent d'autant. Les fragments repèrent leurs données depuis leur
+  // propre en-tête (default_base_moof) : rien d'autre à décaler.
+  const boite = Buffer.alloc(16);
+  boite.writeUInt32BE(16, 0);
+  boite.write('mehd', 4, 'latin1');
+  boite.writeUInt32BE(Math.min(0xffffffff, Math.round(secondes * echelle)), 12);
+  const r = Buffer.concat([b.subarray(0, mvex + 8), boite, b.subarray(mvex + 8)]);
+  r.writeUInt32BE(r.readUInt32BE(mvex) + 16, mvex);
+  r.writeUInt32BE(r.length, 0);
+  return r;
+}
+
+// Envoie la sortie de ffmpeg en réécrivant au passage son en-tête (ftyp puis moov) avec la durée.
+function envoyerAvecDuree(sortie, res, secondes) {
+  if (!secondes) return sortie.pipe(res);
+  let tampon = Buffer.alloc(0);
+  const lacher = (debut) => {
+    sortie.off('data', surDonnees);
+    res.write(debut);
+    sortie.pipe(res);
+  };
+  const surDonnees = (morceau) => {
+    tampon = Buffer.concat([tampon, morceau]);
+    for (let p = 0; p + 8 <= tampon.length; ) {
+      const taille = tampon.readUInt32BE(p);
+      const type = tampon.toString('latin1', p + 4, p + 8);
+      // Inattendu (ou en-tête démesuré) : envoyé tel quel.
+      if (taille < 8 || (type !== 'ftyp' && type !== 'moov') || taille > 16e6) return lacher(tampon);
+      if (p + taille > tampon.length) return;
+      if (type === 'moov') {
+        let moov = tampon.subarray(p, p + taille);
+        try {
+          moov = annoncerDuree(moov, secondes);
+        } catch {}
+        return lacher(Buffer.concat([tampon.subarray(0, p), moov, tampon.subarray(p + taille)]));
+      }
+      p += taille;
+    }
+  };
+  sortie.on('data', surDonnees);
+}
+
 // Extraction des sous-titres texte à la demande : à partir de la position regardée, d'abord une avance
 // rapide (90 s), puis 4 fois plus vite que la lecture, pour ne pas disputer le disque au flux vidéo.
 const AVANCE_INITIALE = 90;
@@ -173,6 +249,7 @@ export class Lecture {
       sortieHevc,
       garderHdr,
       sousTitreImage: pisteImage,
+      duree: s.duree,
       cree: Date.now(),
     };
     this.sessions.set(id, session);
@@ -191,7 +268,10 @@ export class Lecture {
     const a = ['-hide_banner', '-v', 'error', '-nostdin'];
     const nvidia = s.mode === 'conversion' && s.encodeur.nom === 'nvidia' && ['h264', 'hevc', 'av1', 'vp9', 'mpeg2video'].includes(v.codec);
     if (nvidia) a.push('-hwaccel', 'cuda', '-hwaccel_output_format', 'cuda', '-extra_hw_frames', '4');
-    if (s.debut > 0) a.push('-ss', s.debut.toFixed(3));
+    // Image recopiée : le flux doit commencer pile sur le point clé « debut ». ffmpeg cherche 0,13 s plus tôt
+    // quand la vidéo a des images B, ce qui le faisait repartir du point clé d'avant (une seconde de trop) :
+    // on vise un peu après.
+    if (s.debut > 0) a.push('-ss', (s.mode === 'remux' ? s.debut + 0.15 : s.debut).toFixed(3));
     a.push('-i', s.chemin);
     const audio = s.pisteAudio ? ['-map', `0:${s.pisteAudio.index}`] : [];
 
@@ -244,6 +324,12 @@ export class Lecture {
       else a.push('-c:a', 'aac', '-ac', '2', '-b:a', '224k');
     }
     a.push('-sn', '-dn', '-map_metadata', '-1', '-map_chapters', '-1', '-max_muxing_queue_size', '4096');
+    // Image convertie et son recopié : ffmpeg recopie aussi le son d'avant la position (jusqu'à une demi-
+    // seconde) ; on le retire, sinon tout le flux est décalé d'autant.
+    if (s.mode === 'conversion' && s.debut > 0) a.push('-ss', '0');
+    // Pas de liste de montage (« edit list ») : les télés Samsung l'ignorent dans un MP4 fragmenté, et le son
+    // arrivait jusqu'à 0,4 s après l'image. Sans elle, chaque piste porte son vrai départ : synchro juste partout.
+    a.push('-use_editlist', '0');
     a.push('-f', 'mp4', '-movflags', 'frag_keyframe+empty_moov+delay_moov+default_base_moof', '-frag_duration', '2000000', 'pipe:1');
     return a;
   }
@@ -268,7 +354,8 @@ export class Lecture {
       if (erreurs.length < 4000) erreurs += d;
     });
     res.writeHead(200, { 'Content-Type': 'video/mp4', 'Cache-Control': 'no-store', 'Accept-Ranges': 'none' });
-    p.stdout.pipe(res);
+    // Durée de ce qui reste à lire (+ 2 s de marge : annoncer moins que la réalité arrêterait l'horloge avant la fin).
+    envoyerAvecDuree(p.stdout, res, s.duree ? Math.max(1, s.duree - s.debut + 2) : 0);
     const fin = () => {
       if (!p.killed && p.exitCode === null) p.kill('SIGKILL');
     };
