@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-<title>Débrideur</title>
+<title>Ondi</title>
 <style>
   /* Mise en page pensée pour 1920 px de large (comme l'application Samsung), réduite à l'écran : 1rem = 10 px à 1920. */
   html { font-size: calc(100vw / 192); }
@@ -32,8 +32,8 @@
 <div id="ecran">
   <div class="boite">
     <div class="logo">
-      <svg viewBox="0 0 32 32"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#58b9ff"/><stop offset="1" stop-color="#1a6dff"/></linearGradient></defs><rect width="32" height="32" rx="8" fill="url(#g)"/><path d="M16 7v13m-6-6 6 6 6-6M9 25h14" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      Débrideur
+      <svg viewBox="0 0 100 100"><defs><linearGradient id="g" x1="16.1" y1="16.1" x2="83.9" y2="83.9" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#00d8ff"/><stop offset=".2" stop-color="#1965fb"/><stop offset=".44" stop-color="#6f19fb"/><stop offset=".56" stop-color="#8f12fc"/><stop offset=".68" stop-color="#b50bf3"/><stop offset=".92" stop-color="#fd0fd1"/><stop offset="1" stop-color="#ff10cc"/></linearGradient></defs><path fill="url(#g)" d="M8.1 73.42L91.57 26A48 48 0 0 0 8.1 73.42Z"/><path fill="url(#g)" d="M10.21 76.85L93.44 29.57A48 48 0 0 1 10.21 76.85Z"/></svg>
+      Ondi
     </div>
     <div id="attente">
       <div class="rond"></div>
@@ -41,7 +41,7 @@
     </div>
     <div id="reglage" hidden>
       <h1 id="titreReglage">Serveur introuvable</h1>
-      <p id="aideReglage" style="margin: 1.8rem 0 2.6rem">Le PC (ou le mini-PC) du Débrideur est-il allumé ? Son adresse s'affiche en bas de la page du Débrideur, par exemple <code>192.168.1.50:8097</code>.</p>
+      <p id="aideReglage" style="margin: 1.8rem 0 2.6rem">Le PC (ou le mini-PC) d'Ondi est-il allumé ? Son adresse s'affiche en bas de la page d'Ondi, par exemple <code>192.168.1.50:8097</code>.</p>
       <input id="adresse" class="champ" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="192.168.1.50:8097">
       <div class="boutons">
         <button id="connecter" class="principal">Se connecter</button>
@@ -52,7 +52,7 @@
 </div>
 <script>
 // Lanceur de l'application Android TV / Fire TV : trouve le serveur (adresse gardée, sinon recherche sur le
-// réseau de la télé), puis ouvre la page du Débrideur dans cette même vue. « ?reglage=1 » : choix du serveur.
+// réseau de la télé), puis ouvre la page d'Ondi dans cette même vue. « ?reglage=1 » : choix du serveur.
 (function () {
   'use strict';
   var $ = function (s) { return document.querySelector(s); };
@@ -64,7 +64,7 @@
     document.documentElement.lang = 'en';
     $('#etape').textContent = 'Connecting to the server…';
     $('#titreReglage').textContent = 'Server not found';
-    $('#aideReglage').innerHTML = 'Is the Débrideur PC (or mini-PC) on? Its address is shown at the bottom of the Débrideur page, e.g. <code>192.168.1.50:8097</code>.';
+    $('#aideReglage').innerHTML = 'Is the Ondi PC (or mini-PC) on? Its address is shown at the bottom of the Ondi page, e.g. <code>192.168.1.50:8097</code>.';
     $('#connecter').textContent = 'Connect';
     $('#chercher').textContent = 'Search the network';
   }
@@ -205,7 +205,7 @@
     }
   });
 
-  // Venu de la page du Débrideur (« changer de serveur ») : Retour y ramène.
+  // Venu de la page d'Ondi (« changer de serveur ») : Retour y ramène.
   if (reglageDemande) {
     serveur = normaliser(lire());
     montrerReglage();

@@ -66,7 +66,7 @@ export class Lecture {
     this.processusExtraction = new Map(); // fichierId → ffmpeg de l'extraction complète en arrière-plan
     this.echecs = new Map(); // fichierId → extractions ratées (le préparatif en arrière-plan abandonne après 2)
     this.actifs = new Set(); // processus ffmpeg en cours
-    // Restes d'une extraction coupée (Débrideur arrêté pendant) : à refaire.
+    // Restes d'une extraction coupée (Ondi arrêté pendant) : à refaire.
     try {
       for (const n of fs.readdirSync(this.dossierSousTitres)) {
         const chemin = path.join(this.dossierSousTitres, n);

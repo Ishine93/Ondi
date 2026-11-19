@@ -1,12 +1,12 @@
-# Débrideur for Android TV and Google TV
+# Ondi for Android TV and Google TV
 
 *Version française plus bas.*
 
-This app shows your Débrideur (library, player, downloads) full screen on a TV running **Android TV or Google TV**: Sony, Philips, TCL, Xiaomi, Hisense (Android models), Nvidia Shield, Chromecast with Google TV, Google TV Streamer, and most Android TV boxes. You use it with the TV remote.
+This app shows your Ondi (library, player, downloads) full screen on a TV running **Android TV or Google TV**: Sony, Philips, TCL, Xiaomi, Hisense (Android models), Nvidia Shield, Chromecast with Google TV, Google TV Streamer, and most Android TV boxes. You use it with the TV remote.
 
 ## Before you start
 
-- The **Débrideur server must already be installed and running** on a Windows PC, a Mac or a mini-PC (NUC) at home: https://github.com/Ishine93/Debrideur
+- The **Ondi server must already be installed and running** on a Windows PC, a Mac or a mini-PC (NUC) at home: https://github.com/Ishine93/Ondi
 - The TV and that computer must be on the **same home network** (same box or router, Wi-Fi or cable).
 - The TV app is only a window onto the server: your films and settings stay on the computer.
 
@@ -14,7 +14,7 @@ This app shows your Débrideur (library, player, downloads) full screen on a TV 
 
 | File | What it is for |
 |---|---|
-| `Debrideur.apk` | The app itself |
+| `Ondi.apk` | The app itself |
 | `installer-sur-la-tele.bat` | Installer for a Windows PC (double-click) |
 | `installer-sur-la-tele.command` | Installer for a Mac (or Linux) |
 | `outils/` | Used by the Windows installer |
@@ -39,32 +39,32 @@ The app is not in the Play Store, so it is installed by hand. This is safe and n
    - **Linux**: in a terminal, `bash installer-sur-la-tele.command`.
 5. The installer downloads Google's official tool (adb) the first time, asks for the TV's IP address and connects to it.
 6. **Look at the TV**: it asks "Allow USB debugging?". Tick "Always allow from this computer" and choose **OK**.
-7. Wait for "Done!": Débrideur opens on the TV. You can then turn USB debugging off again.
+7. Wait for "Done!": Ondi opens on the TV. You can then turn USB debugging off again.
 
 Recent Google TV with **Wireless debugging** instead: in the installer, choose **3) Pair with a code**, then on the TV open **Developer options > Wireless debugging > Pair device with pairing code** and type what it shows.
 
 ### Way B: with the "Send Files to TV" app
 
 1. Install **Send Files to TV** (free, Play Store) on the TV and on an Android phone.
-2. On the phone, download the app: https://github.com/Ishine93/Debrideur/releases/latest/download/Debrideur.apk
-3. Open Send Files to TV on both: **Receive** on the TV, **Send** on the phone, then choose `Debrideur.apk` and your TV.
-4. On the TV, open the received `Debrideur.apk` (in Send Files to TV, or with a file manager in the **Download** folder) and choose **Install**.
+2. On the phone, download the app: https://github.com/Ishine93/Ondi/releases/latest/download/Ondi.apk
+3. Open Send Files to TV on both: **Receive** on the TV, **Send** on the phone, then choose `Ondi.apk` and your TV.
+4. On the TV, open the received `Ondi.apk` (in Send Files to TV, or with a file manager in the **Download** folder) and choose **Install**.
 5. The first time, the TV asks to allow installing unknown apps: allow it for the app that opens the file (or **Settings > Apps > Security & restrictions > Unknown sources**).
 
 ### Way C: with a USB stick
 
-1. Copy `Debrideur.apk` onto a USB stick and plug it into the TV.
+1. Copy `Ondi.apk` onto a USB stick and plug it into the TV.
 2. On the TV, install a file manager from the Play Store (for example **File Commander** or **X-plore File Manager**).
-3. Open it, go to the USB stick, choose `Debrideur.apk` and **Install**.
+3. Open it, go to the USB stick, choose `Ondi.apk` and **Install**.
 4. The first time, allow "Install unknown apps" for the file manager when asked.
 
 Tip: the free **Downloader** app (by AFTVnews, on the TV's Play Store) also works: type the link from Way B, it downloads and installs the app.
 
 ## First launch
 
-- Open **Débrideur** from your apps (Google TV: **Apps** tab, or the **Your apps** row).
+- Open **Ondi** from your apps (Google TV: **Apps** tab, or the **Your apps** row).
 - It finds the server on your network by itself (a few seconds).
-- If it shows **Server not found**: check that the computer is on and Débrideur is running. Then type the address shown **at the bottom of the Débrideur page** on the computer, for example `192.168.1.50:8097`: press **Up** to reach the field (the keyboard opens), type it and confirm. Or choose **Search the network** to try again.
+- If it shows **Server not found**: check that the computer is on and Ondi is running. Then type the address shown **at the bottom of the Ondi page** on the computer, for example `192.168.1.50:8097`: press **Up** to reach the field (the keyboard opens), type it and confirm. Or choose **Search the network** to try again.
 - The address is remembered for next time.
 
 ## Remote control
@@ -76,28 +76,28 @@ Tip: the free **Downloader** app (by AFTVnews, on the TV's Play Store) also work
 
 ## Updating
 
-- Débrideur's look and features **update by themselves** with the server: nothing to do on the TV.
-- The TV app itself rarely changes. When a new one is needed, **Débrideur tells you on the TV**. Install the new `Debrideur.apk` the same way as the first time: it replaces the old one and keeps your settings.
-- If the TV says "App not installed" during an update, uninstall Débrideur first (**Settings > Apps > Débrideur > Uninstall**) and install again.
+- Ondi's look and features **update by themselves** with the server: nothing to do on the TV.
+- The TV app itself rarely changes. When a new one is needed, **Ondi tells you on the TV**. Install the new `Ondi.apk` the same way as the first time: it replaces the old one and keeps your settings.
+- If the TV says "App not installed" during an update, uninstall Ondi first (**Settings > Apps > Ondi > Uninstall**) and install again.
 
 ## Troubleshooting
 
-- **Server not found**: the computer is off or asleep, Débrideur is not running, the TV is on another network (guest Wi-Fi), or the computer's firewall blocks port 8097 (on Windows, allow Node.js on private networks).
-- **It worked before, now "Server not found"**: the computer's address may have changed. Type the new one shown at the bottom of the Débrideur page. To avoid it, give the computer a fixed address in your box or router settings.
+- **Server not found**: the computer is off or asleep, Ondi is not running, the TV is on another network (guest Wi-Fi), or the computer's firewall blocks port 8097 (on Windows, allow Node.js on private networks).
+- **It worked before, now "Server not found"**: the computer's address may have changed. Type the new one shown at the bottom of the Ondi page. To avoid it, give the computer a fixed address in your box or router settings.
 - **The installer cannot connect**: same network? Developer options and USB debugging on? Right IP address? Restart the TV and try again (some TVs turn debugging off when restarting).
-- **"App not installed"**: not enough space on the TV, or an older Débrideur app with a different signature: uninstall it first.
-- **Débrideur is not in the Play Store**: that is normal, it is installed by hand.
+- **"App not installed"**: not enough space on the TV, or an older Ondi app with a different signature: uninstall it first.
+- **Ondi is not in the Play Store**: that is normal, it is installed by hand.
 - **Still stuck?** Open `PROMPT-IA.md`, copy the message into ChatGPT, Claude or another AI assistant: it will guide you step by step.
 
 ---
 
-# Débrideur pour Android TV et Google TV
+# Ondi pour Android TV et Google TV
 
-Cette application affiche ton Débrideur (bibliothèque, lecteur, téléchargements) en plein écran sur une télé **Android TV ou Google TV** : Sony, Philips, TCL, Xiaomi, Hisense (modèles Android), Nvidia Shield, Chromecast avec Google TV, Google TV Streamer et la plupart des boîtiers Android TV. Elle se pilote avec la télécommande.
+Cette application affiche ton Ondi (bibliothèque, lecteur, téléchargements) en plein écran sur une télé **Android TV ou Google TV** : Sony, Philips, TCL, Xiaomi, Hisense (modèles Android), Nvidia Shield, Chromecast avec Google TV, Google TV Streamer et la plupart des boîtiers Android TV. Elle se pilote avec la télécommande.
 
 ## Avant de commencer
 
-- Le **serveur Débrideur doit déjà être installé et allumé** sur un PC Windows, un Mac ou un mini-PC (NUC) de la maison : https://github.com/Ishine93/Debrideur
+- Le **serveur Ondi doit déjà être installé et allumé** sur un PC Windows, un Mac ou un mini-PC (NUC) de la maison : https://github.com/Ishine93/Ondi
 - La télé et cet ordinateur doivent être sur le **même réseau** (même box ou routeur, en Wi-Fi ou par câble).
 - L'application de la télé n'est qu'une fenêtre sur le serveur : tes films et tes réglages restent sur l'ordinateur.
 
@@ -105,7 +105,7 @@ Cette application affiche ton Débrideur (bibliothèque, lecteur, téléchargeme
 
 | Fichier | À quoi il sert |
 |---|---|
-| `Debrideur.apk` | L'application |
+| `Ondi.apk` | L'application |
 | `installer-sur-la-tele.bat` | Installateur pour un PC Windows (double-clic) |
 | `installer-sur-la-tele.command` | Installateur pour un Mac (ou Linux) |
 | `outils/` | Utilisé par l'installateur Windows |
@@ -130,32 +130,32 @@ L'application n'est pas sur le Play Store : on l'installe à la main. C'est norm
    - **Linux** : dans un terminal, `bash installer-sur-la-tele.command`.
 5. L'installateur télécharge la première fois l'outil officiel de Google (adb), demande l'adresse IP de la télé et s'y connecte.
 6. **Regarde la télé** : elle demande « Autoriser le débogage USB ? ». Coche « Toujours autoriser sur cet ordinateur » et choisis **OK**.
-7. Attends « C'est fait ! » : le Débrideur s'ouvre sur la télé. Tu peux ensuite désactiver le débogage USB.
+7. Attends « C'est fait ! » : Ondi s'ouvre sur la télé. Tu peux ensuite désactiver le débogage USB.
 
 Google TV récente avec **Débogage sans fil** à la place : dans l'installateur, choisis **3) Associer avec un code**, puis sur la télé ouvre **Options pour les développeurs > Débogage sans fil > Associer l'appareil avec un code** et recopie ce qu'elle affiche.
 
 ### Méthode B : avec l'application « Send Files to TV »
 
 1. Installe **Send Files to TV** (gratuite, Play Store) sur la télé et sur un téléphone Android.
-2. Sur le téléphone, télécharge l'application : https://github.com/Ishine93/Debrideur/releases/latest/download/Debrideur.apk
-3. Ouvre Send Files to TV des deux côtés : **Receive** (recevoir) sur la télé, **Send** (envoyer) sur le téléphone, puis choisis `Debrideur.apk` et ta télé.
-4. Sur la télé, ouvre le fichier `Debrideur.apk` reçu (dans Send Files to TV, ou avec un gestionnaire de fichiers dans le dossier **Download**) et choisis **Installer**.
+2. Sur le téléphone, télécharge l'application : https://github.com/Ishine93/Ondi/releases/latest/download/Ondi.apk
+3. Ouvre Send Files to TV des deux côtés : **Receive** (recevoir) sur la télé, **Send** (envoyer) sur le téléphone, puis choisis `Ondi.apk` et ta télé.
+4. Sur la télé, ouvre le fichier `Ondi.apk` reçu (dans Send Files to TV, ou avec un gestionnaire de fichiers dans le dossier **Download**) et choisis **Installer**.
 5. La première fois, la télé demande d'autoriser l'installation d'applications inconnues : autorise-la pour l'application qui ouvre le fichier (ou **Paramètres > Applications > Sécurité et restrictions > Sources inconnues**).
 
 ### Méthode C : avec une clé USB
 
-1. Copie `Debrideur.apk` sur une clé USB et branche-la sur la télé.
+1. Copie `Ondi.apk` sur une clé USB et branche-la sur la télé.
 2. Sur la télé, installe un gestionnaire de fichiers depuis le Play Store (par exemple **File Commander** ou **X-plore File Manager**).
-3. Ouvre-le, va sur la clé USB, choisis `Debrideur.apk` puis **Installer**.
+3. Ouvre-le, va sur la clé USB, choisis `Ondi.apk` puis **Installer**.
 4. La première fois, autorise « Installer des applications inconnues » pour le gestionnaire de fichiers quand la télé le demande.
 
 Astuce : l'application gratuite **Downloader** (d'AFTVnews, sur le Play Store de la télé) marche aussi : tape le lien de la méthode B, elle télécharge et installe l'application.
 
 ## Premier lancement
 
-- Ouvre **Débrideur** parmi tes applications (Google TV : onglet **Applications**, ou la rangée **Vos applications**).
+- Ouvre **Ondi** parmi tes applications (Google TV : onglet **Applications**, ou la rangée **Vos applications**).
 - Il trouve tout seul le serveur sur ton réseau (quelques secondes).
-- S'il affiche **Serveur introuvable** : vérifie que l'ordinateur est allumé et que le Débrideur tourne. Tape alors l'adresse affichée **en bas de la page du Débrideur** sur l'ordinateur, par exemple `192.168.1.50:8097` : appuie sur **Haut** pour aller sur le champ (le clavier s'ouvre), tape-la et valide. Ou choisis **Chercher sur le réseau** pour réessayer.
+- S'il affiche **Serveur introuvable** : vérifie que l'ordinateur est allumé et qu'Ondi tourne. Tape alors l'adresse affichée **en bas de la page d'Ondi** sur l'ordinateur, par exemple `192.168.1.50:8097` : appuie sur **Haut** pour aller sur le champ (le clavier s'ouvre), tape-la et valide. Ou choisis **Chercher sur le réseau** pour réessayer.
 - L'adresse est retenue pour la fois suivante.
 
 ## Télécommande
@@ -167,15 +167,15 @@ Astuce : l'application gratuite **Downloader** (d'AFTVnews, sur le Play Store de
 
 ## Mises à jour
 
-- L'apparence et les fonctions du Débrideur **se mettent à jour toutes seules** avec le serveur : rien à faire sur la télé.
-- L'application de la télé change rarement. Quand il en faut une nouvelle, **le Débrideur te le dit sur la télé**. Installe le nouveau `Debrideur.apk` comme la première fois : il remplace l'ancien et garde tes réglages.
-- Si la télé répond « Application non installée » pendant une mise à jour, désinstalle d'abord le Débrideur (**Paramètres > Applications > Débrideur > Désinstaller**) puis réinstalle-le.
+- L'apparence et les fonctions d'Ondi **se mettent à jour toutes seules** avec le serveur : rien à faire sur la télé.
+- L'application de la télé change rarement. Quand il en faut une nouvelle, **Ondi te le dit sur la télé**. Installe le nouveau `Ondi.apk` comme la première fois : il remplace l'ancien et garde tes réglages.
+- Si la télé répond « Application non installée » pendant une mise à jour, désinstalle d'abord Ondi (**Paramètres > Applications > Ondi > Désinstaller**) puis réinstalle-le.
 
 ## En cas de souci
 
-- **Serveur introuvable** : l'ordinateur est éteint ou en veille, le Débrideur n'est pas lancé, la télé est sur un autre réseau (Wi-Fi invité), ou le pare-feu de l'ordinateur bloque le port 8097 (sous Windows, autorise Node.js sur les réseaux privés).
-- **Ça marchait, et maintenant « Serveur introuvable »** : l'adresse de l'ordinateur a peut-être changé. Tape la nouvelle, affichée en bas de la page du Débrideur. Pour l'éviter, donne une adresse fixe à l'ordinateur dans les réglages de ta box ou de ton routeur.
+- **Serveur introuvable** : l'ordinateur est éteint ou en veille, Ondi n'est pas lancé, la télé est sur un autre réseau (Wi-Fi invité), ou le pare-feu de l'ordinateur bloque le port 8097 (sous Windows, autorise Node.js sur les réseaux privés).
+- **Ça marchait, et maintenant « Serveur introuvable »** : l'adresse de l'ordinateur a peut-être changé. Tape la nouvelle, affichée en bas de la page d'Ondi. Pour l'éviter, donne une adresse fixe à l'ordinateur dans les réglages de ta box ou de ton routeur.
 - **L'installateur n'arrive pas à se connecter** : même réseau ? Options pour les développeurs et débogage USB activés ? Bonne adresse IP ? Redémarre la télé et réessaie (certaines télés désactivent le débogage en redémarrant).
-- **« Application non installée »** : plus assez de place sur la télé, ou une ancienne application Débrideur avec une autre signature : désinstalle-la d'abord.
-- **Le Débrideur n'est pas sur le Play Store** : c'est normal, on l'installe à la main.
+- **« Application non installée »** : plus assez de place sur la télé, ou une ancienne application Ondi avec une autre signature : désinstalle-la d'abord.
+- **Ondi n'est pas sur le Play Store** : c'est normal, on l'installe à la main.
 - **Toujours bloqué ?** Ouvre `PROMPT-IA.md` et copie le message dans ChatGPT, Claude ou une autre IA : elle te guidera pas à pas.

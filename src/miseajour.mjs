@@ -13,7 +13,7 @@ import { lireZip } from './zip.mjs';
 const RACINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PAQUET = JSON.parse(fs.readFileSync(path.join(RACINE, 'package.json'), 'utf8'));
 export const VERSION = PAQUET.version;
-const DEPOT = process.env.DEBRIDEUR_DEPOT || PAQUET.debrideur?.depot || 'Ishine93/Debrideur';
+const DEPOT = process.env.DEBRIDEUR_DEPOT || PAQUET.debrideur?.depot || 'Ishine93/Ondi';
 // Jamais touchés par une mise à jour : réglages, clés, historique, Node.js et ffmpeg installés.
 const PROTEGES = [/^donnees\//, /^runtime\//, /^outils\/ffmpeg\//, /^\.git\//];
 
@@ -46,7 +46,7 @@ let cache = null;
 export async function derniereVersion({ forcer = false } = {}) {
   if (!forcer && cache && Date.now() - cache.t < 3600e3) return cache.valeur;
   const r = await fetch(`https://api.github.com/repos/${DEPOT}/releases/latest`, {
-    headers: { 'User-Agent': `Debrideur/${VERSION}`, Accept: 'application/vnd.github+json' },
+    headers: { 'User-Agent': `Ondi/${VERSION}`, Accept: 'application/vnd.github+json' },
     signal: AbortSignal.timeout(12_000),
   });
   let valeur;
@@ -78,30 +78,32 @@ export async function etat({ forcer = false } = {}) {
   }
 }
 
-const nomPaquet = (version) => `Debrideur-${process.platform === 'win32' ? 'Windows' : 'Mac'}-${version}.zip`;
+// Paquet du système, sous le nom d'Ondi ou sous l'ancien nom (versions publiées avant le changement de nom).
+const nomsPaquet = (version) => ['Ondi', 'Debrideur'].map((nom) => `${nom}-${process.platform === 'win32' ? 'Windows' : 'Mac'}-${version}.zip`);
 
 async function telecharger(url) {
-  const r = await fetch(url, { headers: { 'User-Agent': `Debrideur/${VERSION}` }, signal: AbortSignal.timeout(300_000) });
+  const r = await fetch(url, { headers: { 'User-Agent': `Ondi/${VERSION}` }, signal: AbortSignal.timeout(300_000) });
   if (!r.ok) throw new Error(`téléchargement impossible (HTTP ${r.status})`);
   return Buffer.from(await r.arrayBuffer());
 }
 
 let enCours = false;
-// Installe la dernière version puis relance le Débrideur. « arreter » sauvegarde l'état avant de quitter.
+// Installe la dernière version puis relance Ondi. « arreter » sauvegarde l'état avant de quitter.
 export async function installer({ journal = () => {}, arreter }) {
   if (enCours) throw new Error('Mise à jour déjà en cours.');
   enCours = true;
   try {
     const d = await derniereVersion({ forcer: true });
-    if (!d.version || comparerVersions(d.version, VERSION) <= 0) throw new Error('Le Débrideur est déjà à jour.');
+    if (!d.version || comparerVersions(d.version, VERSION) <= 0) throw new Error('Ondi est déjà à jour.');
     if (modeInstallation() === 'git') {
       const modifie = execFileSync('git', ['status', '--porcelain'], { cwd: RACINE, encoding: 'utf8' }).trim();
       if (modifie) throw new Error('Dossier de développement modifié : mets-le à jour avec git.');
       execFileSync('git', ['pull', '--ff-only'], { cwd: RACINE, stdio: 'ignore', timeout: 120_000 });
     } else {
-      const nom = nomPaquet(d.version);
+      const noms = nomsPaquet(d.version);
+      const nom = noms.find((n) => d.fichiers.some((f) => f.nom === n));
+      if (!nom) throw new Error(`paquet ${noms[0]} absent de la version ${d.version}`);
       const paquet = d.fichiers.find((f) => f.nom === nom);
-      if (!paquet) throw new Error(`paquet ${nom} absent de la version ${d.version}`);
       const zip = await telecharger(paquet.url);
       const empreinte = d.fichiers.find((f) => f.nom === `${nom}.sha256`);
       if (empreinte) {
@@ -115,7 +117,7 @@ export async function installer({ journal = () => {}, arreter }) {
       fs.rmSync(prepa, { recursive: true, force: true });
       const aPlacer = [];
       for (const e of entrees) {
-        const rel = e.nom.replace(/^[^/]+\//, ''); // dossier « Debrideur/ » de l'archive
+        const rel = e.nom.replace(/^[^/]+\//, ''); // dossier « Ondi/ » (ou « Debrideur/ ») de l'archive
         if (!rel || rel.includes('..') || PROTEGES.some((re) => re.test(rel))) continue;
         const cible = path.join(prepa, rel);
         fs.mkdirSync(path.dirname(cible), { recursive: true });

@@ -2,7 +2,7 @@
 // choix d'un dossier du serveur (souris, doigt ou télécommande) et mises à jour (fenêtre « Nouvelle version »).
 /* global t, element, api, $, LANGUE, changerLangue, dernier, demarrerProfils, lirePreference */
 
-const LOGO_ASSISTANT = '<svg viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="lg3" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#58b9ff"/><stop offset="1" stop-color="#1a6dff"/></linearGradient></defs><rect width="32" height="32" rx="8" fill="url(#lg3)"/><path d="M16 7v13m-6-6 6 6 6-6M9 25h14" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const LOGO_ASSISTANT = '<svg viewBox="0 0 100 100" aria-hidden="true"><defs><linearGradient id="lg3" x1="16.1" y1="16.1" x2="83.9" y2="83.9" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#00d8ff"/><stop offset=".2" stop-color="#1965fb"/><stop offset=".44" stop-color="#6f19fb"/><stop offset=".56" stop-color="#8f12fc"/><stop offset=".68" stop-color="#b50bf3"/><stop offset=".92" stop-color="#fd0fd1"/><stop offset="1" stop-color="#ff10cc"/></linearGradient></defs><path fill="url(#lg3)" d="M8.1 73.42L91.57 26A48 48 0 0 0 8.1 73.42Z"/><path fill="url(#lg3)" d="M10.21 76.85L93.44 29.57A48 48 0 0 1 10.21 76.85Z"/></svg>';
 
 function boutonAssistant(texte, classe, action) {
   const b = element('button', `bouton grand ${classe}`, texte);
@@ -159,7 +159,7 @@ function rendreAssistant() {
   const boite = element('div', 'as-boite');
   const logo = element('div', 'ep-logo');
   logo.innerHTML = LOGO_ASSISTANT;
-  logo.append(element('span', '', 'Débrideur'));
+  logo.append(element('span', '', 'Ondi'));
   const points = element('div', 'as-points');
   ETAPES_ASSISTANT.forEach((_, k) => points.append(element('span', k === i ? 'actif' : k < i ? 'fait' : '')));
   const panneau = element('div', 'ep-panneau as-panneau');
@@ -199,7 +199,7 @@ function rendreAssistant() {
     panneau.append(choix);
   } else if (etape === 'bienvenue') {
     panneau.append(
-      element('h2', '', t('Bienvenue dans le Débrideur')),
+      element('h2', '', t('Bienvenue dans Ondi')),
       element('p', '', t('Cet ordinateur devient ton serveur : il cherche, télécharge et range tes films et séries, puis les lit sur ton PC, ton téléphone et ta télé.')),
     );
     const liste = element('ul', 'as-liste');
@@ -274,7 +274,7 @@ function rendreAssistant() {
     const [l, input] = champ(t('Adresse du site'), c.siteRecherche, { placeholder: 'https://…' });
     panneau.append(
       element('h2', '', t('Ton site de recherche')),
-      element('p', 'aide', t('L\'adresse du site où tu cherches tes films et séries : le Débrideur trouve tout seul sa barre de recherche et regroupe les résultats. Tu peux le changer quand tu veux.')),
+      element('p', 'aide', t('L\'adresse du site où tu cherches tes films et séries : Ondi trouve tout seul sa barre de recherche et regroupe les résultats. Tu peux le changer quand tu veux.')),
       l,
     );
     const ok = boutonAssistant(t('Continuer'), 'principal', async () => {
@@ -314,7 +314,7 @@ function rendreAssistant() {
     panneau.append(element('h2', '', t('Ton téléphone et ta télé')), element('p', 'aide', t('Ils doivent être sur le même réseau (Wi-Fi ou câble) que cet ordinateur, qui doit rester allumé.')));
     panneau.append(blocAdresses(assistant.etat));
     const tele = element('p', 'aide');
-    tele.append(t('Sur la télé : installe l\'appli Débrideur (Samsung, LG, Android TV, Google TV, Fire TV). Chaque paquet a son mode d\'emploi, sur '), lienExterne(t('la page des versions'), 'https://github.com/Ishine93/Debrideur/releases/latest'), t('. L\'appli trouve ce serveur toute seule.'));
+    tele.append(t('Sur la télé : installe l\'appli Ondi (Samsung, LG, Android TV, Google TV, Fire TV). Chaque paquet a son mode d\'emploi, sur '), lienExterne(t('la page des versions'), 'https://github.com/Ishine93/Ondi/releases/latest'), t('. L\'appli trouve ce serveur toute seule.'));
     const pc = element('p', 'aide', c.systeme === 'win32' ? t('Si Windows demande d\'autoriser Node.js sur le réseau, accepte pour les réseaux privés : sinon le téléphone et la télé ne voient pas le serveur.') : '');
     panneau.append(tele, pc);
     pied.append(precedent(), element('span', 'espace'), suivant());
@@ -447,7 +447,7 @@ function fenetreMiseAJour(etat, { tele = null } = {}) {
       for (const n of notes) ul.append(element('li', '', n));
       panneau.append(ul);
     }
-    panneau.append(element('p', 'aide', t('Le Débrideur redémarre tout seul (une minute environ). Tes réglages, profils et téléchargements sont gardés.')));
+    panneau.append(element('p', 'aide', t('Ondi redémarre tout seul (une minute environ). Tes réglages, profils et téléchargements sont gardés.')));
     const go = boutonAssistant(t('Mettre à jour maintenant'), 'principal', async () => {
       go.disabled = true;
       plusTard.disabled = true;
@@ -455,7 +455,7 @@ function fenetreMiseAJour(etat, { tele = null } = {}) {
       msg.textContent = t('Téléchargement et installation…');
       try {
         await api('/api/mise-a-jour', { method: 'POST', body: '{}' });
-        msg.textContent = t('Installé : le Débrideur redémarre…');
+        msg.textContent = t('Installé : Ondi redémarre…');
         attendreRedemarrage(etat.derniere, msg);
       } catch (e) {
         msg.className = 'ep-msg ko';
@@ -485,7 +485,7 @@ async function attendreRedemarrage(version, msg) {
     } catch {}
   }
   msg.className = 'ep-msg ko';
-  msg.textContent = t('Le Débrideur ne répond pas : relance-le depuis son raccourci.');
+  msg.textContent = t('Ondi ne répond pas : relance-le depuis son raccourci.');
 }
 
 // Retour (télécommande, Échap) sur la fenêtre de mise à jour : « Plus tard ».

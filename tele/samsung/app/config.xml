@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Application Débrideur pour télé Samsung (Tizen) : un simple client qui se connecte au serveur Débrideur
+<!-- Application Ondi pour télé Samsung (Tizen) : un simple client qui se connecte au serveur Ondi
      du réseau (le PC aujourd'hui, un mini-PC demain). Signée et installée par Apps2Samsung (« Install a file… »). -->
-<widget xmlns="http://www.w3.org/ns/widgets" xmlns:tizen="http://tizen.org/ns/widgets" id="http://debrideur.local/tele" version="2.0.2" viewmodes="maximized">
+<widget xmlns="http://www.w3.org/ns/widgets" xmlns:tizen="http://tizen.org/ns/widgets" id="http://debrideur.local/tele" version="2.1.0" viewmodes="maximized">
   <tizen:application id="DbrdTele01.Debrideur" package="DbrdTele01" required_version="5.0"/>
   <content src="index.html"/>
   <feature name="http://tizen.org/feature/screen.size.normal.1080.1920"/>
   <icon src="icon.png"/>
-  <name>Débrideur</name>
-  <description>Ta bibliothèque, la recherche et les téléchargements du Débrideur, sur la télé.</description>
+  <name>Ondi</name>
+  <description>Ta bibliothèque, la recherche et les téléchargements d'Ondi, sur la télé.</description>
   <tizen:privilege name="http://tizen.org/privilege/internet"/>
   <tizen:privilege name="http://tizen.org/privilege/tv.inputdevice"/>
   <tizen:privilege name="http://tizen.org/privilege/application.launch"/>

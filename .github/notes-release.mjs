@@ -11,7 +11,7 @@ import { versionsApplisTele } from '../src/miseajour.mjs';
 const RACINE = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const paquet = JSON.parse(fs.readFileSync(path.join(RACINE, 'package.json'), 'utf8'));
 const version = (process.argv[2] || paquet.version).replace(/^v/, '');
-const depot = paquet.debrideur?.depot || 'Ishine93/Debrideur';
+const depot = paquet.debrideur?.depot || 'Ishine93/Ondi';
 
 // Nouveautés : les parties « ## English » et « ## Français » du fichier de la version.
 const fichier = path.join(RACINE, 'notes', `${version}.md`);

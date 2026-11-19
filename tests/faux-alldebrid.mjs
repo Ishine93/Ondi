@@ -1,4 +1,4 @@
-// Faux AllDebrid pour tester le Débrideur de bout en bout sans compte ni Internet.
+// Faux AllDebrid pour tester Ondi de bout en bout sans compte ni Internet.
 // node tests/faux-alldebrid.mjs <port> [Mo/s par connexion]
 import http from 'node:http';
 

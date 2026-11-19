@@ -1,5 +1,5 @@
-// Débrideur de démo pour essayer la recherche sans compte ni Internet :
-// faux AllDebrid + faux site + Débrideur sur des dossiers temporaires (ta config n'est pas touchée).
+// Ondi de démo pour essayer la recherche sans compte ni Internet :
+// faux AllDebrid + faux site + Ondi sur des dossiers temporaires (ta config n'est pas touchée).
 //   node tests/demo-recherche.mjs   → http://localhost:18097
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';

@@ -2,7 +2,7 @@
 // - exact : texte affiché (sans espaces autour) → traduction ;
 // - motifs : [expression régulière (chaîne, sans ^ ni $), remplacement], du plus précis au plus général.
 // Ne pas traduire : titres, noms de fichiers, sites, hébergeurs, étiquettes de version (MULTI, VF, 1080p…),
-// « Débrideur », « AllDebrid ».
+// « Ondi », « AllDebrid ».
 const DICO_EN = {
   exact: {
     // ---------- barre du haut et navigation ----------
@@ -251,7 +251,7 @@ const DICO_EN = {
     'Retirer de la sélection': 'Remove from selection',
     'voir le détail': 'see details',
     ': Autres liens': ': Other links',
-    "Le Débrideur n'a reconnu aucun de ces liens.": "Débrideur didn't recognize any of these links.",
+    "Ondi n'a reconnu aucun de ces liens.": "Ondi didn't recognize any of these links.",
     'suis-les dans Téléchargements': 'track them in Downloads',
 
     // ---------- fenêtre « Ajouter » ----------
@@ -368,13 +368,13 @@ const DICO_EN = {
     // ---------- compte ----------
     'Clé API à configurer': 'API key needed',
     'pas premium': 'not premium',
-    'Débrideur injoignable': 'Débrideur unreachable',
+    'Ondi injoignable': 'Ondi unreachable',
 
     // ---------- arrêt ----------
-    'Débrideur fermé': 'Débrideur closed',
-    'Relance-le avec le raccourci « Débrideur » : les téléchargements en cours reprendront où ils en étaient.':
-      'Restart it with the “Débrideur” shortcut: ongoing downloads will resume where they left off.',
-    'Arrêter le Débrideur': 'Stop Débrideur',
+    'Ondi fermé': 'Ondi closed',
+    'Relance-le avec le raccourci « Ondi » : les téléchargements en cours reprendront où ils en étaient.':
+      'Restart it with the “Ondi” shortcut: ongoing downloads will resume where they left off.',
+    'Arrêter Ondi': 'Stop Ondi',
     "Confirmer l'arrêt": 'Confirm stop',
 
     // ---------- réglages ----------
@@ -409,8 +409,8 @@ const DICO_EN = {
     "(le long, qui commence par eyJ). La « clé d'API » marche aussi : une seule des deux suffit.":
       '(the long one, starting with eyJ). The “API Key” works too: either one is enough.',
     'Grand affichage (pour la télé)': 'Large display (for TV)',
-    'Ferme le programme sur ce PC (plus besoin de la ligne de commande). Relance-le avec le raccourci « Débrideur » : les téléchargements en cours reprendront où ils en étaient.':
-      'Closes the program on this PC (no need for the command line). Restart it with the “Débrideur” shortcut: ongoing downloads will resume where they left off.',
+    'Ferme le programme sur ce PC (plus besoin de la ligne de commande). Relance-le avec le raccourci « Ondi » : les téléchargements en cours reprendront où ils en étaient.':
+      'Closes the program on this PC (no need for the command line). Restart it with the “Ondi” shortcut: ongoing downloads will resume where they left off.',
     'Enregistrer': 'Save',
     'Vérification de la clé…': 'Checking the key…',
     'Enregistrement…': 'Saving…',
@@ -469,7 +469,7 @@ const DICO_EN = {
     'AllDebrid ouvre encore ce lien protégé…': 'AllDebrid is still opening this protected link…',
     'Tous les liens sont morts.': 'All links are dead.',
     'Aucun hébergeur de cette fiche n’est pris en charge par AllDebrid.': 'None of the hosts on this page is supported by AllDebrid.',
-    'Pas de réponse du Débrideur.': 'No answer from Débrideur.',
+    "Pas de réponse d'Ondi.": 'No answer from Ondi.',
     "✗ AllDebrid n'arrive pas à ouvrir ce lien protégé (lien supprimé ?).": "✗ AllDebrid can't open this protected link (deleted?).",
     '? AllDebrid met trop de temps à ouvrir ce lien protégé.': '? AllDebrid is taking too long to open this protected link.',
     '? AllDebrid ouvre encore ce lien protégé…': '? AllDebrid is still opening this protected link…',

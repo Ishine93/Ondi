@@ -1,4 +1,4 @@
-﻿# Installe l'application Débrideur sur une télé LG (webOS) en mode développeur. Lancé par installer-sur-la-tele.bat.
+﻿# Installe l'application Ondi sur une télé LG (webOS) en mode développeur. Lancé par installer-sur-la-tele.bat.
 # Rien n'est installé dans Windows : Node.js (si celui du PC manque ou est trop ancien) et l'outil officiel
 # de LG (@webos-tools/cli) vont dans le dossier « outils » à côté de ce script. Fichier enregistré en UTF-8 avec BOM
 # (sinon Windows PowerShell 5.1 abîme les accents).
@@ -9,7 +9,7 @@ $CLI_VERSION = '3.2.6'
 $APP_ID = 'io.github.ishine93.debrideur'
 $ici = $PSScriptRoot
 $outils = Join-Path $ici 'outils'
-$ipk = Join-Path $ici 'Debrideur.ipk'
+$ipk = Join-Path $ici 'Ondi.ipk'
 
 function Dire($en, $fr, $couleur = 'Gray') { Write-Host $en -ForegroundColor $couleur; Write-Host $fr -ForegroundColor $couleur }
 function Titre($en, $fr) { Write-Host ''; Dire $en $fr 'Cyan' }
@@ -18,13 +18,13 @@ function Demander($en, $fr) { Write-Host ''; Dire $en $fr 'Yellow'; return ((Rea
 function Finir($code) { Write-Host ''; exit $code }
 function Ares($outil) { return (Join-Path $ici "outils\webos-cli\node_modules\.bin\$outil.cmd") }
 
-Titre 'Débrideur - install the app on an LG TV' 'Débrideur - installer l''appli sur une télé LG'
+Titre 'Ondi - install the app on an LG TV' 'Ondi - installer l''appli sur une télé LG'
 Dire 'Before you start, on the TV: the "Developer Mode" app is open, "Dev Mode Status" is ON and "Key Server" is ON.' `
      'Avant de commencer, sur la télé : l''appli « Developer Mode » est ouverte, « Dev Mode Status » est sur ON et « Key Server » est sur ON.'
 Dire 'The TV and this computer must be on the same network.' 'La télé et cet ordinateur doivent être sur le même réseau.'
 if (-not (Test-Path $ipk)) {
-  Erreur "Debrideur.ipk was not found next to this script ($ici). Extract the whole zip, then run the script again." `
-         "Debrideur.ipk est introuvable à côté de ce script ($ici). Décompresse tout le zip, puis relance le script."
+  Erreur "Ondi.ipk was not found next to this script ($ici). Extract the whole zip, then run the script again." `
+         "Ondi.ipk est introuvable à côté de ce script ($ici). Décompresse tout le zip, puis relance le script."
   Finir 1
 }
 
@@ -127,8 +127,8 @@ do {
   }
 } until ($cleOk)
 
-# --- 4. Installation de Debrideur.ipk, puis lancement.
-Titre 'Step 4/4 - Install Débrideur on the TV' 'Étape 4/4 - Installation du Débrideur sur la télé'
+# --- 4. Installation de Ondi.ipk, puis lancement.
+Titre 'Step 4/4 - Install Ondi on the TV' 'Étape 4/4 - Installation d''Ondi sur la télé'
 & (Ares 'ares-install') --device tv $ipk
 if ($LASTEXITCODE -ne 0) {
   Erreur 'Installation failed. If the message says "passphrase", run the script again and type the passphrase exactly as shown. Otherwise check that Dev Mode Status is still ON.' `
@@ -136,8 +136,8 @@ if ($LASTEXITCODE -ne 0) {
   Finir 1
 }
 & (Ares 'ares-launch') --device tv $APP_ID | Out-Null
-Titre 'Done! Débrideur is installed and opening on the TV. You will find it in the TV''s app list.' `
-      'Terminé ! Le Débrideur est installé et s''ouvre sur la télé. Tu le retrouveras dans la liste des applis de la télé.'
+Titre 'Done! Ondi is installed and opening on the TV. You will find it in the TV''s app list.' `
+      'Terminé ! Ondi est installé et s''ouvre sur la télé. Tu le retrouveras dans la liste des applis de la télé.'
 Dire 'Remember: open the Developer Mode app now and then and press "Extend" before the time runs out, or the TV removes the app.' `
      'Pense à ouvrir l''appli Developer Mode de temps en temps et à appuyer sur « Extend » avant la fin du compte à rebours, sinon la télé supprime l''appli.'
 Finir 0

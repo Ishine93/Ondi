@@ -1,7 +1,9 @@
 // Fabrique les paquets d'une version dans dist/ :
-//   Debrideur-Windows-<v>.zip, Debrideur-Mac-<v>.zip (+ .sha256, utilisés par la mise à jour automatique) ;
-//   Debrideur-TV-Samsung-<v>.zip, -LG-, -AndroidTV-, -FireTV-, -Autres- (l'appli, son mode d'emploi, ses scripts, un prompt IA) ;
-//   Debrideur.wgt / .ipk / .apk sous un nom fixe (liens directs « dernière version », ex. pour Downloader sur Fire TV).
+//   Ondi-Windows-<v>.zip, Ondi-Mac-<v>.zip (+ .sha256, utilisés par la mise à jour automatique) ;
+//   Ondi-TV-Samsung-<v>.zip, -LG-, -AndroidTV-, -FireTV-, -Autres- (l'appli, son mode d'emploi, ses scripts, un prompt IA) ;
+//   Ondi.wgt / .ipk / .apk sous un nom fixe (liens directs « dernière version », ex. pour Downloader sur Fire TV) ;
+//   et sous l'ancien nom (Débrideur, jusqu'à la 2.0.3) : Debrideur-Windows-<v>.zip, Debrideur-Mac-<v>.zip (+ .sha256),
+//   que les anciennes installations cherchent pour se mettre à jour, et Debrideur.apk (anciens liens de Downloader).
 // Seuls les fichiers suivis par git entrent dans les paquets : rien de personnel (réglages, clés, historique).
 //   node outils/construire-paquets.mjs
 import crypto from 'node:crypto';
@@ -36,19 +38,23 @@ fs.mkdirSync(DIST, { recursive: true });
 const suivis = fichiersSuivis().filter((f) => fs.existsSync(path.join(RACINE, f)));
 
 // ---------- serveur : Windows et Mac ----------
-const communs = suivis.filter((f) => !/^(tests|\.github)\//.test(f) && !/^tele\/(android|lg)\/(src|res|build)\//.test(f));
+// outils/logo.py ne sert qu'à redessiner les icônes : inutile dans les paquets.
+const communs = suivis.filter((f) => !/^(tests|\.github)\//.test(f) && !/^tele\/(android|lg)\/(src|res|build)\//.test(f) && f !== 'outils/logo.py');
 const pourWindows = communs.filter((f) => !/\.(command|sh)$/.test(f));
 const pourMac = communs.filter((f) => !/\.(bat|vbs|ps1)$/.test(f));
-ecrire(`Debrideur-Windows-${VERSION}.zip`, pourWindows.map((f) => ({ nom: `Debrideur/${f}`, donnees: lire(f) })), { empreinte: true });
-ecrire(`Debrideur-Mac-${VERSION}.zip`, pourMac.map((f) => ({ nom: `Debrideur/${f}`, donnees: lire(f) })), { empreinte: true });
+for (const [systeme, liste] of [['Windows', pourWindows], ['Mac', pourMac]]) {
+  ecrire(`Ondi-${systeme}-${VERSION}.zip`, liste.map((f) => ({ nom: `Ondi/${f}`, donnees: lire(f) })), { empreinte: true });
+  // Même contenu sous l'ancien nom : une installation d'avant le changement de nom le cherche pour se mettre à jour.
+  ecrire(`Debrideur-${systeme}-${VERSION}.zip`, liste.map((f) => ({ nom: `Debrideur/${f}`, donnees: lire(f) })), { empreinte: true });
+}
 
 // ---------- télés ----------
 // [nom du paquet, dossier des docs et scripts, fichier de l'appli (construit avant), nom de l'appli dans le zip]
 const TELES = [
-  ['Samsung', 'tele/samsung', 'tele/Debrideur.wgt', 'Debrideur.wgt'],
-  ['LG', 'tele/lg', 'tele/lg/build/Debrideur.ipk', 'Debrideur.ipk'],
-  ['AndroidTV', 'tele/android', 'tele/android/build/Debrideur.apk', 'Debrideur.apk'],
-  ['FireTV', 'tele/firetv', 'tele/android/build/Debrideur.apk', 'Debrideur.apk'],
+  ['Samsung', 'tele/samsung', 'tele/Ondi.wgt', 'Ondi.wgt'],
+  ['LG', 'tele/lg', 'tele/lg/build/Ondi.ipk', 'Ondi.ipk'],
+  ['AndroidTV', 'tele/android', 'tele/android/build/Ondi.apk', 'Ondi.apk'],
+  ['FireTV', 'tele/firetv', 'tele/android/build/Ondi.apk', 'Ondi.apk'],
   ['Autres', 'tele/autres', null, null],
 ];
 for (const [nom, dossier, appli, nomAppli] of TELES) {
@@ -58,13 +64,15 @@ for (const [nom, dossier, appli, nomAppli] of TELES) {
   }
   // Docs et scripts du dossier (pas les sources de l'appli).
   const docs = suivis.filter((f) => f.startsWith(`${dossier}/`) && !f.slice(dossier.length + 1).includes('/') && /\.(md|bat|command|ps1|sh)$/.test(f) && !/construire\.sh$/.test(f));
-  const entrees = docs.map((f) => ({ nom: `Debrideur-TV-${nom}/${path.basename(f)}`, donnees: lire(f) }));
+  const entrees = docs.map((f) => ({ nom: `Ondi-TV-${nom}/${path.basename(f)}`, donnees: lire(f) }));
   // Scripts partagés éventuels (outils/ du dossier).
-  for (const f of suivis.filter((x) => x.startsWith(`${dossier}/outils/`))) entrees.push({ nom: `Debrideur-TV-${nom}/${f.slice(dossier.length + 1)}`, donnees: lire(f) });
+  for (const f of suivis.filter((x) => x.startsWith(`${dossier}/outils/`))) entrees.push({ nom: `Ondi-TV-${nom}/${f.slice(dossier.length + 1)}`, donnees: lire(f) });
   if (appli) {
-    entrees.push({ nom: `Debrideur-TV-${nom}/${nomAppli}`, donnees: lire(appli) });
+    entrees.push({ nom: `Ondi-TV-${nom}/${nomAppli}`, donnees: lire(appli) });
     if (!fs.existsSync(path.join(DIST, nomAppli))) fs.copyFileSync(path.join(RACINE, appli), path.join(DIST, nomAppli));
   }
-  ecrire(`Debrideur-TV-${nom}-${VERSION}.zip`, entrees);
+  ecrire(`Ondi-TV-${nom}-${VERSION}.zip`, entrees);
 }
+// Ancien lien direct de l'appli Android TV / Fire TV (…/releases/latest/download/Debrideur.apk).
+if (fs.existsSync(path.join(DIST, 'Ondi.apk'))) fs.copyFileSync(path.join(DIST, 'Ondi.apk'), path.join(DIST, 'Debrideur.apk'));
 console.log(`\nVersion ${VERSION} prête dans ${DIST}`);

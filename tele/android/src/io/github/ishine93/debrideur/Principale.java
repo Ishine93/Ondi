@@ -36,9 +36,9 @@ import java.net.URL;
 import java.util.Collections;
 
 /**
- * Application télé du Débrideur : une seule page web en plein écran.
+ * Application télé d'Ondi : une seule page web en plein écran.
  * Elle ouvre d'abord le lanceur local (assets/index.html), qui trouve le serveur sur le réseau
- * puis affiche la page du Débrideur dans cette même vue. Aucune logique de serveur ici.
+ * puis affiche la page d'Ondi dans cette même vue. Aucune logique de serveur ici.
  */
 public class Principale extends Activity {
     static final String LANCEUR = "file:///android_asset/index.html";
@@ -124,7 +124,7 @@ public class Principale extends Activity {
         }
     }
 
-    // Retour : c'est la page (lanceur ou Débrideur) qui décide : fermer un panneau, revenir, ou quitter
+    // Retour : c'est la page (lanceur ou Ondi) qui décide : fermer un panneau, revenir, ou quitter
     // (sur l'accueil, deux appuis puis DebrideurAppli.quitter()).
     private void retour() {
         String url = web.getUrl();
@@ -174,7 +174,7 @@ public class Principale extends Activity {
         }
 
         // Depuis le lanceur, ou vers le même serveur : on reste ici. Un lien externe part vers le système
-        // (s'il a de quoi l'ouvrir) : seule la page du Débrideur garde l'accès à DebrideurAppli.
+        // (s'il a de quoi l'ouvrir) : seule la page d'Ondi garde l'accès à DebrideurAppli.
         private boolean ailleurs(WebView vue, Uri cible) {
             String schema = cible.getScheme();
             if ("file".equals(schema) && cible.toString().startsWith(LANCEUR)) return false;

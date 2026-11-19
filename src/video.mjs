@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 const RACINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const EXE = process.platform === 'win32' ? '.exe' : '';
 
-// ffmpeg livré avec le Débrideur (outils/ffmpeg), sinon celui de Jellyfin, sinon celui du système.
+// ffmpeg livré avec Ondi (outils/ffmpeg), sinon celui de Jellyfin, sinon celui du système.
 export function trouverOutils() {
   const candidats = [
     process.env.DEBRIDEUR_FFMPEG_DIR,

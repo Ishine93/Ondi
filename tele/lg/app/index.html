@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=1920">
-<title>Débrideur</title>
+<title>Ondi</title>
 <style>
   /* Compatible webOS 5 (2020, Chromium 68) : pas de « inset » ni de « gap » en flexbox. */
   html, body { margin: 0; width: 100%; height: 100%; background: #0b1118; color: #f2f5f8; font-family: "LG Smart UI", "Segoe UI", system-ui, sans-serif; overflow: hidden; }
@@ -32,8 +32,8 @@
 <div id="ecran">
   <div class="boite">
     <div class="logo">
-      <svg viewBox="0 0 32 32"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#58b9ff"/><stop offset="1" stop-color="#1a6dff"/></linearGradient></defs><rect width="32" height="32" rx="8" fill="url(#g)"/><path d="M16 7v13m-6-6 6 6 6-6M9 25h14" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      Débrideur
+      <svg viewBox="0 0 100 100"><defs><linearGradient id="g" x1="16.1" y1="16.1" x2="83.9" y2="83.9" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#00d8ff"/><stop offset=".2" stop-color="#1965fb"/><stop offset=".44" stop-color="#6f19fb"/><stop offset=".56" stop-color="#8f12fc"/><stop offset=".68" stop-color="#b50bf3"/><stop offset=".92" stop-color="#fd0fd1"/><stop offset="1" stop-color="#ff10cc"/></linearGradient></defs><path fill="url(#g)" d="M8.1 73.42L91.57 26A48 48 0 0 0 8.1 73.42Z"/><path fill="url(#g)" d="M10.21 76.85L93.44 29.57A48 48 0 0 1 10.21 76.85Z"/></svg>
+      Ondi
     </div>
     <div id="attente">
       <div class="rond" style="margin: 0 auto 26px"></div>
@@ -51,11 +51,11 @@
   </div>
 </div>
 <script>
-// Client télé LG (webOS) du Débrideur : trouve le serveur (adresse gardée, sinon recherche sur le réseau de la télé),
-// puis affiche le Débrideur en plein écran. Touche rouge : changer de serveur. Même logique que le client Samsung.
+// Client télé LG (webOS) d'Ondi : trouve le serveur (adresse gardée, sinon recherche sur le réseau de la télé),
+// puis affiche Ondi en plein écran. Touche rouge : changer de serveur. Même logique que le client Samsung.
 (function () {
   'use strict';
-  var VERSION = '2.0.2'; // doit être égale à "version" dans appinfo.json (construire.sh le vérifie)
+  var VERSION = '2.1.0'; // doit être égale à "version" dans appinfo.json (construire.sh le vérifie)
   var RETOUR = 461, ROUGE = 403;
   var $ = function (s) { return document.querySelector(s); };
   var app = $('#app');
@@ -70,9 +70,9 @@
     recherche: 'Searching the network…',
     rechercheSur: 'Searching the network (%s)…',
     titre: 'Server not found',
-    aide: 'Is the Débrideur computer (PC, Mac or mini-PC) on and connected to the same router? Then choose “Search the network”, or type its address, shown in Débrideur under Settings → Phone and TV (e.g. <code>192.168.1.50:8097</code>).',
-    titreAccueil: 'No Débrideur server found',
-    aideAccueil: 'Install the Débrideur first on a Windows PC, a Mac or a mini-PC on the same network: <code>github.com/Ishine93/Debrideur</code>. Then press “Search the network”.<br>Already installed? Type its address, shown in Débrideur under Settings → Phone and TV (e.g. <code>192.168.1.50:8097</code>).',
+    aide: 'Is the Ondi computer (PC, Mac or mini-PC) on and connected to the same router? Then choose “Search the network”, or type its address, shown in Ondi under Settings → Phone and TV (e.g. <code>192.168.1.50:8097</code>).',
+    titreAccueil: 'No Ondi server found',
+    aideAccueil: 'Install Ondi first on a Windows PC, a Mac or a mini-PC on the same network: <code>github.com/Ishine93/Ondi</code>. Then press “Search the network”.<br>Already installed? Type its address, shown in Ondi under Settings → Phone and TV (e.g. <code>192.168.1.50:8097</code>).',
     connecter: 'Connect',
     chercher: 'Search the network'
   } : {
@@ -81,9 +81,9 @@
     recherche: 'Recherche sur le réseau…',
     rechercheSur: 'Recherche sur le réseau (%s)…',
     titre: 'Serveur introuvable',
-    aide: 'L\'ordinateur du Débrideur (PC, Mac ou mini-PC) est-il allumé et relié à la même box ? Choisis alors « Chercher sur le réseau », ou tape son adresse, affichée dans le Débrideur sous Réglages → Téléphone et télé (par exemple <code>192.168.1.50:8097</code>).',
-    titreAccueil: 'Aucun serveur Débrideur trouvé',
-    aideAccueil: 'Installe d\'abord le Débrideur sur un PC Windows, un Mac ou un mini-PC du même réseau : <code>github.com/Ishine93/Debrideur</code>. Puis appuie sur « Chercher sur le réseau ».<br>Déjà installé ? Tape son adresse, affichée dans le Débrideur sous Réglages → Téléphone et télé (par exemple <code>192.168.1.50:8097</code>).',
+    aide: 'L\'ordinateur d\'Ondi (PC, Mac ou mini-PC) est-il allumé et relié à la même box ? Choisis alors « Chercher sur le réseau », ou tape son adresse, affichée dans Ondi sous Réglages → Téléphone et télé (par exemple <code>192.168.1.50:8097</code>).',
+    titreAccueil: 'Aucun serveur Ondi trouvé',
+    aideAccueil: 'Installe d\'abord Ondi sur un PC Windows, un Mac ou un mini-PC du même réseau : <code>github.com/Ishine93/Ondi</code>. Puis appuie sur « Chercher sur le réseau ».<br>Déjà installé ? Tape son adresse, affichée dans Ondi sous Réglages → Téléphone et télé (par exemple <code>192.168.1.50:8097</code>).',
     connecter: 'Se connecter',
     chercher: 'Chercher sur le réseau'
   };
@@ -172,7 +172,7 @@
     $('#reglage').hidden = true;
     $('#etape').textContent = texte;
   }
-  // Décharge la page du Débrideur (arrête aussi une vidéo en cours).
+  // Décharge la page d'Ondi (arrête aussi une vidéo en cours).
   function fermerPage() {
     app.onload = null;
     app.hidden = true;
@@ -240,7 +240,7 @@
     var code = e.keyCode;
     if (code === ROUGE) { e.preventDefault(); return montrerReglage(); }
     if (!app.hidden) {
-      // La page du Débrideur a perdu la main (rare) : on lui renvoie la touche.
+      // La page d'Ondi a perdu la main (rare) : on lui renvoie la touche.
       try { app.contentWindow.postMessage({ type: 'debrideur-touche', key: e.key, keyCode: code }, '*'); donnerLaMain(); } catch (err) {}
       e.preventDefault();
       return;
@@ -260,7 +260,7 @@
     else if (code === 13 && actif === $('#adresse')) $('#connecter').click();
   });
 
-  // Messages de la page du Débrideur : quitter (Retour à l'accueil), changer de serveur.
+  // Messages de la page d'Ondi : quitter (Retour à l'accueil), changer de serveur.
   window.addEventListener('message', function (e) {
     if (e.source !== app.contentWindow) return;
     var d = e.data || {};

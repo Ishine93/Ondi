@@ -1,10 +1,10 @@
 {
   "id": "io.github.ishine93.debrideur",
-  "version": "2.0.2",
-  "vendor": "Débrideur",
+  "version": "2.1.0",
+  "vendor": "Ondi",
   "type": "web",
   "main": "index.html",
-  "title": "Débrideur",
+  "title": "Ondi",
   "icon": "icon.png",
   "largeIcon": "largeIcon.png",
   "splashBackground": "splash.png",

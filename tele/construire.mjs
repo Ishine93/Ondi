@@ -1,4 +1,4 @@
-// Fabrique l'application télé Samsung : tele/Debrideur.wgt (une archive zip du dossier tele/samsung/app).
+// Fabrique l'application télé Samsung : tele/Ondi.wgt (une archive zip du dossier tele/samsung/app).
 // Elle n'est pas signée : Apps2Samsung la signe avec ton certificat Samsung en l'installant
 // (onglet Install → « Install a file… »).
 //   node tele/construire.mjs
@@ -9,7 +9,7 @@ import { ecrireZip } from '../src/zip.mjs';
 
 const ICI = path.dirname(fileURLToPath(import.meta.url));
 const SOURCE = path.join(ICI, 'samsung', 'app');
-const SORTIE = path.join(ICI, 'Debrideur.wgt');
+const SORTIE = path.join(ICI, 'Ondi.wgt');
 
 function fichiers(dossier, prefixe = '') {
   return fs.readdirSync(dossier, { withFileTypes: true }).flatMap((e) =>

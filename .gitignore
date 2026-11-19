@@ -12,7 +12,7 @@ node_modules/
 
 # Build outputs (attached to GitHub releases instead)
 dist/
-tele/Debrideur.wgt
+*.wgt
 tele/*/build/
 *.apk
 *.ipk

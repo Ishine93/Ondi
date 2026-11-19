@@ -1,5 +1,5 @@
 #!/bin/bash
-# Installe l'application Débrideur sur une télé LG (webOS) en mode développeur, depuis un Mac (marche aussi sous Linux).
+# Installe l'application Ondi sur une télé LG (webOS) en mode développeur, depuis un Mac (marche aussi sous Linux).
 # Double-clic, ou dans le Terminal : bash installer-sur-la-tele.command
 # Rien n'est installé dans le système : Node.js (si celui de l'ordinateur manque ou est trop ancien) et l'outil
 # officiel de LG (@webos-tools/cli) vont dans le dossier « outils » à côté de ce script.
@@ -12,7 +12,7 @@ ICI="$(cd "$(dirname "$0")" && pwd)"
 OUTILS="$ICI/outils"
 CLI="$OUTILS/webos-cli"
 ARES="$CLI/node_modules/.bin"
-IPK="$ICI/Debrideur.ipk"
+IPK="$ICI/Ondi.ipk"
 
 bleu=$'\033[36m'; rouge=$'\033[31m'; jaune=$'\033[33m'; normal=$'\033[0m'
 dire() { printf '%s\n%s\n' "$1" "$2"; }
@@ -26,13 +26,13 @@ demander() { # la réponse va dans REPONSE, sans espaces
 }
 finir() { echo; read -r -p "Press Enter to close / Appuie sur Entrée pour fermer " _ || true; exit "$1"; }
 
-titre "Débrideur - install the app on an LG TV" "Débrideur - installer l'appli sur une télé LG"
+titre "Ondi - install the app on an LG TV" "Ondi - installer l'appli sur une télé LG"
 dire 'Before you start, on the TV: the "Developer Mode" app is open, "Dev Mode Status" is ON and "Key Server" is ON.' \
      "Avant de commencer, sur la télé : l'appli « Developer Mode » est ouverte, « Dev Mode Status » est sur ON et « Key Server » est sur ON."
 dire "The TV and this computer must be on the same network." "La télé et cet ordinateur doivent être sur le même réseau."
 if [ ! -f "$IPK" ]; then
-  erreur "Debrideur.ipk was not found next to this script ($ICI). Extract the whole zip, then run the script again." \
-         "Debrideur.ipk est introuvable à côté de ce script ($ICI). Décompresse tout le zip, puis relance le script."
+  erreur "Ondi.ipk was not found next to this script ($ICI). Extract the whole zip, then run the script again." \
+         "Ondi.ipk est introuvable à côté de ce script ($ICI). Décompresse tout le zip, puis relance le script."
   finir 1
 fi
 
@@ -132,16 +132,16 @@ while :; do
   case "$REPONSE" in q*|Q*) finir 1 ;; esac
 done
 
-# --- 4. Installation de Debrideur.ipk, puis lancement.
-titre "Step 4/4 - Install Débrideur on the TV" "Étape 4/4 - Installation du Débrideur sur la télé"
+# --- 4. Installation de Ondi.ipk, puis lancement.
+titre "Step 4/4 - Install Ondi on the TV" "Étape 4/4 - Installation d'Ondi sur la télé"
 if ! "$ARES/ares-install" --device tv "$IPK" </dev/null; then
   erreur 'Installation failed. If the message says "passphrase", run the script again and type the passphrase exactly as shown. Otherwise check that Dev Mode Status is still ON.' \
          "L'installation a échoué. Si le message parle de « passphrase », relance le script et tape la phrase secrète exactement comme affichée. Sinon vérifie que Dev Mode Status est toujours sur ON."
   finir 1
 fi
 "$ARES/ares-launch" --device tv "$APP_ID" </dev/null >/dev/null || true
-titre "Done! Débrideur is installed and opening on the TV. You will find it in the TV's app list." \
-      "Terminé ! Le Débrideur est installé et s'ouvre sur la télé. Tu le retrouveras dans la liste des applis de la télé."
+titre "Done! Ondi is installed and opening on the TV. You will find it in the TV's app list." \
+      "Terminé ! Ondi est installé et s'ouvre sur la télé. Tu le retrouveras dans la liste des applis de la télé."
 dire 'Remember: open the Developer Mode app now and then and press "Extend" before the time runs out, or the TV removes the app.' \
      "Pense à ouvrir l'appli Developer Mode de temps en temps et à appuyer sur « Extend » avant la fin du compte à rebours, sinon la télé supprime l'appli."
 finir 0

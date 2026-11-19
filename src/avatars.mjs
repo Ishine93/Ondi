@@ -1,5 +1,5 @@
 // Galerie d'avatars pour les profils, dans l'esprit des plateformes : personnages dessinés de plusieurs styles
-// (DiceBear, styles libres de droits ou sous licence CC BY). Téléchargés une seule fois puis servis par le Débrideur,
+// (DiceBear, styles libres de droits ou sous licence CC BY). Téléchargés une seule fois puis servis par Ondi,
 // pour que la télé et le téléphone n'aient pas besoin d'Internet pour les afficher.
 import fs from 'node:fs';
 import path from 'node:path';

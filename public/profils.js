@@ -22,7 +22,7 @@ function sauverJeton(jeton, auto) {
 
 const ICONE_PLUS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
 const ICONE_CADENAS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
-const LOGO_SVG = '<svg viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="lg2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#58b9ff"/><stop offset="1" stop-color="#1a6dff"/></linearGradient></defs><rect width="32" height="32" rx="8" fill="url(#lg2)"/><path d="M16 7v13m-6-6 6 6 6-6M9 25h14" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const LOGO_SVG = '<svg viewBox="0 0 100 100" aria-hidden="true"><defs><linearGradient id="lg2" x1="16.1" y1="16.1" x2="83.9" y2="83.9" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#00d8ff"/><stop offset=".2" stop-color="#1965fb"/><stop offset=".44" stop-color="#6f19fb"/><stop offset=".56" stop-color="#8f12fc"/><stop offset=".68" stop-color="#b50bf3"/><stop offset=".92" stop-color="#fd0fd1"/><stop offset="1" stop-color="#ff10cc"/></linearGradient></defs><path fill="url(#lg2)" d="M8.1 73.42L91.57 26A48 48 0 0 0 8.1 73.42Z"/><path fill="url(#lg2)" d="M10.21 76.85L93.44 29.57A48 48 0 0 1 10.21 76.85Z"/></svg>';
 
 // Avatar rond : image de la galerie, photo importée, sinon l'initiale.
 function avatarEl(avatar, nom = '') {
@@ -67,7 +67,7 @@ function boite(...enfants) {
   const b = element('div', 'ep-boite');
   const logo = element('div', 'ep-logo');
   logo.innerHTML = LOGO_SVG;
-  logo.append(element('span', '', 'Débrideur'));
+  logo.append(element('span', '', 'Ondi'));
   b.append(logo, ...enfants);
   ecran.replaceChildren(b);
   return b;
@@ -82,7 +82,7 @@ async function afficherChoix({ focus } = {}) {
   try {
     r = await api('/api/profils');
   } catch (e) {
-    boite(element('h1', 'ep-titre', t('Débrideur injoignable')), element('p', 'ep-sous', e.message));
+    boite(element('h1', 'ep-titre', t('Ondi injoignable')), element('p', 'ep-sous', e.message));
     return;
   }
   listeProfils = r.profils;

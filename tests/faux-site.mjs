@@ -1,4 +1,4 @@
-// Faux site de téléchargement pour tester la recherche du Débrideur sans Internet.
+// Faux site de téléchargement pour tester la recherche d'Ondi sans Internet.
 // node tests/faux-site.mjs [port]
 // Barre de recherche en GET paginée par « &page=N » (5 résultats par page), menu, colonne
 // « derniers ajouts », fiches avec liens d'hébergeurs, protecteur, magnet, .torrent et liens parasites.

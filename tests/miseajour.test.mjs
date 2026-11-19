@@ -19,7 +19,7 @@ test('mises à jour : comparaison des numéros de version', () => {
 test('zip : ce qui est écrit est relu à l’identique (accents, binaire, scripts exécutables)', () => {
   const entrees = [
     { nom: 'Debrideur/package.json', donnees: Buffer.from('{"version":"9.9.9"}') },
-    { nom: 'Debrideur/installer.command', donnees: Buffer.from('#!/bin/bash\necho Débrideur\n') },
+    { nom: 'Debrideur/installer.command', donnees: Buffer.from('#!/bin/bash\necho Ondi\n') },
     { nom: 'Debrideur/public/icône.png', donnees: Buffer.from(Array.from({ length: 5000 }, (_, i) => (i * 7) % 256)) },
   ];
   const relues = lireZip(ecrireZip(entrees));

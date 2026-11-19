@@ -22,7 +22,7 @@ if (!sources.length) {
   process.exit(1);
 }
 if (!(await demarrer())) {
-  console.error("Le Débrideur n'a pas démarré.");
+  console.error("Ondi n'a pas démarré.");
   process.exit(1);
 }
 

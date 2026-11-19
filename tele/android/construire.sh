@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Fabrique l'application Android TV / Google TV / Fire TV du Débrideur, sans Gradle, avec les seuls outils du SDK :
-#   tele/android/build/Debrideur.apk
+# Fabrique l'application Android TV / Google TV / Fire TV d'Ondi, sans Gradle, avec les seuls outils du SDK :
+#   tele/android/build/Ondi.apk
 #   tele/android/build/Debrideur-AndroidTV.zip et Debrideur-FireTV.zip (APK + mode d'emploi + scripts d'installation)
 # Pensé pour GitHub Actions (ubuntu-latest) : $ANDROID_HOME (build-tools, platforms) et un JDK 17 (actions/setup-java).
 # Signature : DEBRIDEUR_KEYSTORE_B64 (keystore PKCS12 en base64) + DEBRIDEUR_KEYSTORE_MDP (mot de passe, alias « debrideur »).
@@ -100,10 +100,10 @@ else
 fi
 "$BT/apksigner" sign --ks "$CLE" --ks-type PKCS12 --ks-key-alias debrideur \
   --ks-pass env:DEBRIDEUR_MDP_SIGNATURE --key-pass env:DEBRIDEUR_MDP_SIGNATURE \
-  --v4-signing-enabled false --out "$SORTIE/Debrideur.apk" "$SORTIE/aligne.apk"
+  --v4-signing-enabled false --out "$SORTIE/Ondi.apk" "$SORTIE/aligne.apk"
 rm -f "$CLE"
-"$BT/apksigner" verify --verbose "$SORTIE/Debrideur.apk"
-"$BT/aapt2" dump badging "$SORTIE/Debrideur.apk" 2>/dev/null \
+"$BT/apksigner" verify --verbose "$SORTIE/Ondi.apk"
+"$BT/aapt2" dump badging "$SORTIE/Ondi.apk" 2>/dev/null \
   | grep -E "^(package|sdkVersion|targetSdkVersion|application-label:|launchable-activity|leanback-launchable-activity)" || true
 
 # ---------- paquets à distribuer ----------
@@ -111,7 +111,7 @@ rm -f "$CLE"
 paquet() {
   local dossier="$TELE/$1" tmp="$SORTIE/paquet-$1"
   mkdir -p "$tmp/outils"
-  cp "$SORTIE/Debrideur.apk" "$dossier/README.md" "$dossier/PROMPT-IA.md" \
+  cp "$SORTIE/Ondi.apk" "$dossier/README.md" "$dossier/PROMPT-IA.md" \
      "$dossier/installer-sur-la-tele.bat" "$dossier/installer-sur-la-tele.command" "$tmp/"
   cp "$dossier/outils/installer-tele.ps1" "$tmp/outils/"
   # Fins de ligne attendues quel que soit le dépôt : CRLF pour Windows (.bat), LF pour Mac/Linux (.command).
@@ -128,4 +128,4 @@ rm -rf "$SORTIE/res" "$SORTIE/classes" "$SORTIE/dex" "$SORTIE"/paquet-* \
 echo
 echo "Prêt :"
 ls -l "$SORTIE"
-sha256sum "$SORTIE/Debrideur.apk"
+sha256sum "$SORTIE/Ondi.apk"

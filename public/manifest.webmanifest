@@ -1,7 +1,7 @@
 {
-  "name": "Débrideur",
-  "short_name": "Débrideur",
-  "description": "Library, player and downloads of your Débrideur server.",
+  "name": "Ondi",
+  "short_name": "Ondi",
+  "description": "Library, player and downloads of your Ondi server.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0b1118",

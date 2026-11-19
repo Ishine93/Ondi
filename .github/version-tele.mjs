@@ -1,4 +1,4 @@
-// Donne aux applis télé (Samsung, LG, Android TV / Fire TV) le numéro de version du Débrideur.
+// Donne aux applis télé (Samsung, LG, Android TV / Fire TV) le numéro de version d'Ondi.
 //   node .github/version-tele.mjs 2.0.2
 // À lancer seulement quand une appli télé change : les télés déjà installées voient alors le message
 // « Nouvelle version de l'appli télé » (le serveur compare avec le numéro envoyé par l'appli).

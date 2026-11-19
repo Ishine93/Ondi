@@ -8,10 +8,10 @@ Copy the whole message below (the grey box) and paste it into ChatGPT, Claude, G
 Hello! I am not very technical and I need you to guide me, one step at a time, to install an app on my Amazon Fire TV.
 
 The situation:
-- At home, I run "Débrideur" (https://github.com/Ishine93/Debrideur): a server installed on a Windows PC, a Mac or a mini-PC on my home network. It shows a web page (library, player, downloads) at http://<the computer's address>:8097/. It already works on my computer.
-- I want the Débrideur TV app on my Fire TV. It is not in the Amazon Appstore: it is an Android APK file to install by hand (sideloading). The app is only a window onto the server; it finds the server on the network by itself.
-- Direct link to the app: https://github.com/Ishine93/Debrideur/releases/latest/download/Debrideur.apk
-- I may also have downloaded the zip "Debrideur-FireTV.zip". It contains: Debrideur.apk (the app), installer-sur-la-tele.bat (installer for Windows, double-click), installer-sur-la-tele.command (installer for Mac/Linux), an "outils" folder used by the Windows installer, and a README.md guide.
+- At home, I run "Ondi" (https://github.com/Ishine93/Ondi): a server installed on a Windows PC, a Mac or a mini-PC on my home network. It shows a web page (library, player, downloads) at http://<the computer's address>:8097/. It already works on my computer.
+- I want the Ondi TV app on my Fire TV. It is not in the Amazon Appstore: it is an Android APK file to install by hand (sideloading). The app is only a window onto the server; it finds the server on the network by itself.
+- Direct link to the app: https://github.com/Ishine93/Ondi/releases/latest/download/Ondi.apk
+- I may also have downloaded the zip "Debrideur-FireTV.zip". It contains: Ondi.apk (the app), installer-sur-la-tele.bat (installer for Windows, double-click), installer-sur-la-tele.command (installer for Mac/Linux), an "outils" folder used by the Windows installer, and a README.md guide.
 
 The possible ways to install, according to the guide:
 First, turn on Developer Options (only once): Settings > My Fire TV > About > press the middle button 7 times on the device name.
@@ -19,7 +19,7 @@ A) Easiest, without a computer: install the free "Downloader" app (by AFTVnews) 
 B) From the computer with the installer (uses Google's official adb tool, downloaded automatically): turn on "ADB debugging" in Developer Options, find the Fire TV's IP address (Settings > My Fire TV > About > Network), run the installer, give it the IP address, then accept "Allow USB debugging?" on the TV.
 Note: some recent models running Amazon's Vega OS (for example the Fire TV Stick 4K Select) cannot install Android apps at all.
 
-After installing: open Débrideur from "Your Apps & Games". It finds the server by itself; otherwise it shows "Server not found" and I type the address shown at the bottom of the Débrideur page on my computer (like 192.168.1.50:8097). The computer must be on and on the same network as the Fire TV.
+After installing: open Ondi from "Your Apps & Games". It finds the server by itself; otherwise it shows "Server not found" and I type the address shown at the bottom of the Ondi page on my computer (like 192.168.1.50:8097). The computer must be on and on the same network as the Fire TV.
 
 What I would like:
 1. First, ask me the exact Fire TV model I have (Fire TV Stick, 4K, 4K Max, Cube, a TV with Fire TV built in…; it is shown in Settings > My Fire TV > About), and whether I have a computer nearby.
@@ -38,10 +38,10 @@ Copie tout le message ci-dessous (le cadre gris) et colle-le dans ChatGPT, Claud
 Bonjour ! Je ne suis pas très à l'aise avec l'informatique et j'ai besoin que tu me guides, une étape à la fois, pour installer une application sur mon Amazon Fire TV.
 
 La situation :
-- Chez moi, j'utilise « Débrideur » (https://github.com/Ishine93/Debrideur) : un serveur installé sur un PC Windows, un Mac ou un mini-PC de mon réseau. Il affiche une page web (bibliothèque, lecteur, téléchargements) à l'adresse http://<adresse de l'ordinateur>:8097/. Ça marche déjà sur mon ordinateur.
-- Je veux l'application télé du Débrideur sur ma Fire TV. Elle n'est pas sur l'Appstore d'Amazon : c'est un fichier APK Android à installer à la main (sideloading). L'application n'est qu'une fenêtre sur le serveur ; elle le trouve toute seule sur le réseau.
-- Lien direct vers l'application : https://github.com/Ishine93/Debrideur/releases/latest/download/Debrideur.apk
-- J'ai peut-être aussi téléchargé le zip « Debrideur-FireTV.zip ». Il contient : Debrideur.apk (l'application), installer-sur-la-tele.bat (installateur pour Windows, double-clic), installer-sur-la-tele.command (installateur pour Mac/Linux), un dossier « outils » utilisé par l'installateur Windows, et un guide README.md.
+- Chez moi, j'utilise « Ondi » (https://github.com/Ishine93/Ondi) : un serveur installé sur un PC Windows, un Mac ou un mini-PC de mon réseau. Il affiche une page web (bibliothèque, lecteur, téléchargements) à l'adresse http://<adresse de l'ordinateur>:8097/. Ça marche déjà sur mon ordinateur.
+- Je veux l'application télé d'Ondi sur ma Fire TV. Elle n'est pas sur l'Appstore d'Amazon : c'est un fichier APK Android à installer à la main (sideloading). L'application n'est qu'une fenêtre sur le serveur ; elle le trouve toute seule sur le réseau.
+- Lien direct vers l'application : https://github.com/Ishine93/Ondi/releases/latest/download/Ondi.apk
+- J'ai peut-être aussi téléchargé le zip « Debrideur-FireTV.zip ». Il contient : Ondi.apk (l'application), installer-sur-la-tele.bat (installateur pour Windows, double-clic), installer-sur-la-tele.command (installateur pour Mac/Linux), un dossier « outils » utilisé par l'installateur Windows, et un guide README.md.
 
 Les façons d'installer, d'après le guide :
 D'abord, activer les options pour les développeurs (une seule fois) : Paramètres > Ma Fire TV > À propos > appuyer 7 fois sur le bouton central sur le nom de l'appareil.
@@ -49,7 +49,7 @@ A) Le plus simple, sans ordinateur : installer l'application gratuite « Downloa
 B) Depuis l'ordinateur avec l'installateur (il utilise l'outil officiel adb de Google, téléchargé automatiquement) : activer « Débogage ADB » dans les options pour les développeurs, trouver l'adresse IP de la Fire TV (Paramètres > Ma Fire TV > À propos > Réseau), lancer l'installateur, lui donner l'adresse IP, puis accepter « Autoriser le débogage USB ? » sur la télé.
 À noter : certains modèles récents sous Vega OS d'Amazon (par exemple le Fire TV Stick 4K Select) ne peuvent pas du tout installer d'applications Android.
 
-Après l'installation : ouvrir Débrideur depuis « Vos applis et jeux ». Il trouve le serveur tout seul ; sinon il affiche « Serveur introuvable » et je tape l'adresse affichée en bas de la page du Débrideur sur mon ordinateur (du genre 192.168.1.50:8097). L'ordinateur doit être allumé et sur le même réseau que la Fire TV.
+Après l'installation : ouvrir Ondi depuis « Vos applis et jeux ». Il trouve le serveur tout seul ; sinon il affiche « Serveur introuvable » et je tape l'adresse affichée en bas de la page d'Ondi sur mon ordinateur (du genre 192.168.1.50:8097). L'ordinateur doit être allumé et sur le même réseau que la Fire TV.
 
 Ce que je voudrais :
 1. D'abord, demande-moi le modèle exact de ma Fire TV (Fire TV Stick, 4K, 4K Max, Cube, une télé avec Fire TV intégré… ; il est indiqué dans Paramètres > Ma Fire TV > À propos) et si j'ai un ordinateur à côté.

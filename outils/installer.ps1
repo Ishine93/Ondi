@@ -1,4 +1,4 @@
-﻿# Débrideur — installation on Windows (started by installer.bat) / installation sous Windows.
+﻿# Ondi — installation on Windows (started by installer.bat) / installation sous Windows.
 # 1. Portable Node.js in runtime\node (nothing installed elsewhere on the PC);
 # 2. ffmpeg (Jellyfin build: NVIDIA, Intel, AMD hardware conversion + HDR tone mapping) in runtime\ffmpeg;
 # 3. shortcuts (Desktop, Start menu, optional start with Windows), optional firewall rule for phone/TV access.
@@ -26,8 +26,8 @@ function Attention($texte) { Write-Host "   !   $texte" -ForegroundColor Yellow 
 function Echec($texte) {
   Write-Host ''
   Write-Host "FAILED / ÉCHEC : $texte" -ForegroundColor Red
-  Write-Host 'Nothing was changed outside the Débrideur folder. You can run installer.bat again.'
-  Write-Host 'Rien n''a été modifié en dehors du dossier du Débrideur. Tu peux relancer installer.bat.'
+  Write-Host 'Nothing was changed outside the Ondi folder. You can run installer.bat again.'
+  Write-Host 'Rien n''a été modifié en dehors du dossier d''Ondi. Tu peux relancer installer.bat.'
   exit 1
 }
 function Question($texte, $siSilencieux = $true) {
@@ -57,7 +57,7 @@ function VerifierEmpreinte($fichier, $attendue, $nom) {
   Ok "SHA-256 checked / empreinte vérifiée"
 }
 
-Write-Host 'Débrideur — installation' -ForegroundColor White
+Write-Host 'Ondi — installation' -ForegroundColor White
 Write-Host "Folder / Dossier : $Racine"
 
 # ------------------------------------------------------------------ system / système
@@ -66,7 +66,7 @@ $os = [Environment]::OSVersion.Version
 if ($os.Major -lt 10) { Echec 'Windows 10 or 11 is required / Windows 10 ou 11 est nécessaire.' }
 if (-not [Environment]::Is64BitOperatingSystem) { Echec 'A 64-bit Windows is required / Un Windows 64 bits est nécessaire.' }
 Ok "Windows $($os.Major).$($os.Minor) (build $($os.Build)), 64-bit"
-if ($Racine -match '[^\x20-\x7E]') { Attention 'The folder path has special characters: if something fails, move the folder somewhere simple (e.g. C:\Debrideur). / Le chemin contient des caractères spéciaux : en cas d''échec, déplace le dossier (ex. C:\Debrideur).' }
+if ($Racine -match '[^\x20-\x7E]') { Attention 'The folder path has special characters: if something fails, move the folder somewhere simple (e.g. C:\Ondi). / Le chemin contient des caractères spéciaux : en cas d''échec, déplace le dossier (ex. C:\Ondi).' }
 New-Item -ItemType Directory -Force -Path $Runtime | Out-Null
 $tmp = Join-Path $Runtime 'telechargements'
 New-Item -ItemType Directory -Force -Path $tmp | Out-Null
@@ -130,29 +130,35 @@ if (-not $SansRaccourcis) {
     $l.Arguments = "`"$vbs`" $arguments"
     $l.WorkingDirectory = $Racine
     if (Test-Path $icone) { $l.IconLocation = $icone }
-    $l.Description = 'Débrideur'
+    $l.Description = 'Ondi'
     $l.Save()
   }
   $bureau = [Environment]::GetFolderPath('Desktop')
-  $menu = Join-Path ([Environment]::GetFolderPath('Programs')) 'Débrideur.lnk'
-  Raccourci (Join-Path $bureau 'Débrideur.lnk') ''
+  # Before the new name the shortcuts were called "Débrideur": remove them so there is only one of each.
+  # Avant le nouveau nom, les raccourcis s'appelaient « Débrideur » : on les retire pour n'en garder qu'un.
+  foreach ($dossier in @($bureau, [Environment]::GetFolderPath('Programs'), [Environment]::GetFolderPath('Startup'))) {
+    $ancien = Join-Path $dossier 'Débrideur.lnk'
+    if (Test-Path $ancien) { Remove-Item $ancien -Force }
+  }
+  $menu = Join-Path ([Environment]::GetFolderPath('Programs')) 'Ondi.lnk'
+  Raccourci (Join-Path $bureau 'Ondi.lnk') ''
   Raccourci $menu ''
   Ok 'Desktop + Start menu / Bureau + menu Démarrer'
-  $demarrage = Join-Path ([Environment]::GetFolderPath('Startup')) 'Débrideur.lnk'
-  if (Question 'Start Débrideur automatically with Windows? / Lancer le Débrideur au démarrage de Windows ?') {
+  $demarrage = Join-Path ([Environment]::GetFolderPath('Startup')) 'Ondi.lnk'
+  if (Question 'Start Ondi automatically with Windows? / Lancer Ondi au démarrage de Windows ?') {
     Raccourci $demarrage '--sans-navigateur'
     Ok 'starts with Windows / démarre avec Windows'
   } elseif (Test-Path $demarrage) { Remove-Item $demarrage -Force }
 
   # Phone and TV reach this PC on port 8097: one firewall rule for this Node.js, private networks only.
   Etape 'Phone and TV access (firewall) / Accès du téléphone et de la télé (pare-feu)'
-  $regle = Get-NetFirewallRule -DisplayName 'Débrideur' -ErrorAction SilentlyContinue
+  $regle = Get-NetFirewallRule -DisplayName 'Ondi', 'Débrideur' -ErrorAction SilentlyContinue
   if ($regle) { Ok 'rule already present / règle déjà présente' }
   elseif (Question 'Allow your phone and TV to connect (Windows will ask for admin rights)? / Autoriser le téléphone et la télé (Windows demande les droits administrateur) ?') {
-    $commande = "New-NetFirewallRule -DisplayName 'Débrideur' -Direction Inbound -Program '$nodeExe' -Action Allow -Profile Private,Domain | Out-Null"
+    $commande = "New-NetFirewallRule -DisplayName 'Ondi' -Direction Inbound -Program '$nodeExe' -Action Allow -Profile Private,Domain | Out-Null"
     try {
       Start-Process powershell -Verb RunAs -Wait -ArgumentList '-NoProfile', '-Command', $commande
-      if (Get-NetFirewallRule -DisplayName 'Débrideur' -ErrorAction SilentlyContinue) { Ok 'allowed on private networks / autorisé sur les réseaux privés' }
+      if (Get-NetFirewallRule -DisplayName 'Ondi' -ErrorAction SilentlyContinue) { Ok 'allowed on private networks / autorisé sur les réseaux privés' }
       else { Attention 'not added: Windows will ask the first time instead (choose Private networks). / non ajoutée : Windows le demandera au premier lancement (choisis Réseaux privés).' }
     } catch { Attention 'cancelled: Windows will ask the first time instead. / annulé : Windows le demandera au premier lancement.' }
   }
@@ -160,8 +166,8 @@ if (-not $SansRaccourcis) {
 
 # ------------------------------------------------------------------ done / fini
 Etape 'Ready / Prêt'
-Info 'Open Débrideur with the Desktop shortcut. The first time, a setup wizard guides you.'
-Info 'Ouvre le Débrideur avec le raccourci du Bureau. La première fois, un assistant te guide.'
+Info 'Open Ondi with the Desktop shortcut. The first time, a setup wizard guides you.'
+Info 'Ouvre Ondi avec le raccourci du Bureau. La première fois, un assistant te guide.'
 if (-not $SansLancer) {
   Start-Process "$env:WINDIR\System32\wscript.exe" -ArgumentList "`"$(Join-Path $Racine 'Debrideur.vbs')`""
   Ok "starting / démarrage : http://localhost:$Port"

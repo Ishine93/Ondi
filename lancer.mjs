@@ -1,4 +1,4 @@
-// Démarre le Débrideur en arrière-plan s'il ne tourne pas déjà, puis ouvre la page (Windows, Mac, Linux).
+// Démarre Ondi en arrière-plan s'il ne tourne pas déjà, puis ouvre la page (Windows, Mac, Linux).
 //   node lancer.mjs                    → démarre si besoin + ouvre le navigateur
 //   node lancer.mjs --sans-navigateur  → démarre seulement (démarrage de l'ordinateur)
 //   node lancer.mjs --arreter          → arrête le serveur (proprement : les téléchargements reprendront)
@@ -66,7 +66,7 @@ function pidDuPort() {
 }
 
 async function arreter() {
-  if (!(await enLigne())) return console.log('Le Débrideur ne tournait pas.');
+  if (!(await enLigne())) return console.log('Ondi ne tournait pas.');
   try {
     await fetch(`http://127.0.0.1:${port}/api/arreter`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}', signal: AbortSignal.timeout(3000) });
   } catch {}
@@ -78,7 +78,7 @@ async function arreter() {
       else process.kill(Number(pid), 'SIGTERM');
     }
   }
-  console.log('Débrideur arrêté.');
+  console.log('Ondi arrêté.');
 }
 
 function ouvrirNavigateur() {
@@ -97,10 +97,10 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     }
     const ok = await demarrer();
     if (!ok) {
-      console.error(`Le Débrideur n'a pas démarré : regarde ${path.join(DONNEES, 'debrideur.log')}`);
+      console.error(`Ondi n'a pas démarré : regarde ${path.join(DONNEES, 'debrideur.log')}`);
       process.exit(1);
     }
     if (!process.argv.includes('--sans-navigateur')) ouvrirNavigateur();
-    console.log(`Débrideur en marche : ${adresse}`);
+    console.log(`Ondi en marche : ${adresse}`);
   }
 }

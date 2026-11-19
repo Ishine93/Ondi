@@ -1,6 +1,6 @@
 {
   "name": "debrideur",
-  "version": "2.0.3",
+  "version": "2.1.0",
   "description": "Home media hub: search, AllDebrid downloads, a Prime-Video-like library and player for PC, phone and TV.",
   "type": "module",
   "private": true,
@@ -14,6 +14,6 @@
     "paquets": "node outils/construire-paquets.mjs"
   },
   "debrideur": {
-    "depot": "Ishine93/Debrideur"
+    "depot": "Ishine93/Ondi"
   }
 }

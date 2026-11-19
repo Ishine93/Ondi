@@ -1,4 +1,4 @@
-// Débrideur : petit serveur web local (PC, téléphone, télé du réseau).
+// Ondi : petit serveur web local (PC, téléphone, télé du réseau).
 import http from 'node:http';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -49,8 +49,13 @@ try {
   brut = JSON.parse(fs.readFileSync(FICHIER_CONFIG, 'utf8'));
 } catch {}
 const jellyfin = detecterJellyfin();
-// Sans réglage : Vidéos/Débrideur/Films et …/Séries (Windows), ~/Movies/Débrideur/… (Mac).
-const dossierParDefaut = (nom) => path.join(os.homedir(), process.platform === 'darwin' ? 'Movies' : 'Videos', 'Débrideur', nom);
+// Sans réglage : Vidéos/Ondi/Films et …/Séries (Windows), ~/Movies/Ondi/… (Mac). Une installation d'avant le
+// changement de nom garde son dossier « Débrideur » s'il existe (sinon sa bibliothèque paraîtrait vide).
+const dossierParDefaut = (nom) => {
+  const base = path.join(os.homedir(), process.platform === 'darwin' ? 'Movies' : 'Videos');
+  const ancien = path.join(base, 'Débrideur', nom);
+  return fs.existsSync(ancien) ? ancien : path.join(base, 'Ondi', nom);
+};
 const config = {
   port: Number(process.env.DEBRIDEUR_PORT) || brut.port || 8097,
   cleApi: brut.cleApi || '',
@@ -336,9 +341,9 @@ const serveur = http.createServer(async (req, res) => {
       return fs.createReadStream(PAGE).pipe(res);
     }
     // Scripts, styles, icônes et manifeste de la page (public/).
-    const fichierPage = req.method === 'GET' && p.match(/^\/app\/([a-z0-9-]+\.(js|css|png|webmanifest))$/);
+    const fichierPage = req.method === 'GET' && p.match(/^\/app\/([a-z0-9-]+\.(js|css|png|svg|webmanifest))$/);
     if (fichierPage && fs.existsSync(path.join(RACINE, 'public', fichierPage[1]))) {
-      const types = { js: 'text/javascript; charset=utf-8', css: 'text/css; charset=utf-8', png: 'image/png', webmanifest: 'application/manifest+json' };
+      const types = { js: 'text/javascript; charset=utf-8', css: 'text/css; charset=utf-8', png: 'image/png', svg: 'image/svg+xml', webmanifest: 'application/manifest+json' };
       res.writeHead(200, { 'Content-Type': types[fichierPage[2]], 'Cache-Control': 'no-cache' });
       return fs.createReadStream(path.join(RACINE, 'public', fichierPage[1])).pipe(res);
     }
@@ -556,7 +561,7 @@ const serveur = http.createServer(async (req, res) => {
         return json(res, 400, { erreur: e.message });
       }
     }
-    // Bouton « Arrêter le Débrideur » des Réglages : on répond, puis on s'arrête proprement
+    // Bouton « Arrêter Ondi » des Réglages : on répond, puis on s'arrête proprement
     // (état sauvegardé : les téléchargements reprendront au prochain lancement).
     if (req.method === 'POST' && p === '/api/mise-a-jour') {
       try {
@@ -661,12 +666,12 @@ const serveur = http.createServer(async (req, res) => {
 });
 
 serveur.on('error', (e) => {
-  journal(e.code === 'EADDRINUSE' ? `Le port ${config.port} est déjà pris (Débrideur déjà lancé ?)` : e);
+  journal(e.code === 'EADDRINUSE' ? `Le port ${config.port} est déjà pris (Ondi déjà lancé ?)` : e);
   process.exit(1);
 });
 
 serveur.listen(config.port, () => {
-  journal(`Débrideur prêt : http://localhost:${config.port}`);
+  journal(`Ondi prêt : http://localhost:${config.port}`);
   for (const a of adressesReseau()) journal(`  sur le réseau : http://${a}:${config.port}`);
   journal(`Films → ${config.dossiers.films} | Séries → ${config.dossiers.series} | temporaire → ${config.dossierTemp}`);
 });

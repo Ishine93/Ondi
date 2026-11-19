@@ -125,13 +125,14 @@ async function rangeesPerso(rubrique) {
   return lignes;
 }
 
-async function majRangeesPerso() {
-  if (vueActive === 'bibliotheque') return construireBibliotheque();
+async function majRangeesPerso(place = null) {
+  if (vueActive === 'bibliotheque') return construireBibliotheque({ place });
   const conteneur = $('#rangees');
   if (!conteneur) return;
   const lignes = await rangeesPerso(rubriqueAccueil ?? '');
   conteneur.querySelectorAll('.rangee-perso').forEach((x) => x.remove());
   conteneur.prepend(...lignes);
+  reprendrePlace(place, conteneur);
 }
 
 // ---------- onglet Bibliothèque ----------
@@ -167,7 +168,7 @@ function heroBiblio(item, reprise) {
 }
 
 let constructionBiblio = null;
-async function construireBibliotheque() {
+async function construireBibliotheque({ place = null } = {}) {
   const vue = $('#vueBibliotheque');
   const jeton = (constructionBiblio = Symbol('biblio'));
   if (!vue.children.length) vue.replaceChildren(rangeeAttente(), rangeeAttente());
@@ -272,8 +273,11 @@ async function construireBibliotheque() {
     aide.textContent = t('Ajoute ta clé TMDB dans les Réglages pour avoir les affiches, résumés et casting.');
     morceaux.push(aide);
   }
+  // Reconstruite sous les pieds (retour d'une fiche, relecture des dossiers) : on garde la même place.
+  const garder = place || (vue.contains(document.activeElement) ? notePlace(document.activeElement) : null);
   vue.replaceChildren(...morceaux);
   if (cat.scan.enCours) setTimeout(() => vueActive === 'bibliotheque' && construireBibliotheque(), 4000);
+  if (reprendrePlace(garder, vue)) return;
   if (document.body.classList.contains('grand') && (!document.activeElement || document.activeElement === document.body)) vue.querySelector('.hero .principal, .affiche, .vignette')?.focus({ preventScroll: true });
 }
 
@@ -298,7 +302,9 @@ function elementFiche() {
 async function ouvrirFicheMedia(cle, depuis = document.activeElement) {
   const el = elementFiche();
   const dejaOuverte = !!ficheMedia;
-  ficheMedia = { cle, f: null, depuis, version: null, saison: null };
+  const avant = ficheMedia;
+  // D'une fiche à l'autre, le retour ramène toujours là d'où l'on était parti.
+  ficheMedia = { cle, f: null, depuis: avant ? avant.depuis : depuis, place: avant ? avant.place : notePlace(depuis), version: null, saison: null };
   el.hidden = false;
   document.body.classList.add('fiche-ouverte');
   if (!dejaOuverte) history.pushState({ debrideur: 'fiche' }, '');
@@ -315,7 +321,7 @@ async function ouvrirFicheMedia(cle, depuis = document.activeElement) {
 
 function fermerFicheMedia({ historique = true } = {}) {
   if (!ficheMedia) return;
-  const { depuis } = ficheMedia;
+  const { depuis, place } = ficheMedia;
   ficheMedia = null;
   elementFiche().hidden = true;
   elementFiche().replaceChildren();
@@ -324,8 +330,9 @@ function fermerFicheMedia({ historique = true } = {}) {
     ignorerRetourFiche = true;
     history.back();
   }
-  if (depuis?.isConnected) depuis.focus({ preventScroll: true });
-  majRangeesPerso();
+  if (!detailOuvert) revenirA(place, depuis);
+  // La page se met à jour (vu, reprise) : la sélection reste sur la même affiche.
+  majRangeesPerso(place);
 }
 
 // Prochain épisode à regarder : celui en cours, sinon le premier non vu après le dernier vu.

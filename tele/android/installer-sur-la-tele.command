@@ -1,11 +1,11 @@
 #!/bin/bash
-# Installe l'application Débrideur sur une télé Android TV / Google TV / Fire TV, par le réseau (ADB).
+# Installe l'application Ondi sur une télé Android TV / Google TV / Fire TV, par le réseau (ADB).
 # Mac : double-clic (ou, dans le Terminal : bash installer-sur-la-tele.command). Linux : bash installer-sur-la-tele.command
 # Télécharge les outils officiels de Google (platform-tools) dans le dossier « platform-tools » à côté,
-# puis : adb connect <ip>:5555, adb install -r Debrideur.apk. (Compatible avec le bash 3.2 des Mac.)
+# puis : adb connect <ip>:5555, adb install -r Ondi.apk. (Compatible avec le bash 3.2 des Mac.)
 cd "$(dirname "$0")" || exit 1
 ICI="$(pwd)"
-APK="$ICI/Debrideur.apk"
+APK="$ICI/Ondi.apk"
 ADB="$ICI/platform-tools/adb"
 PAQUET="io.github.ishine93.debrideur"
 RE_ADRESSE='^[0-9]{1,3}(\.[0-9]{1,3}){3}(:[0-9]{1,5})?$'
@@ -48,10 +48,10 @@ connecter() {
 }
 
 echo
-titre "Débrideur - install the app on an Android TV, Google TV or Fire TV" "Débrideur - installer l'application sur une télé Android TV, Google TV ou Fire TV"
+titre "Ondi - install the app on an Android TV, Google TV or Fire TV" "Ondi - installer l'application sur une télé Android TV, Google TV ou Fire TV"
 echo
 if [ ! -f "$APK" ]; then
-  dire "Debrideur.apk was not found next to this script ($ICI). Unzip the whole folder first." "Debrideur.apk est introuvable à côté de ce script ($ICI). Décompresse d'abord tout le dossier."
+  dire "Ondi.apk was not found next to this script ($ICI). Unzip the whole folder first." "Ondi.apk est introuvable à côté de ce script ($ICI). Décompresse d'abord tout le dossier."
   terminer 1
 fi
 
@@ -122,13 +122,13 @@ done
 
 # 3. Installation.
 echo
-dire "Installing Débrideur on the TV (this can take a minute)..." "Installation du Débrideur sur la télé (cela peut prendre une minute)..."
+dire "Installing Ondi on the TV (this can take a minute)..." "Installation d'Ondi sur la télé (cela peut prendre une minute)..."
 r="$("$ADB" -s "$CIBLE" install -r "$APK" 2>&1)"
 echo "$r"
 case "$r" in
   *INSTALL_FAILED_UPDATE_INCOMPATIBLE*|*"signatures do not match"*)
-    dire "An older Débrideur app with a different signature is on the TV: it must be removed first (it will forget the server address, the new one finds it again)." \
-         "Une ancienne application Débrideur avec une autre signature est sur la télé : il faut d'abord la retirer (elle oubliera l'adresse du serveur, la nouvelle la retrouvera)."
+    dire "An older Ondi app with a different signature is on the TV: it must be removed first (it will forget the server address, the new one finds it again)." \
+         "Une ancienne application Ondi avec une autre signature est sur la télé : il faut d'abord la retirer (elle oubliera l'adresse du serveur, la nouvelle la retrouvera)."
     read -r -p "Uninstall it and install again? (y/n) / La désinstaller et réinstaller ? (o/n) " rep
     case "$rep" in
       [yYoO]*)
@@ -143,8 +143,8 @@ case "$r" in
   *Success*)
     "$ADB" -s "$CIBLE" shell am start -n "$PAQUET/.Principale" >/dev/null 2>&1
     echo
-    titre "Done! Débrideur is installed and opening on the TV. You will find it with your other apps." \
-          "C'est fait ! Le Débrideur est installé et s'ouvre sur la télé. Tu le retrouveras avec tes autres applications."
+    titre "Done! Ondi is installed and opening on the TV. You will find it with your other apps." \
+          "C'est fait ! Ondi est installé et s'ouvre sur la télé. Tu le retrouveras avec tes autres applications."
     dire "You can now turn debugging off again on the TV if you wish." "Tu peux maintenant désactiver le débogage sur la télé si tu le souhaites."
     "$ADB" disconnect "$CIBLE" >/dev/null 2>&1
     terminer 0

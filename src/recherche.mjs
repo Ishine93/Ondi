@@ -812,7 +812,7 @@ export async function rechercher(site, requete, { page = 1, categorie = null, si
   return { site: hoteDe(p.url), ...r, page, pages: etatPages(suite, page, r.resultats.length > 0) };
 }
 
-// Nouveautés du site, pour la page d'accueil du Débrideur : la rubrique choisie (« ?p=films »)
+// Nouveautés du site, pour la page d'accueil d'Ondi : la rubrique choisie (« ?p=films »)
 // si elle donne quelque chose, sinon la page d'accueil du site.
 export async function nouveautes(site, { categorie = null, signal } = {}) {
   const { accueil } = lireSite(site);

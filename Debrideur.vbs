@@ -1,4 +1,4 @@
-' Lance le Débrideur sans fenêtre noire, puis ouvre la page.
+' Lance Ondi sans fenêtre noire, puis ouvre la page.
 ' Avec l'argument --sans-navigateur : démarre seulement (utilisé au démarrage de Windows).
 Set fso = CreateObject("Scripting.FileSystemObject")
 Set sh = CreateObject("WScript.Shell")

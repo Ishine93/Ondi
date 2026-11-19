@@ -40,7 +40,7 @@ function parcourir(racine, surFichier, profondeur = 0) {
     return;
   }
   for (const e of entrees) {
-    if (e.name.startsWith('.')) continue; // dossier temporaire du Débrideur, fichiers cachés
+    if (e.name.startsWith('.')) continue; // dossier temporaire d'Ondi, fichiers cachés
     const chemin = path.join(racine, e.name);
     if (e.isDirectory() && profondeur < 6) parcourir(chemin, surFichier, profondeur + 1);
     else if (e.isFile()) surFichier(chemin);

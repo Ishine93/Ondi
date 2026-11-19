@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Fabrique l'application télé LG (webOS) :
-#   tele/lg/build/Debrideur.ipk   le paquet à installer sur la télé
-#   tele/lg/build/Debrideur-LG.zip  ce qu'on donne aux utilisateurs : l'ipk, les scripts d'installation, la notice
+#   tele/lg/build/Ondi.ipk   le paquet à installer sur la télé
+#   tele/lg/build/Ondi-LG.zip  ce qu'on donne aux utilisateurs : l'ipk, les scripts d'installation, la notice
 # Prévu pour un runner GitHub Actions ubuntu-latest : il faut node (>= 20), npm et zip, et l'accès à registry.npmjs.org.
 # L'outil officiel de LG (@webos-tools/cli) est installé dans un dossier temporaire, jamais en global.
 #   bash tele/lg/construire.sh
@@ -35,14 +35,14 @@ mkdir -p "$SORTIE"
 shopt -s nullglob
 paquets=("$SORTIE"/*.ipk)
 [ "${#paquets[@]}" -eq 1 ] || { echo "ares-package n'a pas produit exactement un .ipk." >&2; exit 1; }
-mv "${paquets[0]}" "$SORTIE/Debrideur.ipk"
-"$ARES/ares-package" --info "$SORTIE/Debrideur.ipk"
+mv "${paquets[0]}" "$SORTIE/Ondi.ipk"
+"$ARES/ares-package" --info "$SORTIE/Ondi.ipk"
 
 # 4. Le zip pour les utilisateurs (fins de ligne Windows pour .bat/.ps1, Unix pour .command).
 for f in installer-sur-la-tele.bat installer-sur-la-tele.ps1; do sed 's/\r*$/\r/' "$ICI/$f" > "$SORTIE/$f"; done
 sed 's/\r$//' "$ICI/installer-sur-la-tele.command" > "$SORTIE/installer-sur-la-tele.command"
 chmod +x "$SORTIE/installer-sur-la-tele.command"
 cp "$ICI/README.md" "$ICI/PROMPT-IA.md" "$SORTIE/"
-(cd "$SORTIE" && zip -q Debrideur-LG.zip Debrideur.ipk installer-sur-la-tele.bat installer-sur-la-tele.ps1 \
+(cd "$SORTIE" && zip -q Ondi-LG.zip Ondi.ipk installer-sur-la-tele.bat installer-sur-la-tele.ps1 \
   installer-sur-la-tele.command README.md PROMPT-IA.md)
-echo "Prêt : $SORTIE/Debrideur.ipk et $SORTIE/Debrideur-LG.zip"
+echo "Prêt : $SORTIE/Ondi.ipk et $SORTIE/Ondi-LG.zip"

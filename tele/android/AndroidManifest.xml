@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Application Débrideur pour Android TV, Google TV et Fire TV : un simple client qui trouve le serveur
-     Débrideur du réseau (PC, Mac ou mini-PC) et affiche sa page en plein écran.
+<!-- Application Ondi pour Android TV, Google TV et Fire TV : un simple client qui trouve le serveur
+     Ondi du réseau (PC, Mac ou mini-PC) et affiche sa page en plein écran.
      La version doit rester la même que dans app.json (construire.sh le vérifie). -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="io.github.ishine93.debrideur"
-    android:versionCode="20002"
-    android:versionName="2.0.2">
+    android:versionCode="20100"
+    android:versionName="2.1.0">
 
     <uses-sdk android:minSdkVersion="21" android:targetSdkVersion="34" />
 
@@ -18,7 +18,7 @@
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
 
     <application
-        android:label="Débrideur"
+        android:label="Ondi"
         android:icon="@mipmap/icone"
         android:banner="@drawable/banniere"
         android:allowBackup="false"

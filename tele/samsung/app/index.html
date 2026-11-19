@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=1920">
-<title>Débrideur</title>
+<title>Ondi</title>
 <style>
   html, body { margin: 0; height: 100%; background: #0b1118; color: #f2f5f8; font-family: "SamsungOne", "Segoe UI", system-ui, sans-serif; overflow: hidden; }
   #app { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; background: #0b1118; }
@@ -30,8 +30,8 @@
 <div id="ecran">
   <div class="boite">
     <div class="logo">
-      <svg viewBox="0 0 32 32"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#58b9ff"/><stop offset="1" stop-color="#1a6dff"/></linearGradient></defs><rect width="32" height="32" rx="8" fill="url(#g)"/><path d="M16 7v13m-6-6 6 6 6-6M9 25h14" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      Débrideur
+      <svg viewBox="0 0 100 100"><defs><linearGradient id="g" x1="16.1" y1="16.1" x2="83.9" y2="83.9" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#00d8ff"/><stop offset=".2" stop-color="#1965fb"/><stop offset=".44" stop-color="#6f19fb"/><stop offset=".56" stop-color="#8f12fc"/><stop offset=".68" stop-color="#b50bf3"/><stop offset=".92" stop-color="#fd0fd1"/><stop offset="1" stop-color="#ff10cc"/></linearGradient></defs><path fill="url(#g)" d="M8.1 73.42L91.57 26A48 48 0 0 0 8.1 73.42Z"/><path fill="url(#g)" d="M10.21 76.85L93.44 29.57A48 48 0 0 1 10.21 76.85Z"/></svg>
+      Ondi
     </div>
     <div id="attente">
       <div class="rond" style="margin: 0 auto 26px"></div>
@@ -39,7 +39,7 @@
     </div>
     <div id="reglage" hidden>
       <h1 id="titreReglage">Serveur introuvable</h1>
-      <p id="aideReglage" style="margin: 18px 0 26px">Aucun serveur Débrideur trouvé sur le réseau. Installe d'abord le Débrideur sur un PC Windows, un Mac ou un mini-PC relié à la même box : <code>github.com/Ishine93/Debrideur</code>. S'il est déjà installé, vérifie qu'il est allumé, puis choisis « Chercher sur le réseau » ou tape son adresse (Réglages → Téléphone et télé, par exemple <code>192.168.1.50:8097</code>).</p>
+      <p id="aideReglage" style="margin: 18px 0 26px">Aucun serveur Ondi trouvé sur le réseau. Installe d'abord Ondi sur un PC Windows, un Mac ou un mini-PC relié à la même box : <code>github.com/Ishine93/Ondi</code>. S'il est déjà installé, vérifie qu'il est allumé, puis choisis « Chercher sur le réseau » ou tape son adresse (Réglages → Téléphone et télé, par exemple <code>192.168.1.50:8097</code>).</p>
       <input id="adresse" class="champ" inputmode="url" spellcheck="false" placeholder="192.168.1.50:8097">
       <div class="boutons" style="margin-top: 28px; justify-content: center">
         <button id="connecter" class="principal">Se connecter</button>
@@ -49,19 +49,19 @@
   </div>
 </div>
 <script>
-// Client télé du Débrideur : trouve le serveur (adresse gardée, sinon recherche sur le réseau de la télé),
-// puis affiche le Débrideur en plein écran. Touche rouge (ou Retour sur cet écran) : changer de serveur.
+// Client télé d'Ondi : trouve le serveur (adresse gardée, sinon recherche sur le réseau de la télé),
+// puis affiche Ondi en plein écran. Touche rouge (ou Retour sur cet écran) : changer de serveur.
 (function () {
   'use strict';
   var $ = function (s) { return document.querySelector(s); };
   var app = $('#app');
   var serveur = '';
-  var VERSION = '2.0.2'; // même valeur que config.xml (le serveur compare pour proposer une mise à jour)
+  var VERSION = '2.1.0'; // même valeur que config.xml (le serveur compare pour proposer une mise à jour)
   var anglais = /^en/i.test(navigator.language || '');
   if (anglais) {
     $('#etape').textContent = 'Connecting to the server…';
     $('#titreReglage').textContent = 'Server not found';
-    $('#aideReglage').innerHTML = 'No Débrideur server found on the network. First install Débrideur on a Windows PC, a Mac or a mini-PC connected to the same router: <code>github.com/Ishine93/Debrideur</code>. If it is already installed, make sure it is on, then choose “Search the network” or type its address (Settings → Phone and TV, e.g. <code>192.168.1.50:8097</code>).';
+    $('#aideReglage').innerHTML = 'No Ondi server found on the network. First install Ondi on a Windows PC, a Mac or a mini-PC connected to the same router: <code>github.com/Ishine93/Ondi</code>. If it is already installed, make sure it is on, then choose “Search the network” or type its address (Settings → Phone and TV, e.g. <code>192.168.1.50:8097</code>).';
     $('#connecter').textContent = 'Connect';
     $('#chercher').textContent = 'Search the network';
   }
@@ -176,7 +176,7 @@
   document.addEventListener('keydown', function (e) {
     var code = e.keyCode;
     if (!app.hidden) {
-      // La page du Débrideur a perdu la main (rare) : on lui renvoie la touche.
+      // La page d'Ondi a perdu la main (rare) : on lui renvoie la touche.
       try { app.contentWindow.postMessage({ type: 'debrideur-touche', key: e.key, keyCode: code }, '*'); app.focus(); } catch (err) {}
       e.preventDefault();
       return;
@@ -195,7 +195,7 @@
     else if (code === 13 && actif === $('#adresse')) $('#connecter').click();
   });
 
-  // Messages de la page du Débrideur : quitter (Retour à l'accueil), changer de serveur.
+  // Messages de la page d'Ondi : quitter (Retour à l'accueil), changer de serveur.
   window.addEventListener('message', function (e) {
     var d = e.data || {};
     if (d.type === 'debrideur-quitter') quitter();

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Débrideur — installation on macOS (started by installer.command) / installation sur Mac.
+# Ondi — installation on macOS (started by installer.command) / installation sur Mac.
 # 1. Portable Node.js in runtime/node (nothing installed elsewhere on the Mac);
 # 2. ffmpeg (Jellyfin build, Apple VideoToolbox hardware conversion + HDR tone mapping) in runtime/ffmpeg;
 # 3. Desktop shortcut and optional start at login.
@@ -25,8 +25,8 @@ info() { printf '   %s\n' "$1"; }
 attention() { printf '   \033[33m!\033[0m   %s\n' "$1"; }
 echec() {
   printf '\n\033[31mFAILED / ÉCHEC : %s\033[0m\n' "$1"
-  echo 'Nothing was changed outside the Débrideur folder. You can run installer.command again.'
-  echo "Rien n'a été modifié en dehors du dossier du Débrideur. Tu peux relancer installer.command."
+  echo 'Nothing was changed outside the Ondi folder. You can run installer.command again.'
+  echo "Rien n'a été modifié en dehors du dossier d'Ondi. Tu peux relancer installer.command."
   exit 1
 }
 question() {
@@ -48,7 +48,7 @@ verifier() {
   ok "SHA-256 checked / empreinte vérifiée"
 }
 
-echo 'Débrideur — installation'
+echo 'Ondi — installation'
 echo "Folder / Dossier : $RACINE"
 
 # ------------------------------------------------------------------ system / système
@@ -104,9 +104,11 @@ chmod +x "$RACINE"/*.command 2>/dev/null || true
 
 # ------------------------------------------------------------------ shortcuts / raccourcis
 etape 'Shortcuts / Raccourcis'
-ln -sf "$RACINE/lancer.command" "$HOME/Desktop/Débrideur.command" && ok 'Desktop: Débrideur.command / Bureau : Débrideur.command'
+# Before the new name the shortcut was "Débrideur.command" / avant le nouveau nom : « Débrideur.command ».
+rm -f "$HOME/Desktop/Débrideur.command"
+ln -sf "$RACINE/lancer.command" "$HOME/Desktop/Ondi.command" && ok 'Desktop: Ondi.command / Bureau : Ondi.command'
 PLIST="$HOME/Library/LaunchAgents/io.github.ishine93.debrideur.plist"
-if question 'Start Débrideur automatically when you log in? / Lancer le Débrideur à l'"'"'ouverture de session ?'; then
+if question 'Start Ondi automatically when you log in? / Lancer Ondi à l'"'"'ouverture de session ?'; then
   mkdir -p "$HOME/Library/LaunchAgents"
   cat > "$PLIST" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
@@ -133,8 +135,8 @@ info 'Si macOS demande si « node » peut accepter des connexions entrantes, cli
 
 # ------------------------------------------------------------------ done / fini
 etape 'Ready / Prêt'
-info 'Open Débrideur with Débrideur.command on the Desktop. The first time, a setup wizard guides you.'
-info 'Ouvre le Débrideur avec Débrideur.command sur le Bureau. La première fois, un assistant te guide.'
+info 'Open Ondi with Ondi.command on the Desktop. The first time, a setup wizard guides you.'
+info 'Ouvre Ondi avec Ondi.command sur le Bureau. La première fois, un assistant te guide.'
 if [ "$SANS_LANCER" = 0 ]; then
   "$NODE" "$RACINE/lancer.mjs" || true
 fi

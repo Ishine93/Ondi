@@ -1,11 +1,11 @@
-﻿# Installe l'application Débrideur sur une télé Android TV / Google TV / Fire TV, par le réseau (ADB).
+﻿# Installe l'application Ondi sur une télé Android TV / Google TV / Fire TV, par le réseau (ADB).
 # Lancé par installer-sur-la-tele.bat (double-clic). Télécharge les outils officiels de Google (platform-tools)
-# dans le dossier « platform-tools » à côté, puis : adb connect <ip>:5555, adb install -r Debrideur.apk.
+# dans le dossier « platform-tools » à côté, puis : adb connect <ip>:5555, adb install -r Ondi.apk.
 # (Fichier enregistré en UTF-8 avec BOM : sinon Windows PowerShell 5.1 abîme les accents.)
 $ErrorActionPreference = 'Continue'
 $ProgressPreference = 'SilentlyContinue'
 $racine = Split-Path -Parent $PSScriptRoot
-$apk = Join-Path $racine 'Debrideur.apk'
+$apk = Join-Path $racine 'Ondi.apk'
 $adb = Join-Path $racine 'platform-tools\adb.exe'
 $paquet = 'io.github.ishine93.debrideur'
 
@@ -50,10 +50,10 @@ function Connect-Tele([string]$cible) {
 }
 
 Write-Host ''
-Dire 'Débrideur - install the app on an Android TV, Google TV or Fire TV' "Débrideur - installer l'application sur une télé Android TV, Google TV ou Fire TV" 'Cyan'
+Dire 'Ondi - install the app on an Android TV, Google TV or Fire TV' "Ondi - installer l'application sur une télé Android TV, Google TV ou Fire TV" 'Cyan'
 Write-Host ''
 if (-not (Test-Path $apk)) {
-  Dire "Debrideur.apk was not found next to this script ($racine). Unzip the whole folder first." "Debrideur.apk est introuvable à côté de ce script ($racine). Décompresse d'abord tout le dossier." 'Red'
+  Dire "Ondi.apk was not found next to this script ($racine). Unzip the whole folder first." "Ondi.apk est introuvable à côté de ce script ($racine). Décompresse d'abord tout le dossier." 'Red'
   Terminer 1
 }
 
@@ -108,11 +108,11 @@ while (-not (Connect-Tele $cible)) {
 
 # 3. Installation.
 Write-Host ''
-Dire 'Installing Débrideur on the TV (this can take a minute)...' 'Installation du Débrideur sur la télé (cela peut prendre une minute)...'
+Dire 'Installing Ondi on the TV (this can take a minute)...' 'Installation d''Ondi sur la télé (cela peut prendre une minute)...'
 $r = Invoke-Adb -s $cible install -r $apk
 Write-Host $r -ForegroundColor DarkGray
 if ($r -match 'INSTALL_FAILED_UPDATE_INCOMPATIBLE|signatures do not match') {
-  Dire 'An older Débrideur app with a different signature is on the TV: it must be removed first (it will forget the server address, the new one finds it again).' "Une ancienne application Débrideur avec une autre signature est sur la télé : il faut d'abord la retirer (elle oubliera l'adresse du serveur, la nouvelle la retrouvera)." 'Yellow'
+  Dire 'An older Ondi app with a different signature is on the TV: it must be removed first (it will forget the server address, the new one finds it again).' "Une ancienne application Ondi avec une autre signature est sur la télé : il faut d'abord la retirer (elle oubliera l'adresse du serveur, la nouvelle la retrouvera)." 'Yellow'
   $rep = Read-Host 'Uninstall it and install again? (y/n) / La désinstaller et réinstaller ? (o/n)'
   if ($rep -match '^[yYoO]') {
     Invoke-Adb -s $cible uninstall $paquet | Out-Null
@@ -123,7 +123,7 @@ if ($r -match 'INSTALL_FAILED_UPDATE_INCOMPATIBLE|signatures do not match') {
 if ($r -match 'Success') {
   Invoke-Adb -s $cible shell am start -n "$paquet/.Principale" | Out-Null
   Write-Host ''
-  Dire 'Done! Débrideur is installed and opening on the TV. You will find it with your other apps.' "C'est fait ! Le Débrideur est installé et s'ouvre sur la télé. Tu le retrouveras avec tes autres applications." 'Green'
+  Dire 'Done! Ondi is installed and opening on the TV. You will find it with your other apps.' "C'est fait ! Ondi est installé et s'ouvre sur la télé. Tu le retrouveras avec tes autres applications." 'Green'
   Dire 'You can now turn debugging off again on the TV if you wish.' 'Tu peux maintenant désactiver le débogage sur la télé si tu le souhaites.'
   Invoke-Adb disconnect $cible | Out-Null
   Terminer 0
