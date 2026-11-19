@@ -10,7 +10,10 @@ test('mises à jour : comparaison des numéros de version', () => {
   assert.equal(comparerVersions('1.9.10', '2.0.0'), -1);
   assert.equal(comparerVersions('2.10.0', '2.9.0'), 1);
   assert.match(VERSION, /^\d+\.\d+\.\d+$/);
-  assert.equal(versionsApplisTele().samsung, '1.0.0');
+  const tele = versionsApplisTele();
+  assert.match(tele.samsung, /^\d+\.\d+\.\d+$/);
+  assert.equal(tele.lg, tele.samsung, 'LG et Samsung au même numéro');
+  assert.equal(tele.android, tele.samsung, 'Android et Samsung au même numéro');
 });
 
 test('zip : ce qui est écrit est relu à l’identique (accents, binaire, scripts exécutables)', () => {

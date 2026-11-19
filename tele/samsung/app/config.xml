@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Application Débrideur pour télé Samsung (Tizen) : un simple client qui se connecte au serveur Débrideur
      du réseau (le PC aujourd'hui, un mini-PC demain). Signée et installée par Apps2Samsung (« Install a file… »). -->
-<widget xmlns="http://www.w3.org/ns/widgets" xmlns:tizen="http://tizen.org/ns/widgets" id="http://debrideur.local/tele" version="1.0.0" viewmodes="maximized">
+<widget xmlns="http://www.w3.org/ns/widgets" xmlns:tizen="http://tizen.org/ns/widgets" id="http://debrideur.local/tele" version="2.0.2" viewmodes="maximized">
   <tizen:application id="DbrdTele01.Debrideur" package="DbrdTele01" required_version="5.0"/>
   <content src="index.html"/>
   <feature name="http://tizen.org/feature/screen.size.normal.1080.1920"/>
