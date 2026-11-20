@@ -2,7 +2,8 @@
 // dans les Réglages) : résumé en français, casting avec photos, images de fond, logos, titres et résumés de chaque épisode.
 import { normaliser } from './titres.mjs';
 
-const TMDB = 'https://api.themoviedb.org/3';
+// DEBRIDEUR_TMDB_BASE (essais, démo) : un faux TMDB.
+const TMDB = process.env.DEBRIDEUR_TMDB_BASE || 'https://api.themoviedb.org/3';
 const IMG = 'https://image.tmdb.org/t/p';
 const img = (taille, chemin) => (chemin ? `${IMG}/${taille}${chemin}` : '');
 
@@ -156,6 +157,64 @@ async function saisonTmdb(cle, idSerie, numero, langue = 'fr-FR') {
     date: e.air_date || '',
     duree: e.runtime || null,
   }));
+}
+
+// Films et séries qui portent ce nom (pour la liste d'envies), les plus connus d'abord.
+export async function chercherTitres(cle, q, langue = 'fr-FR') {
+  if (!cle) return [];
+  const r = await appelTmdb(cle)('/search/multi', { query: q, language: langue, include_adult: 'false' });
+  return (r.results || [])
+    .filter((x) => (x.media_type === 'movie' || x.media_type === 'tv') && (x.title || x.name))
+    .slice(0, 12)
+    .map((x) => ({
+      tmdb: x.id,
+      type: x.media_type === 'movie' ? 'film' : 'serie',
+      titre: x.title || x.name,
+      titreOriginal: x.original_title || x.original_name || '',
+      annee: Number(String(x.release_date || x.first_air_date || '').slice(0, 4)) || null,
+      affiche: img('w342', x.poster_path),
+      resume: String(x.overview || '').slice(0, 300),
+    }));
+}
+
+// Ce que TMDB sait d'un film ou d'une série d'après un titre (celui d'un nom de version, souvent le titre
+// original) : { affiche, titre (français), titreOriginal }, vides s'il ne connaît rien d'assez ressemblant.
+// Gardé en mémoire.
+const fichesConnues = new Map();
+export function ficheTmdb(cle, { titre, annee = null, type = 'film' }) {
+  const rien = { affiche: '', titre: '', titreOriginal: '', annee: null };
+  if (!cle || !titre) return Promise.resolve(rien);
+  const k = `${type}|${normaliser(titre)}|${annee || ''}`;
+  if (fichesConnues.has(k)) return fichesConnues.get(k);
+  const recherche = (async () => {
+    const api = appelTmdb(cle);
+    const serie = type === 'serie';
+    const champs = serie ? { titres: ['name', 'original_name'], date: 'first_air_date' } : { titres: ['title', 'original_title'], date: 'release_date' };
+    let resultats = (await api(serie ? '/search/tv' : '/search/movie', { query: titre, language: 'fr-FR', ...(annee && !serie ? { year: annee } : {}) })).results || [];
+    if (!resultats.length && annee && !serie) resultats = (await api('/search/movie', { query: titre, language: 'fr-FR' })).results || [];
+    // Seulement un titre identique, ou qui commence pareil (« Dune » ne doit pas prendre l'affiche d'un autre film).
+    const n = normaliser(titre);
+    const proches = resultats.filter((r) => champs.titres.some((c) => {
+      const t = normaliser(r[c] || '');
+      return t && (t === n || t.startsWith(`${n} `) || n.startsWith(`${t} `));
+    }));
+    const choix = meilleur(proches, titre, annee, champs);
+    return choix ? { affiche: img('w342', choix.poster_path), titre: choix[champs.titres[0]] || '', titreOriginal: choix[champs.titres[1]] || '', annee: Number(String(choix[champs.date] || '').slice(0, 4)) || null } : rien;
+  })();
+  if (fichesConnues.size > 4000) fichesConnues.clear();
+  fichesConnues.set(k, recherche);
+  // Une panne (réseau, clé) ne doit pas rester en mémoire.
+  recherche.catch(() => fichesConnues.delete(k));
+  return recherche;
+}
+export const afficheDe = (cle, quoi) => ficheTmdb(cle, quoi).then((f) => f.affiche);
+
+// Saisons d'une série (sans les épisodes spéciaux), pour choisir celle qu'on veut.
+export async function saisonsSerie(cle, id, langue = 'fr-FR') {
+  const d = await appelTmdb(cle)(`/tv/${id}`, { language: langue });
+  return (d.seasons || [])
+    .filter((s) => s.season_number > 0)
+    .map((s) => ({ numero: s.season_number, nom: s.name || '', episodes: s.episode_count || 0, annee: Number(String(s.air_date || '').slice(0, 4)) || null }));
 }
 
 // ---------- point d'entrée ----------

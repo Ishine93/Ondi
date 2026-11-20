@@ -10,13 +10,16 @@ import { estVideo, estEchantillon } from './classer.mjs';
 import { rechercher, nouveautes, viderCacheRecherche, ErreurRecherche } from './recherche.mjs';
 import { configurerDisponibilite, sourcesFiche, verifierLiens, verifierFiches } from './disponibilite.mjs';
 import { tendances } from './tendances.mjs';
-import { verifierCleTmdb } from './metadonnees.mjs';
+import { verifierCleTmdb, chercherTitres, saisonsSerie, afficheDe, ficheTmdb, ErreurMeta } from './metadonnees.mjs';
 import { Profils, ErreurProfil } from './profils.mjs';
 import { Bibliotheque } from './bibliotheque.mjs';
 import { Lecture } from './lecture.mjs';
 import { Avatars } from './avatars.mjs';
 import { encodeurMateriel, OUTILS } from './video.mjs';
 import * as miseAJour from './miseajour.mjs';
+import { Sources, ErreurSource } from './sources.mjs';
+import { lireProfil } from './versions.mjs';
+import { Envies, ErreurEnvie } from './envies.mjs';
 
 const RACINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DONNEES = process.env.DEBRIDEUR_DONNEES || path.join(RACINE, 'donnees');
@@ -72,6 +75,8 @@ const config = {
   simultanes: brut.simultanes || 1,
   siteRecherche: brut.siteRecherche || '',
   tmdb: brut.tmdb || '',
+  // Version voulue quand plusieurs existent (définition, langues dans le fichier, poids) : voir versions.mjs.
+  profilVersions: lireProfil(brut.profilVersions),
   // Menu sous la recherche : chaque choix ajoute « &<parametre>=<valeur> » à l'adresse de recherche.
   categoriesRecherche: brut.categoriesRecherche || {
     parametre: 'p',
@@ -91,8 +96,8 @@ config.dossierTemp = calculerTemp();
 
 function sauverConfig() {
   fs.mkdirSync(DONNEES, { recursive: true });
-  const { port, cleApi, dossiers, connexions, simultanes, dossierTempPerso, siteRecherche, categoriesRecherche, tmdb, assistantFini } = config;
-  const sortie = { port, cleApi, dossiers, connexions, simultanes, tmdb, assistantFini };
+  const { port, cleApi, dossiers, connexions, simultanes, dossierTempPerso, siteRecherche, categoriesRecherche, tmdb, assistantFini, profilVersions } = config;
+  const sortie = { port, cleApi, dossiers, connexions, simultanes, tmdb, assistantFini, profilVersions };
   if (dossierTempPerso) sortie.dossierTemp = dossierTempPerso;
   if (siteRecherche) sortie.siteRecherche = siteRecherche;
   sortie.categoriesRecherche = categoriesRecherche;
@@ -108,12 +113,16 @@ const lecture = new Lecture({ bibliotheque, dossierCache: path.join(DONNEES, 'ca
 const avatars = new Avatars({ dossier: path.join(DONNEES, 'avatars'), journal });
 
 const scanner = (options) => bibliotheque.scanner(options).catch((e) => journal('Bibliothèque : scan raté', e));
-// Après un téléchargement terminé, la bibliothèque est relue (une fois, 15 s après le dernier,
-// pour qu'une saison entière ne déclenche pas dix scans).
+// Après un téléchargement terminé, la bibliothèque est relue presque tout de suite (2 s après le dernier :
+// les épisodes d'une saison qui finissent ensemble ne déclenchent qu'une lecture). Si une lecture est déjà
+// en cours, on attend sa fin et on relit : le fichier qui vient d'arriver ne doit pas lui échapper.
 let minuterieRescan = null;
 function planifierRescan() {
   clearTimeout(minuterieRescan);
-  minuterieRescan = setTimeout(() => scanner(), 15_000);
+  minuterieRescan = setTimeout(async () => {
+    if (bibliotheque.scan.enCours) await Promise.resolve(bibliotheque.scan.promesse).catch(() => {});
+    scanner();
+  }, 2000);
 }
 setTimeout(() => {
   scanner();
@@ -138,6 +147,26 @@ setInterval(() => {
 const gestionnaire = new Gestionnaire({ config, dossierDonnees: DONNEES, journal, surTermine: planifierRescan });
 // États des liens déjà vérifiés, gardés d'un lancement à l'autre (donnees/disponibilite.json).
 configurerDisponibilite({ dossier: DONNEES });
+// Sources de recherche : catalogue public de descriptions de sites, sources activées, recherche groupée.
+// DEBRIDEUR_CATALOGUE (essais) : une autre adresse de catalogue, avec des sites en adresse locale.
+const sources = new Sources({
+  dossier: DONNEES,
+  journal,
+  // Titre officiel d'un film ou d'une série (TMDB) : réunit les versions nommées en français et en anglais.
+  identifier: async (quoi) => {
+    if (!config.tmdb) return null;
+    const f = await ficheTmdb(config.tmdb, quoi);
+    return f.titre ? { titre: f.titre, annee: f.annee } : null;
+  },
+  ...(process.env.DEBRIDEUR_CATALOGUE ? { adresse: process.env.DEBRIDEUR_CATALOGUE, local: true } : {}),
+});
+
+// Liste d'envies : films et saisons voulus, cherchés régulièrement sur les sources et téléchargés tout seuls.
+const envies = new Envies({ dossier: DONNEES, sources, gestionnaire, profil: () => config.profilVersions, journal });
+envies.demarrer();
+setTimeout(() => envies.tour(), 30_000).unref();
+// Après un ajout ou « chercher maintenant » : on attend la réponse des sources, mais pas plus de quelques secondes.
+const verifierEnvie = (id) => Promise.race([envies.verifier(id), new Promise((r) => setTimeout(r, 9000))]).then(() => envies.liste().find((e) => e.id === id));
 
 let compteCache = null;
 async function compte(forcer = false) {
@@ -267,6 +296,11 @@ function requeteAutorisee(req) {
   return type === 'application/json' || type === 'application/x-bittorrent';
 }
 
+const nombreDe = (v) => {
+  const n = parseInt(v, 10);
+  return Number.isFinite(n) && n > 0 && n < 10000 ? n : null;
+};
+
 function configPublique() {
   return {
     cle: !!config.cleApi,
@@ -279,6 +313,9 @@ function configPublique() {
     categoriesRecherche: config.categoriesRecherche,
     tmdb: !!config.tmdb,
     tmdbFin: config.tmdb ? config.tmdb.slice(-4) : '',
+    profilVersions: config.profilVersions,
+    // Nombre de sources de recherche activées (la page n'interroge les sources que s'il y en a).
+    sources: sources.etat.sources.length,
     assistantFini: !!config.assistantFini,
     version: miseAJour.VERSION,
     systeme: process.platform,
@@ -323,8 +360,9 @@ async function repondreRecherche(res, travail) {
   try {
     return json(res, 200, await travail());
   } catch (e) {
-    if (!(e instanceof ErreurRecherche)) journal('Erreur recherche', e);
-    return json(res, e instanceof ErreurRecherche ? 400 : 500, { erreur: e.message });
+    const prevue = e instanceof ErreurRecherche || e instanceof ErreurSource || e instanceof ErreurEnvie || e instanceof ErreurMeta;
+    if (!prevue) journal('Erreur recherche', e);
+    return json(res, prevue ? 400 : 500, { erreur: e.message });
   }
 }
 
@@ -395,6 +433,85 @@ const serveur = http.createServer(async (req, res) => {
       }
       if (p === '/api/recherche/sources') {
         return repondreRecherche(res, () => sourcesFiche(config.siteRecherche, url.searchParams.get('url') || '', { ad: gestionnaire.ad }));
+      }
+      // Sources de recherche : celles qui sont activées, le catalogue, le formulaire d'une source, la recherche groupée.
+      if (p === '/api/sources') return repondreRecherche(res, async () => ({ actives: await sources.actives(), profil: config.profilVersions }));
+      if (p === '/api/sources/catalogue') return repondreRecherche(res, () => sources.catalogue({ frais: url.searchParams.has('frais') }));
+      if (p === '/api/sources/reglages') return repondreRecherche(res, () => sources.formulaire(url.searchParams.get('id') || ''));
+      if (p === '/api/sources/recherche') {
+        const q = (url.searchParams.get('q') || '').trim().slice(0, 200);
+        if (!q) return json(res, 400, { erreur: 'Tape ce que tu cherches.' });
+        const nombre = (cle) => {
+          const n = parseInt(url.searchParams.get(cle), 10);
+          return Number.isFinite(n) && n >= 0 && n < 10000 ? n : null;
+        };
+        const type = { film: 'film', serie: 'serie' }[url.searchParams.get('type')] || null;
+        const demande = { q, type, saison: nombre('saison'), episode: nombre('episode'), annee: nombre('annee') };
+        if (!url.searchParams.has('flux')) return repondreRecherche(res, () => sources.rechercher(demande, { profil: config.profilVersions }));
+        // En flux : une ligne JSON dès qu'une source a répondu (la page affiche sans attendre les plus lentes),
+        // la dernière avec « fini ». Page fermée ou nouvelle recherche : on arrête.
+        const abandon = new AbortController();
+        let termine = false;
+        res.on('close', () => termine || abandon.abort());
+        res.writeHead(200, { 'Content-Type': 'application/x-ndjson; charset=utf-8', 'Cache-Control': 'no-store', 'X-Accel-Buffering': 'no' });
+        try {
+          const final = await sources.rechercher(demande, { profil: config.profilVersions, signal: abandon.signal, surProgres: (r) => res.write(`${JSON.stringify(r)}\n`) });
+          res.write(`${JSON.stringify({ ...final, fini: true })}\n`);
+        } catch (e) {
+          if (!abandon.signal.aborted) {
+            if (!(e instanceof ErreurSource)) journal('Erreur recherche sur les sources', e);
+            res.write(`${JSON.stringify({ erreur: e instanceof ErreurSource ? e.message : 'La recherche sur les sources a échoué.', fini: true })}\n`);
+          }
+        }
+        termine = true;
+        return res.end();
+      }
+      // Les versions d'un film ou d'une série précis (onglet « Sources » de sa fiche) : cherché sous son titre
+      // affiché et, si TMDB le connaît, sous ses titres français et original.
+      if (p === '/api/sources/contenu') {
+        const titre = (url.searchParams.get('titre') || '').trim().slice(0, 200);
+        if (!titre) return json(res, 400, { erreur: 'Titre manquant.' });
+        const type = url.searchParams.get('type') === 'serie' ? 'serie' : 'film';
+        const annee = nombreDe(url.searchParams.get('annee'));
+        return repondreRecherche(res, async () => {
+          let connus = [];
+          try {
+            const fiche = await ficheTmdb(config.tmdb, { titre, annee, type });
+            connus = [fiche.titre, fiche.titreOriginal];
+          } catch {}
+          const titres = [...new Set([titre, ...connus].filter(Boolean))];
+          return { ...(await sources.contenu({ titres, annee, type }, { profil: config.profilVersions })), titres };
+        });
+      }
+      // Dernières sorties des sources (pour l'accueil), gardées une demi-heure.
+      if (p === '/api/sources/nouveautes') {
+        const type = { film: 'film', serie: 'serie' }[url.searchParams.get('type')] || null;
+        return repondreRecherche(res, () => sources.nouveautes(type, { profil: config.profilVersions }));
+      }
+      // Affiche d'un film ou d'une série trouvés sur les sources : renvoi vers l'image de TMDB (404 si inconnue).
+      if (p === '/api/sources/affiche') {
+        let adresse = '';
+        try {
+          adresse = await afficheDe(config.tmdb, { titre: (url.searchParams.get('titre') || '').slice(0, 200), annee: nombreDe(url.searchParams.get('annee')), type: url.searchParams.get('type') === 'serie' ? 'serie' : 'film' });
+        } catch {}
+        if (!adresse) {
+          res.writeHead(404, { 'Cache-Control': 'max-age=600' });
+          return res.end();
+        }
+        res.writeHead(302, { Location: adresse, 'Cache-Control': 'max-age=86400' });
+        return res.end();
+      }
+      // Liste d'envies : la liste, les films et séries qui portent un nom, les saisons d'une série.
+      if (p === '/api/envies') return json(res, 200, { envies: envies.liste(), sources: sources.etat.sources.length, tmdb: !!config.tmdb, profil: config.profilVersions });
+      if (p === '/api/envies/titres') {
+        const q = (url.searchParams.get('q') || '').trim().slice(0, 200);
+        if (!q) return json(res, 400, { erreur: 'Tape un titre.' });
+        return repondreRecherche(res, async () => ({ tmdb: !!config.tmdb, titres: await chercherTitres(config.tmdb, q, langueDe(url) === 'en' ? 'en-US' : 'fr-FR') }));
+      }
+      if (p === '/api/envies/saisons') {
+        const id = parseInt(url.searchParams.get('tmdb'), 10);
+        if (!config.tmdb || !(id > 0)) return json(res, 200, { saisons: [] });
+        return repondreRecherche(res, async () => ({ saisons: await saisonsSerie(config.tmdb, id, langueDe(url) === 'en' ? 'en-US' : 'fr-FR') }));
       }
       if (p === '/api/magnets') {
         try {
@@ -561,6 +678,69 @@ const serveur = http.createServer(async (req, res) => {
       termine = true;
       return res.end();
     }
+    // Activer une source ou changer ses réglages : elle est essayée tout de suite, pour dire si ça marche.
+    if (req.method === 'POST' && p === '/api/sources') {
+      const b = await lireJson(req);
+      return repondreRecherche(res, async () => {
+        const id = String(b.id || '');
+        await sources.enregistrer(id, { valeurs: b.valeurs && typeof b.valeurs === 'object' ? b.valeurs : {}, lien: typeof b.lien === 'string' ? b.lien : '' });
+        let essai;
+        try {
+          essai = await sources.essayer(id);
+        } catch (e) {
+          if (!(e instanceof ErreurSource)) journal(`Sources : essai de ${id}`, e);
+          essai = { erreur: e instanceof ErreurSource ? e.message : 'La réponse du site n’a pas été comprise.' };
+        }
+        journal(`Sources : ${id} activée (${essai.erreur || `${essai.versions} versions à l'essai`})`);
+        return { ok: true, essai, actives: await sources.actives() };
+      });
+    }
+    if (req.method === 'POST' && p === '/api/sources/retirer') {
+      const b = await lireJson(req);
+      sources.retirer(String(b.id || ''));
+      return repondreRecherche(res, async () => ({ ok: true, actives: await sources.actives() }));
+    }
+    if (req.method === 'POST' && p === '/api/sources/essayer') {
+      const b = await lireJson(req);
+      return repondreRecherche(res, () => sources.essayer(String(b.id || '')));
+    }
+    // Envoyer une version trouvée par la recherche groupée : son magnet ou son fichier .torrent part au débrideur.
+    if (req.method === 'POST' && p === '/api/sources/envoyer') {
+      const b = await lireJson(req);
+      return repondreRecherche(res, async () => {
+        const idVersion = String(b.id || '');
+        const lien = await sources.lienDe(idVersion);
+        let r;
+        if (lien.magnet) r = gestionnaire.ajouterSources(lien.magnet, b.mode || undefined);
+        else {
+          try {
+            r = { ajoutes: [await gestionnaire.ajouterTorrent(lien.nom, lien.torrent, b.mode || undefined)], refuses: [] };
+          } catch (e) {
+            throw new ErreurSource(e.message);
+          }
+        }
+        if (r.ajoutes[0]) sources.noterEnvoi(idVersion, r.ajoutes[0]);
+        return r;
+      });
+    }
+    // Liste d'envies : ajouter (la recherche part tout de suite), chercher maintenant, retirer.
+    if (req.method === 'POST' && p === '/api/envies') {
+      const b = await lireJson(req);
+      return repondreRecherche(res, async () => ({ envie: await verifierEnvie(envies.ajouter(b).id), envies: envies.liste() }));
+    }
+    if (req.method === 'POST' && p === '/api/envies/verifier') {
+      const b = await lireJson(req);
+      return repondreRecherche(res, async () => {
+        const e = envies.trouver(String(b.id || ''));
+        if (e.etat === 'attente') e.prochaine = Date.now();
+        return { envie: await verifierEnvie(e.id), envies: envies.liste() };
+      });
+    }
+    if (req.method === 'POST' && p === '/api/envies/retirer') {
+      const b = await lireJson(req);
+      envies.retirer(String(b.id || ''));
+      return json(res, 200, { ok: true, envies: envies.liste() });
+    }
     if (req.method === 'POST' && p === '/api/torrent') {
       const donnees = await lireCorps(req, 10e6);
       const nom = url.searchParams.get('nom') || 'fichier.torrent';
@@ -658,6 +838,7 @@ const serveur = http.createServer(async (req, res) => {
         gestionnaire.ajusterCreneaux();
       }
       if (b.assistantFini === true) config.assistantFini = true;
+      if (b.profilVersions && typeof b.profilVersions === 'object') config.profilVersions = lireProfil(b.profilVersions);
       config.dossierTemp = calculerTemp();
       sauverConfig();
       // Nouveaux dossiers ou nouvelle clé TMDB : la bibliothèque est relue (et ses infos complétées).

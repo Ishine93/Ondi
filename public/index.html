@@ -121,7 +121,8 @@
   .nav.pleine, body[data-vue="recherche"] .nav { background: #0b1118f7; box-shadow: 0 1px 0 #ffffff12; backdrop-filter: blur(12px); }
   .logo { display: flex; align-items: center; gap: 10px; font-size: 19px; font-weight: 750; color: #fff; text-decoration: none; letter-spacing: -.01em; margin-right: 14px; flex: none; }
   .logo svg { width: 30px; height: 30px; flex: none; }
-  .onglets { display: flex; gap: 2px; min-width: 0; flex: 0 1 auto; overflow-x: auto; scrollbar-width: none; }
+  /* La marge intérieure laisse la place au cadre de sélection (une zone qui défile coupe ce qui dépasse). */
+  .onglets { display: flex; gap: 2px; min-width: 0; flex: 0 1 auto; overflow-x: auto; scrollbar-width: none; padding: 6px; margin: -6px; }
   .onglets::-webkit-scrollbar { display: none; }
   .onglet {
     border: 0; background: none; color: #b9c4d0; font-weight: 650; font-size: 15.5px; padding: 8px 13px; border-radius: 8px;
@@ -430,7 +431,7 @@
   .detail-corps { position: relative; max-width: 1400px; margin: 0 auto; display: grid; gap: 24px; }
   .detail-corps .r-sources { border: 0; padding: 0; display: grid; gap: 28px; }
   .detail-corps .r-sources .aide a { color: var(--bleu); }
-  .saisons { display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px 8px; scrollbar-width: thin; }
+  .saisons { display: flex; gap: 8px; overflow-x: auto; padding: 6px 6px 8px; margin: -2px -4px 0; scrollbar-width: thin; }
   .saison {
     flex: none; display: grid; gap: 1px; text-align: left; border: 1px solid #ffffff1f; background: #ffffff0d; border-radius: 10px;
     padding: 9px 18px; cursor: pointer; color: #c3ccd6; font-weight: 700; font-size: 15px; transition: background .15s, color .15s;
@@ -696,7 +697,7 @@
     .nav { flex-wrap: wrap; align-content: flex-start; height: var(--haut-nav); padding-top: 8px; gap: 2px; }
     .logo { height: 48px; margin-right: 0; }
     .logo span { display: none; }
-    .onglets { order: 10; flex: 1 0 100%; margin: 2px calc(-1 * var(--marge)) 0; padding: 0 var(--marge); }
+    .onglets { order: 10; flex: 1 0 100%; margin: -4px calc(-1 * var(--marge)) -6px; padding: 6px var(--marge); }
     .onglet { font-size: 15px; padding: 8px 12px; }
     .nav #compte { padding: 0; width: 40px; height: 40px; justify-content: center; border: 0; background: none; margin: 0; }
     .nav #compte > span:last-child { display: none; }
@@ -748,6 +749,17 @@
   body.grand .affiche { gap: 16px; }
   body.grand .rangee-piste { padding-top: 18px; padding-bottom: 18px; }
   body.grand .affiche:focus-visible .affiche-image { transform: scale(1.09); box-shadow: 0 0 0 4px #fff, 0 18px 40px #000e; }
+  /* Un champ ou une liste choisi à la télécommande porte le même cadre blanc que les boutons (une bordure bleue
+     ne se voit pas depuis le canapé) ; le champ de recherche l'a sur toute sa largeur. */
+  body.grand input:focus-visible, body.grand select:focus-visible, body.grand textarea:focus-visible { outline: 3px solid #fff !important; outline-offset: 2px; }
+  body.grand .source input:focus-visible, body.grand #q:focus-visible { outline: none !important; }
+  body.grand .champ-recherche.choisi { outline: 3px solid #fff; outline-offset: 2px; }
+  /* Le cadre s'allume d'un coup : une ombre qui s'anime est redessinée à chaque image, la sélection traînait
+     derrière les appuis. Seul l'agrandissement reste animé (la télé le fait sans redessiner). */
+  body.grand .affiche-image, body.grand .vignette-image, body.grand .resultats.grille .r-image { transition: transform .16s ease; }
+  /* Les rangées ne s'aimantent pas : la télécommande amène déjà chaque affiche à sa place, et l'aimant ferait
+     sauter notre défilement quand les appuis s'enchaînent. */
+  body.grand .rangee-piste { scroll-snap-type: none; }
   /* Télé : rien qui se recalcule à chaque image pendant un défilement. Le flou d'arrière-plan (barre du haut,
      boutons sur la fiche, menus) se refait à chaque image. Les fiches et fenêtres (une seule à la fois) ont leur
      propre calque : la télé les fait défiler sans tout redessiner. Pas les rangées de l'accueil : une vingtaine de
@@ -765,7 +777,7 @@
     padding: 16px; border-radius: 16px; background: var(--surface); border: 1px solid #ffffff1f; box-shadow: 0 24px 60px #000c;
   }
   .co-titre { font-size: 13px; text-transform: uppercase; letter-spacing: .07em; color: var(--doux); font-weight: 700; }
-  .co-liste { display: grid; gap: 6px; overflow-y: auto; padding: 4px; }
+  .co-liste { display: grid; gap: 6px; overflow-y: auto; padding: 6px; }
   .co-option {
     text-align: left; padding: 11px 14px; border-radius: 10px; border: 1px solid #ffffff14; background: #ffffff0a; color: var(--texte);
     cursor: pointer; font-size: 15px;
@@ -853,6 +865,7 @@
   }
 </style>
 <link rel="stylesheet" href="/app/media.css">
+<link rel="stylesheet" href="/app/sources.css">
 <link rel="manifest" href="/app/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/app/icone-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1049,6 +1062,8 @@
         <div class="recherche-resultats">
           <div id="etatRecherche" role="status"></div>
           <div id="suggestions" class="suggestions" hidden></div>
+          <!-- Versions trouvées sur les sources activées (Réglages → Sources de recherche) : public/sources.js -->
+          <div id="versionsSources" class="versions-sources" hidden></div>
           <div id="outils" class="outils" hidden>
             <button id="btnFiltres" class="bouton" type="button" aria-expanded="false" aria-controls="panneauFiltres">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h18M6 12h12M10 19h4"/></svg>
@@ -1238,6 +1253,12 @@
         <input id="cSite" spellcheck="false" inputmode="url" autocomplete="off" placeholder="https://site-exemple.fr">
         <p class="aide">L'adresse du site : sa barre de recherche est trouvée toute seule. Si ça ne marche pas, mets l'adresse d'une page de résultats en remplaçant les mots cherchés par <code>{q}</code>.</p>
       </label>
+      <div class="reglage-bloc">
+        <div class="f-titre">Sources de recherche</div>
+        <p class="aide" id="cSources"></p>
+        <div class="champ-dossier"><button class="bouton" type="button" id="btnSources">Gérer les sources…</button><button class="bouton" type="button" id="btnEnvies">Liste d'envies…</button></div>
+        <p class="aide">Pour chercher sur plusieurs sites à la fois, choisir la version voulue (4K, VF et VO dans le même fichier…), et laisser Ondi télécharger tout seul ce que tu attends.</p>
+      </div>
       <label>Dossier des films
         <span class="champ-dossier"><input id="cFilms" spellcheck="false"><button class="bouton" type="button" data-parcourir="cFilms">Parcourir…</button></span>
       </label>
@@ -1299,6 +1320,8 @@
 <script src="/app/bibliotheque.js"></script>
 <script src="/app/lecteur.js"></script>
 <script src="/app/assistant.js"></script>
+<script src="/app/sources.js"></script>
+<script src="/app/envies.js"></script>
 <script>
 const $ = (s) => document.querySelector(s);
 let mode = 'auto';
@@ -1645,6 +1668,17 @@ function rendre() {
   document.title = enCours && enCours.total ? `${Math.floor((enCours.fait / enCours.total) * 100)} % · Ondi` : 'Ondi';
   majSuivisTuiles();
   majDejaDansBibliotheque();
+  signalerArrivees(jobs);
+}
+
+// Un téléchargement vient d'arriver dans la bibliothèque : l'onglet Bibliothèque (ou les rangées de l'accueil)
+// se remet à jour tout seul, sans avoir à actualiser.
+let arrivesConnus = null;
+function signalerArrivees(jobs) {
+  const arrives = new Set(jobs.filter((j) => j.etat === 'termine' && j.fichiers.some((f) => f.lecture)).map((j) => j.id));
+  const nouveau = arrivesConnus && [...arrives].some((id) => !arrivesConnus.has(id));
+  arrivesConnus = arrives;
+  if (nouveau && (vueActive === 'bibliotheque' || vueActive === 'accueil')) majRangeesPerso();
 }
 
 async function rafraichir() {
@@ -1767,7 +1801,11 @@ function majSuiviTuile(el) {
     ligne.replaceChildren(element('span', `dl-texte ${rate ? 'ko' : ''}`, texte));
   }
 }
-const majSuivisTuiles = () => document.querySelectorAll('.suivi-dl').forEach(majSuiviTuile);
+const majSuivisTuiles = () => {
+  document.querySelectorAll('.suivi-dl').forEach(majSuiviTuile);
+  // Versions envoyées depuis l'onglet « Sources » d'une fiche (public/sources.js).
+  majSuivisVersions();
+};
 
 function majFiltreJobs() {
   for (const b of $('#filtreJobs').children) b.setAttribute('aria-checked', String(b.dataset.filtre === filtreJobs));
@@ -1878,6 +1916,7 @@ function ouvrirReglages(champ) {
   $('#cTmdb').value = '';
   $('#cTmdb').placeholder = c.tmdb ? `Clé enregistrée (…${c.tmdbFin}) — colle une autre clé pour la changer` : 'Colle le jeton ici';
   $('#cGrand').checked = document.body.classList.contains('grand');
+  majResumeSources();
   armerArret(false);
   $('#msgReglages').textContent = '';
   $('#msgReglages').className = 'msg';
@@ -2423,6 +2462,7 @@ function afficherVue(vue, { historique = true } = {}) {
   $('#vueBibliotheque').hidden = vue !== 'bibliotheque';
   document.body.dataset.vue = vue;
   majOnglets();
+  arreterDefilements();
   window.scrollTo({ top: 0 });
   if (vue === 'recherche') {
     if (historique) history.pushState({ debrideur: 'recherche' }, '');
@@ -2457,6 +2497,7 @@ function choisirRubrique(valeur) {
   if (vueActive !== 'accueil') afficherVue('accueil');
   if (rubriqueAccueil !== valeur) construireAccueil(valeur);
   majOnglets();
+  arreterDefilements();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -2554,7 +2595,8 @@ function carteContenu(g, rang) {
   const sous = g.serie ? (saisons.length > 1 ? `${saisons.length} saisons` : saisons[0] || 'Série') : g.annee || '';
   const familles = unique(vs.flatMap((v) => v.familles || [])).slice(0, 3);
   const infos = element('span', 'affiche-infos');
-  const ligne = element('span', 'affiche-sous', [sous, vs.length > 1 && `${vs.length} versions`].filter(Boolean).join(' · '));
+  const nb = nombreVersions(g, vs);
+  const ligne = element('span', 'affiche-sous', [sous, nb > 1 && `${nb} versions`].filter(Boolean).join(' · '));
   const langues = element('span', 'affiche-langues');
   langues.append(...familles.map((f) => element('span', `puce langue l-${f}`, { multi: 'MULTI', vf: 'VF', vostfr: 'VOSTFR', vo: 'VO' }[f])));
   infos.append(element('span', 'affiche-titre', titre), ligne, langues);
@@ -2581,7 +2623,7 @@ function suivreCarte(b, g) {
     if (!b.isConnected) observateur.unobserve(b);
     lacherGroupe(g);
   };
-  observateur.observe(b);
+  // Pas surveillée tout de suite : sa rangée s'en charge quand elle approche de l'écran (voir observateurRangees).
 }
 
 function carteSuggestion(item, rang) {
@@ -2633,6 +2675,8 @@ function rangee(titre, cartes, { numerote = false, info = '' } = {}) {
   requestAnimationFrame(majFleches);
   cadre.append(gauche, piste, droite);
   section.append(tete, cadre);
+  section._cartes = cartes.filter((c) => c._entrer);
+  if (section._cartes.length) observateurRangees.observe(section);
   return section;
 }
 const rangeeAttente = () => {
@@ -2749,10 +2793,14 @@ async function construireAccueil(rubrique) {
   const tendancesSeries = typesTendances.includes('series') ? tendancesListes[typesTendances.indexOf('series')] : [];
   const top = (liste, id) => liste.find((r) => r.id === id);
 
+  // Chaque rangée est une recette : ses dizaines d'affiches ne sont fabriquées qu'au moment de l'afficher.
+  for (const s of sites) for (const g of s.groupes) majGroupe(g); // genres et années, connus avant de composer les rangées
   const lignes = [];
   const ligneSite = (s) =>
-    s?.groupes.length && rangee(s.nom ? `Nouveautés · ${s.nom}` : 'Nouveautés', s.groupes.map((g) => carteContenu(g)), { info: `${s.groupes.length} sur ${hoteDe(dernier.config.siteRecherche)}` });
-  const ligneTendance = (r) => r && rangee(r.titre, r.items.map((it, i) => carteSuggestion(it, r.numerote ? i + 1 : 0)), { numerote: r.numerote, info: r.numerote ? 'iTunes Store' : '' });
+    s?.groupes.length &&
+    (() => rangee(s.nom ? `Nouveautés · ${s.nom}` : 'Nouveautés', s.groupes.map((g) => carteContenu(g)), { info: `${s.groupes.length} sur ${hoteDe(dernier.config.siteRecherche)}` }));
+  const ligneTendance = (r) =>
+    r && (() => rangee(r.titre, r.items.map((it, i) => carteSuggestion(it, r.numerote ? i + 1 : 0)), { numerote: r.numerote, info: r.numerote ? 'iTunes Store' : '' }));
   // Genres des nouveautés du site (au moins 4 titres), pour une rubrique précise.
   const lignesGenres = (groupes) => {
     const parGenre = new Map();
@@ -2761,7 +2809,7 @@ async function construireAccueil(rubrique) {
       .filter((x) => x.groupes.length >= 4)
       .sort((a, b) => b.groupes.length - a.groupes.length)
       .slice(0, 5)
-      .map((x) => rangee(`${x.nom} · nouveautés`, x.groupes.map((g) => carteContenu(g))));
+      .map((x) => () => rangee(`${x.nom} · nouveautés`, x.groupes.map((g) => carteContenu(g))));
   };
 
   const parType = (x) => sites.find((s) => type(s.v) === x);
@@ -2781,13 +2829,21 @@ async function construireAccueil(rubrique) {
     else if (t !== 'mangas') lignes.push(ligneTendance(top(tendancesFilms, 'top')));
     lignes.push(...lignesGenres(s?.groupes || []));
     if (t === 'mangas') lignes.push(ligneTendance(top(tendancesFilms, 'animation')));
-    else if (t === 'series') lignes.push(...tendancesSeries.filter((r) => r.id !== 'series').map(ligneTendance));
-    else lignes.push(...tendancesFilms.filter((r) => r.id !== 'top').map(ligneTendance));
+    else if (t === 'series') lignes.push(...tendancesSeries.filter((r) => r.id !== 'series').map((r) => ligneTendance(r)));
+    else lignes.push(...tendancesFilms.filter((r) => r.id !== 'top').map((r) => ligneTendance(r)));
   }
-  const rangees = lignes.filter(Boolean);
+  const recettes = lignes.filter(Boolean);
   const perso = await persoPromis;
   if (jeton !== accueilEnCours) return;
-  $('#rangees').replaceChildren(...perso, ...rangees);
+  // Les premières rangées tout de suite (ce qu'on voit), les suivantes par petits paquets : fabriquer d'un coup
+  // des centaines d'affiches figeait la télé à chaque changement de rubrique.
+  $('#rangees').replaceChildren(...perso, ...recettes.splice(0, 3).map((recette) => recette()));
+  const suite = () => {
+    if (jeton !== accueilEnCours || !recettes.length) return;
+    $('#rangees').append(...recettes.splice(0, 2).map((recette) => recette()));
+    setTimeout(suite, 40);
+  };
+  setTimeout(suite, 40);
 
   // À la une : les films les plus vus en France (avec leur résumé), sinon les nouveautés du site.
   const topFilms = top(tendancesFilms, 'top')?.items || [];
@@ -2840,6 +2896,9 @@ $('#btnClavier').addEventListener('click', () => {
   majClavier();
   focusRecherche();
 });
+// Télé : le champ choisi à la télécommande est encadré sur toute sa largeur (style « choisi »).
+$('#q').addEventListener('focus', () => $('#q').parentElement.classList.add('choisi'));
+$('#q').addEventListener('blur', () => $('#q').parentElement.classList.remove('choisi'));
 // Résultats pendant la frappe (comme sur les plateformes), une fois la frappe posée.
 let delaiFrappe = null;
 $('#q').addEventListener('input', () => {
@@ -2867,50 +2926,180 @@ function racinesNavigation() {
   if (detailOuvert) return [$('#detail'), $('#panier')];
   return [document.body];
 }
+// Peut-on se placer dessus ? (un bouton ou un champ affiché, pas dans une partie mise en veille)
+function choisissable(el) {
+  if (!el.matches(SELECTEUR_FOCUS) || el.tabIndex < 0 || el.closest('[hidden], [inert]')) return false;
+  const r = rectDe(el);
+  return r.width > 0 && r.height > 0;
+}
 function focusables() {
   return racinesNavigation()
     .flatMap((r) => [...r.querySelectorAll(SELECTEUR_FOCUS)])
-    .filter((el) => {
-      if (el.closest('[hidden], [inert]') || el.tabIndex < 0) return false;
-      const r = rectDe(el);
-      return r.width > 0 && r.height > 0;
-    });
+    .filter(choisissable);
 }
-function prochainFocus(depuis, touche) {
-  const a = rectDe(depuis);
+
+// Chemin parcouru aux flèches : la touche opposée ramène d'où l'on vient (haut, haut puis bas, bas : même chemin).
+const TOUCHE_OPPOSEE = { ArrowUp: 'ArrowDown', ArrowDown: 'ArrowUp', ArrowLeft: 'ArrowRight', ArrowRight: 'ArrowLeft' };
+let chemin = []; // [{ de, vers, touche }]
+function noterPas(de, vers, touche) {
+  const pas = chemin[chemin.length - 1];
+  if (pas && pas.vers === de && pas.de === vers && TOUCHE_OPPOSEE[pas.touche] === touche) return void chemin.pop(); // demi-tour
+  if (pas && pas.vers !== de) chemin = []; // la sélection a bougé autrement (clic, fenêtre) : on repart de zéro
+  chemin.push({ de, vers, touche });
+  if (chemin.length > 60) chemin.shift();
+}
+
+// Placement de côté pour Haut / Bas : rien à ajouter quand l'élément est en face (le plus près du centre départage),
+// sinon l'espace qui l'en sépare. Comparer les centres envoyait de « Clavier » au logo en sautant le champ de
+// recherche, trop large pour avoir son centre au-dessus.
+function ecartDeCote(a, b) {
+  const commun = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+  return (commun > 2 ? 0 : 12 - commun * 0.4) + Math.abs(b.x - a.x) * 0.02;
+}
+// L'affiche à la une occupe toute la largeur : ses boutons (à gauche) sont « en face » de tout ce qui est
+// au-dessus et en dessous. Sans ça, on la sautait en montant depuis les affiches de droite.
+function etendue(el, r) {
+  const bande = el.closest('.hero')?.getBoundingClientRect() || r;
+  return { left: bande.left, right: bande.right, x: r.left + r.width / 2 };
+}
+
+// Dans une rangée d'affiches, inutile de mesurer toute la page : gauche / droite passe à la voisine, haut / bas à
+// la rangée d'à côté, sur l'affiche la plus en face. Rend undefined quand la rangée n'a pas la réponse.
+function voisinDeRangee(depuis, touche) {
+  const piste = depuis.parentElement;
+  if (!piste?.classList.contains('rangee-piste')) return undefined;
+  if (touche === 'ArrowLeft' || touche === 'ArrowRight') {
+    for (let el = depuis; (el = touche === 'ArrowRight' ? el.nextElementSibling : el.previousElementSibling); ) if (choisissable(el)) return el;
+    return null; // bout de la rangée
+  }
+  const r = rectDe(depuis);
+  const a = { left: r.left, right: r.right, x: r.left + r.width / 2 };
+  for (let rangee = piste.closest('.rangee'); (rangee = touche === 'ArrowDown' ? rangee?.nextElementSibling : rangee?.previousElementSibling); ) {
+    if (!rangee.classList.contains('rangee')) break;
+    let meilleur = null;
+    let ecart = Infinity;
+    for (const el of rangee.querySelector('.rangee-piste')?.children || []) {
+      if (!choisissable(el)) continue;
+      const b = rectDe(el);
+      const e = ecartDeCote(a, { left: b.left, right: b.right, x: b.left + b.width / 2 });
+      if (e < ecart) {
+        ecart = e;
+        meilleur = el;
+      }
+    }
+    if (meilleur) return meilleur;
+  }
+  return undefined; // plus de rangée de ce côté (affiche à la une, barre du haut…) : aux mesures de décider
+}
+
+// Ailleurs : l'élément le plus proche dans la direction de la flèche, d'après sa place à l'écran.
+// Zones qui défilent sur elles-mêmes (fenêtres, fiches, listes, rangées) : à compléter si on en ajoute une.
+const DEFILANTS =
+  '.dlg-corps, .detail-defilement, .fm-defilement, .tiroir-corps, .rangee-piste, .saisons, .fm-casting, .co-liste, .ep-galerie, .cd-liste, .lc-menu, .liste-magnets, #panierListe, .onglets';
+function voisinParMesure(depuis, touche) {
+  const horizontal = touche === 'ArrowLeft' || touche === 'ArrowRight';
+  const zone = zoneDe(depuis);
+  const a = zone.getBoundingClientRect();
   const ax = a.left + a.width / 2;
   const ay = a.top + a.height / 2;
-  const horizontal = touche === 'ArrowLeft' || touche === 'ArrowRight';
-  let meilleur = null;
-  let score = Infinity;
-  for (const el of focusables()) {
-    if (el === depuis || zoneDe(el) === zoneDe(depuis)) continue;
-    // Bouton dans une tuile (« Regarder » d'un lien téléchargé) : Bas y entre depuis la tuile, Haut en ressort vers elle.
-    if (touche === 'ArrowDown' && zoneDe(depuis).contains(el)) return el;
-    if (touche === 'ArrowUp' && zoneDe(el).contains(depuis)) return el;
-    const b = rectDe(el);
-    const bx = b.left + b.width / 2;
-    const by = b.top + b.height / 2;
-    let distance;
-    let ecart;
-    if (horizontal) {
-      if (touche === 'ArrowRight' ? bx <= ax + 1 : bx >= ax - 1) continue;
-      distance = Math.max(0, touche === 'ArrowRight' ? b.left - a.right : a.left - b.right);
-      // Seulement sur la même ligne (sinon on sauterait dans une autre rangée).
-      if (Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) <= 0) continue;
-      ecart = Math.abs(by - ay) * 0.3;
-    } else {
-      if (touche === 'ArrowDown' ? by <= ay + 1 : by >= ay - 1) continue;
-      distance = Math.max(0, touche === 'ArrowDown' ? b.top - a.bottom : a.top - b.bottom);
-      ecart = Math.abs(bx - ax) * 0.6;
+  const aCote = etendue(depuis, a);
+  // La barre du haut et le champ de recherche restent collés en haut de l'écran pendant que la page défile : vus
+  // depuis la page, ils sont toujours « au-dessus », même quand l'élément de départ est sorti de l'écran par le
+  // haut (défilement pas encore arrivé). Sinon Haut ne trouvait plus rien : la sélection restait bloquée.
+  const COLLES = '#nav, #formRecherche';
+  const depuisLaPage = !horizontal && !!depuis.closest('.page') && !depuis.closest(`${COLLES}, #clavier`);
+  // Le clavier à l'écran est posé à côté des résultats : Haut / Bas n'y entre et n'en sort que bien en face
+  // (sinon on tombait sur une de ses touches depuis les filtres, ou sur un résultat depuis sa dernière ligne).
+  const clavier = $('#clavier');
+  const depuisClavier = clavier.contains(depuis);
+  const boites = new Map(); // zone qui défile → son cadre à l'écran
+
+  const chercher = (dans) => {
+    let meilleur = null;
+    let score = Infinity;
+    let piste = null;
+    let pisteUtile = false;
+    for (const racine of racinesNavigation()) {
+      for (const el of racine.querySelectorAll(SELECTEUR_FOCUS)) {
+        // Les rangées d'affiches (l'essentiel d'une page) sont écartées d'un coup quand elles ne sont pas sur le
+        // chemin : mesurer des centaines d'affiches à chaque appui faisait traîner la sélection sur une télé.
+        const parent = el.parentElement;
+        if (parent.classList.contains('rangee-piste')) {
+          if (parent !== piste) {
+            piste = parent;
+            const p = piste.getBoundingClientRect();
+            boites.set(piste, p);
+            if (horizontal) pisteUtile = Math.min(a.bottom, p.bottom) - Math.max(a.top, p.top) > 0;
+            else if (touche === 'ArrowDown') pisteUtile = p.bottom > ay && p.top - a.bottom < score;
+            else pisteUtile = p.top < ay && a.top - p.bottom < score;
+          }
+          if (!pisteUtile) continue;
+        }
+        if (el === depuis || el.tabIndex < 0 || (dans && !dans.contains(el)) || el.closest('[hidden], [inert]')) continue;
+        const zoneEl = zoneDe(el);
+        if (zoneEl === zone) continue;
+        const b = zoneEl.getBoundingClientRect();
+        if (b.width <= 0 || b.height <= 0) continue;
+        // Bouton dans une tuile (« Regarder » d'un lien téléchargé) : Bas y entre depuis la tuile, Haut en ressort vers elle.
+        if (touche === 'ArrowDown' && zone.contains(el)) return el;
+        if (touche === 'ArrowUp' && zoneEl.contains(depuis)) return el;
+        // Caché par la zone qui le fait défiler (affiche sortie de sa rangée, ligne des Réglages plus bas) : on ne
+        // le choisit pas du dehors.
+        const boite = parent.closest(DEFILANTS);
+        if (boite && !boite.contains(depuis)) {
+          if (!boites.has(boite)) boites.set(boite, boite.getBoundingClientRect());
+          const c = boites.get(boite);
+          if (b.bottom <= c.top + 1 || b.top >= c.bottom - 1 || b.right <= c.left + 1 || b.left >= c.right - 1) continue;
+        }
+        const bx = b.left + b.width / 2;
+        const by = b.top + b.height / 2;
+        let s;
+        if (horizontal) {
+          if (touche === 'ArrowRight' ? bx <= ax + 1 : bx >= ax - 1) continue;
+          // Seulement sur la même ligne (sinon on sauterait dans une autre rangée).
+          if (Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) <= 0) continue;
+          s = Math.max(0, touche === 'ArrowRight' ? b.left - a.right : a.left - b.right) + Math.abs(by - ay) * 0.3;
+        } else if (depuisLaPage && el.closest(COLLES)) {
+          if (touche === 'ArrowDown') continue;
+          s = Math.max(0, a.top + scrollY - b.bottom) + ecartDeCote(aCote, etendue(el, b));
+        } else {
+          if (touche === 'ArrowDown' ? by <= ay + 1 : by >= ay - 1) continue;
+          const bCote = etendue(el, b);
+          const enFace = Math.min(aCote.right, bCote.right) - Math.max(aCote.left, bCote.left) > 2;
+          if (!enFace) {
+            // Ni en face ni franchement au-dessus (ou en dessous) : c'est un voisin de côté, Gauche / Droite y mène.
+            // (Depuis les résultats, Haut partait sur une touche du clavier à l'écran au lieu du champ de recherche.)
+            if (touche === 'ArrowDown' ? b.top < a.bottom - 2 : b.bottom > a.top + 2) continue;
+            if (clavier.contains(el) !== depuisClavier) continue;
+          }
+          s = Math.max(0, touche === 'ArrowDown' ? b.top - a.bottom : a.top - b.bottom) + ecartDeCote(aCote, bCote);
+        }
+        if (s < score) {
+          score = s;
+          meilleur = el;
+        }
+      }
     }
-    const s = distance + ecart;
-    if (s < score) {
-      score = s;
-      meilleur = el;
-    }
+    return meilleur;
+  };
+
+  // On reste d'abord dans la zone qui défile autour du départ : la suite des Réglages, encore cachée plus bas,
+  // passe avant le bouton « Fermer » posé juste sous la zone. On n'en sort que s'il n'y a plus rien de ce côté.
+  let portee = null;
+  for (let p = depuis.parentElement?.closest(DEFILANTS); p && !portee; p = p.parentElement?.closest(DEFILANTS)) {
+    if (horizontal ? p.scrollWidth > p.clientWidth + 1 : p.scrollHeight > p.clientHeight + 1) portee = p;
   }
+  let meilleur = (portee && chercher(portee)) || chercher(null);
+  // En arrivant sur les rubriques par le haut ou le bas, on se pose sur celle qui est affichée.
+  if (!horizontal && meilleur?.classList.contains('onglet')) meilleur = meilleur.parentElement.querySelector('[aria-current="page"]') || meilleur;
   return meilleur;
+}
+
+function prochainFocus(depuis, touche) {
+  const pas = chemin[chemin.length - 1];
+  if (pas && pas.vers === depuis && TOUCHE_OPPOSEE[pas.touche] === touche && racinesNavigation().some((r) => r.contains(pas.de)) && choisissable(pas.de)) return pas.de;
+  const voisin = voisinDeRangee(depuis, touche);
+  return voisin !== undefined ? voisin : voisinParMesure(depuis, touche);
 }
 const champTexte = (el) => el.matches('input[type="search"], input[type="text"], input[type="number"], input[type="password"], input:not([type])');
 
@@ -2988,7 +3177,8 @@ function sortDuTexte(el, touche) {
 // ---------- défilement jusqu'à l'élément choisi ----------
 // À la télé, un défilement maison : il ralentit à l'arrivée et, si on appuie de nouveau avant la fin, repart d'où
 // il en est. Celui du navigateur repart de l'arrêt à chaque appui : d'où les à-coups en descendant des épisodes.
-const animationsDefilement = new Map(); // conteneur → { x, y } : { id, cible } du défilement en cours
+const animationsDefilement = new WeakMap(); // conteneur → { x, y } : { id, cible } du défilement en cours
+const defilementsEnCours = new Set();
 const cibleDefilement = (c, axe) => animationsDefilement.get(c)?.[axe]?.cible ?? (axe === 'x' ? c.scrollLeft : c.scrollTop);
 function defiler(c, axe, cible) {
   const prop = axe === 'x' ? 'scrollLeft' : 'scrollTop';
@@ -2996,9 +3186,8 @@ function defiler(c, axe, cible) {
   cible = Math.round(Math.max(0, Math.min(max, cible)));
   if (!animationsDefilement.has(c)) animationsDefilement.set(c, {});
   const a = animationsDefilement.get(c);
-  if (a[axe]) cancelAnimationFrame(a[axe].id);
-  a[axe] = null;
-  const depart = c[prop];
+  a[axe]?.arreter();
+  let depart = c[prop];
   if (Math.abs(cible - depart) < 1) return;
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
     c[prop] = cible;
@@ -3006,34 +3195,82 @@ function defiler(c, axe, cible) {
   }
   const duree = 240;
   let t0 = null;
-  const anim = { id: 0, cible };
+  let pose = depart;
+  let pasFaits = 0;
+  const anim = {
+    id: 0,
+    cible,
+    arreter() {
+      cancelAnimationFrame(anim.id);
+      defilementsEnCours.delete(anim);
+      if (a[axe] === anim) a[axe] = null;
+    },
+  };
   const pas = (t) => {
-    t0 ??= t;
+    if (t0 === null) {
+      // Un défilement du navigateur qu'on vient d'arrêter (il tourne à part) a pu emmener la page un peu plus
+      // loin entre-temps : on part de là où elle est vraiment.
+      t0 = t;
+      depart = c[prop];
+    } else if (++pasFaits > 3 && Math.abs(c[prop] - pose) > 2) return anim.arreter(); // déplacée sans nous (molette, doigt) : on lui laisse la main
     const k = Math.min(1, (t - t0) / duree);
     c[prop] = depart + (cible - depart) * (1 - (1 - k) ** 3);
+    pose = c[prop];
     if (k < 1) anim.id = requestAnimationFrame(pas);
-    else if (a[axe] === anim) a[axe] = null;
+    else anim.arreter();
   };
   anim.id = requestAnimationFrame(pas);
   a[axe] = anim;
+  defilementsEnCours.add(anim);
 }
-function amenerALaVue(el, vertical) {
+// La page change de place d'un coup (autre vue, retour sur une fiche) : nos défilements en cours s'arrêtent.
+function arreterDefilements() {
+  for (const anim of [...defilementsEnCours]) anim.arreter();
+}
+// Un défilement du navigateur encore en route continuerait vers son ancienne cible : on l'arrête où il en est
+// (le déplacer d'un point et le remettre suffit, rien n'est dessiné entre les deux).
+let navigateurDefile = 0; // jusqu'à quand un défilement du navigateur peut être en cours
+function figer(c) {
+  if (performance.now() > navigateurDefile) return;
+  const x = c.scrollLeft;
+  const y = c.scrollTop;
+  c.scrollLeft = x + (x > 0 ? -1 : 1);
+  c.scrollTop = y + (y > 0 ? -1 : 1);
+  c.scrollLeft = x;
+  c.scrollTop = y;
+}
+function amenerALaVue(el, vertical, enchaine = false) {
   if (el.closest('#clavier, #formRecherche, .lecteur')) return; // toujours à l'écran
-  // En haut de l'accueil (affiche, barre du haut), on remonte tout en haut ; sinon la ligne choisie vient au centre.
-  if (el.closest('.hero, #nav') && !detailOuvert && !el.closest('.modal-plein')) return window.scrollTo({ top: 0, behavior: 'smooth' });
+  const grand = document.body.classList.contains('grand');
   const zone = zoneDe(el);
-  const placement = { block: vertical ? 'center' : 'nearest', inline: 'nearest' };
-  // Défilement maison seulement à la télé, dans les fiches et fenêtres (listes d'épisodes) : il y reste fluide.
-  // Sur les pages (accueil, rubriques, bibliothèque), celui du navigateur tourne à part et ne saccade pas quand
-  // la page travaille (affiches qui arrivent, liens vérifiés) ; le nôtre, image par image, en souffrait.
+  // Défilement du navigateur ou le nôtre ? À la télé, le nôtre dans les fiches et fenêtres (listes d'épisodes) :
+  // il y reste fluide. Sur les pages (accueil, rubriques, bibliothèque), celui du navigateur tourne à part et ne
+  // saccade pas quand la page travaille (affiches qui arrivent, liens vérifiés)… mais il repart de l'arrêt à
+  // chaque appui : en appuyant vite, la sélection filait plusieurs rangées plus loin pendant que la page restait
+  // sur place. Quand les appuis s'enchaînent, c'est donc le nôtre qui prend le relais : il repart d'où il en est.
   const dansFenetre = zone.closest('.detail-defilement, .fm-defilement, dialog, .modal-plein, .tiroir-corps');
-  if (!document.body.classList.contains('grand') || !dansFenetre) return zone.scrollIntoView({ ...placement, behavior: 'smooth' });
+  const leNotre = grand && (dansFenetre || enchaine);
+  // En haut de l'accueil (affiche, barre du haut), on remonte tout en haut ; sinon la ligne choisie vient au centre.
+  if (el.closest('.hero, #nav') && !detailOuvert && !el.closest('.modal-plein')) {
+    if (leNotre) {
+      figer(document.scrollingElement);
+      return defiler(document.scrollingElement, 'y', 0);
+    }
+    navigateurDefile = performance.now() + 1000;
+    return window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  const placement = { block: vertical ? 'center' : 'nearest', inline: 'nearest' };
+  if (!leNotre) {
+    navigateurDefile = performance.now() + 1000;
+    return zone.scrollIntoView({ ...placement, behavior: 'smooth' });
+  }
   // Le navigateur calcule où amener l'élément (zoom de la télé, rangées, fiche) ; on remet tout en place et on y
   // va en douceur. Rien n'est dessiné entre les deux : pas de saut visible.
   const conteneurs = [document.scrollingElement];
   for (let p = zone.parentElement; p && p !== document.body; p = p.parentElement) {
     if (p.scrollHeight > p.clientHeight || p.scrollWidth > p.clientWidth) conteneurs.push(p);
   }
+  conteneurs.forEach(figer);
   // Calcul fait depuis là où vont les défilements en cours (appuis rapprochés), pas depuis leur milieu.
   const avant = conteneurs.map((c) => [c.scrollLeft, c.scrollTop]);
   const prevu = conteneurs.map((c) => [cibleDefilement(c, 'x'), cibleDefilement(c, 'y')]);
@@ -3063,9 +3300,9 @@ document.addEventListener('keydown', (e) => {
   if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key) || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
   const actif = document.activeElement;
   if (!actif || actif === document.body) {
-    // Rien de sélectionné : à la télé on se place sur le premier élément ; sur PC, les flèches font défiler.
+    // Rien de sélectionné : à la télé on reprend sa place ; sur PC, les flèches font défiler.
     if (!document.body.classList.contains('grand') && matchMedia('(hover: hover)').matches) return;
-    const premier = focusables()[0];
+    const premier = retrouverSelection();
     if (premier) {
       e.preventDefault();
       premier.focus();
@@ -3079,6 +3316,10 @@ document.addEventListener('keydown', (e) => {
   // Sur une liste déroulante, les flèches déplacent le curseur au lieu de changer la valeur sans le dire.
   if (actif.tagName === 'SELECT') e.preventDefault();
   if (champTexte(actif) && !champFerme(actif) && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) return;
+  // Touche tenue : pas plus de déplacements que l'écran ne peut en montrer (sinon ils s'entassent et la
+  // sélection continue d'avancer après qu'on a lâché la touche).
+  const maintenant = performance.now();
+  if (e.repeat && maintenant - dernierDeplacement < 70) return e.preventDefault();
   const suivant = prochainFocus(actif, e.key);
   const vertical = e.key === 'ArrowUp' || e.key === 'ArrowDown';
   if (!suivant) {
@@ -3090,9 +3331,39 @@ document.addEventListener('keydown', (e) => {
     return;
   }
   e.preventDefault();
+  // Appuis qui s'enchaînent (touche tenue, ou avant la fin du défilement précédent) : la page suit sans attendre.
+  const enchaine = e.repeat || maintenant - dernierDeplacement < 400;
+  dernierDeplacement = maintenant;
+  noterPas(actif, suivant, e.key);
   suivant.focus({ preventScroll: true });
-  amenerALaVue(suivant, vertical);
+  amenerALaVue(suivant, vertical, enchaine);
 });
+let dernierDeplacement = 0; // moment du dernier déplacement aux flèches
+
+// Sélection perdue (l'élément choisi a disparu : page reconstruite…) : on reprend au plus près de là où on était,
+// sinon sur le premier élément de la page à l'écran, plutôt que de sauter au logo tout en haut.
+let dernierePlace = null; // centre du dernier élément choisi, dans la page
+document.addEventListener('focusin', (e) => {
+  if (e.target.nodeType !== 1 || e.target === document.body) return;
+  const r = rectDe(e.target);
+  dernierePlace = { x: r.left + r.width / 2, y: r.top + r.height / 2 + scrollY };
+});
+function retrouverSelection() {
+  const tous = focusables();
+  const aLEcran = tous.filter((el) => {
+    const r = rectDe(el);
+    return r.bottom > 0 && r.top < innerHeight && r.right > 0 && r.left < innerWidth;
+  });
+  if (dernierePlace) {
+    const ecart = (el) => {
+      const r = rectDe(el);
+      return Math.hypot(r.left + r.width / 2 - dernierePlace.x, r.top + r.height / 2 + scrollY - dernierePlace.y);
+    };
+    const proche = aLEcran.reduce((m, el) => (!m || ecart(el) < ecart(m) ? el : m), null);
+    if (proche) return proche;
+  }
+  return aLEcran.find((el) => !el.closest('#nav')) || tous[0];
+}
 // Retour (Échap, touche Retour de la télécommande) : ferme la fiche, puis revient à l'accueil.
 document.addEventListener('keydown', (e) => {
   const retour =
@@ -3221,7 +3492,7 @@ $('#formRecherche').addEventListener('submit', (e) => {
   e.preventDefault();
   clearTimeout(delaiFrappe);
   const q = $('#q').value.trim();
-  if (!dernier.config?.siteRecherche) return ouvrirReglages('#cSite');
+  if (!dernier.config?.siteRecherche && !dernier.config?.sources) return ouvrirReglages('#cSite');
   if (!q) return viderRecherche();
   // Sur téléphone, on range le clavier pour voir les résultats.
   if (matchMedia('(hover: none)').matches) $('#q').blur();
@@ -3254,6 +3525,8 @@ function nouvelleListe() {
 // Champ vide : plus de résultats, on propose les titres du moment.
 function viderRecherche() {
   nouvelleListe();
+  viderSources();
+  montrerBiblioRecherche('');
   recherche = null;
   $('#resultats').replaceChildren();
   $('#resultats').hidden = true;
@@ -3304,6 +3577,20 @@ async function lancerRecherche(q, { categorie } = {}) {
   const { signal } = ctrl;
   jetonSuggestions++;
   $('#suggestions').hidden = true;
+  // Les sources activées (Réglages → Sources de recherche) sont interrogées en même temps que le site.
+  chercherSurSources(q, /^films?$/i.test(cat) ? 'film' : /^(series?|mangas?)$/i.test(cat) ? 'serie' : '');
+  // Ce que tu as déjà : les titres de ta bibliothèque qui correspondent, en tête (public/bibliotheque.js).
+  montrerBiblioRecherche(q);
+  // Sans site de recherche (ou s'il ne répond pas) : la grille ne contient que ce que donnent les sources.
+  const sansSite = () => {
+    recherche = { q, nomCat, site: '', groupes: new Map(), fiches: new Set(), verifiees: 0, pages: 0, total: 0, erreurs: 0, approximatif: false, pageEnCours: null };
+    $('#resultats').replaceChildren();
+    $('#resultats').hidden = true;
+    $('#outils').hidden = true;
+    etatRecherche('');
+    fondreSources();
+  };
+  if (!dernier.config?.siteRecherche) return sansSite();
   const choix = dernier.config?.categoriesRecherche?.choix || [];
   const rubriques = cat || !choix.length ? [cat] : choix.map(([v]) => v);
   const enParallele = rubriques.length > 1 ? 2 : PAGES_EN_PARALLELE;
@@ -3313,9 +3600,8 @@ async function lancerRecherche(q, { categorie } = {}) {
   if (signal.aborted) return;
   const lues = premieres.filter((x) => x.r);
   if (!lues.length) {
-    etatRecherche(premieres[0].erreur.message, 'ko');
-    $('#resultats').hidden = true;
-    $('#outils').hidden = true;
+    sansSite();
+    if (!recherche.groupes.size) etatRecherche(premieres[0].erreur.message, 'ko');
     return;
   }
   // Des résultats exacts dans une rubrique : on écarte les approximations des autres.
@@ -3328,6 +3614,8 @@ async function lancerRecherche(q, { categorie } = {}) {
   };
   $('#resultats').replaceChildren();
   for (const x of gardees) ajouterResultats(x.r.resultats);
+  // Ce que les sources de recherche ont déjà répondu rejoint la même grille.
+  fondreSources();
 
   const progression = () => {
     recherche.pageEnCours = `${recherche.pages} / ${Math.max(recherche.total, recherche.pages)}`;
@@ -3390,13 +3678,14 @@ async function lancerRecherche(q, { categorie } = {}) {
 
 function etatResultats(pageEnCours) {
   const { q, nomCat, site, groupes } = recherche;
-  const ou = `${nomCat ? `${nomCat} · ` : ''}${site}`;
+  const nbSources = recherche.sources || 0;
+  const ou = [nomCat, site, nbSources && `${nbSources} source${nbSources > 1 ? 's' : ''}`].filter(Boolean).join(' · ');
   const tous = [...groupes.values()];
   const montres = tous.filter((g) => !g.el.hidden);
   if (!tous.length) {
     return pageEnCours ? etatRecherche(`Recherche dans les pages suivantes… (${pageEnCours})`, 'charge') : etatRecherche(`Aucun résultat pour « ${q} » (${ou}).`);
   }
-  const fiches = montres.reduce((n, g) => n + g.vs.length, 0);
+  const fiches = montres.reduce((n, g) => n + nombreVersions(g, g.vs), 0);
   const koCaches = masquerKO ? tous.filter((g) => g.el.hidden && g.ko).length : 0;
   const masques = tous.length - montres.length - koCaches;
   const quoi = `${montres.length} contenu${montres.length > 1 ? 's' : ''}${fiches > montres.length ? ` (${fiches} fiches)` : ''}`;
@@ -3476,6 +3765,8 @@ function construireGroupe(g) {
 const puceLangue = (v) => element('span', `puce langue l-${v.familles?.[0] || 'vo'}`, v.langue);
 const trierSaisons = (vs) => [...vs].sort((a, b) => (a.saisonNum ?? 1e6) - (b.saisonNum ?? 1e6));
 const imageDe = (g) => g.versions.find((v) => v.image)?.image || '';
+// Versions d'un contenu : les fiches du site, plus ce que les sources de recherche en ont (public/sources.js).
+const nombreVersions = (g, vs) => vs.filter((v) => !v.deSource).length + (g.sources?.length || 0);
 
 // Infos communes d'un contenu (genres, première année, meilleure note) et sa carte de résultat.
 function majGroupe(g) {
@@ -3511,11 +3802,12 @@ function majGroupe(g) {
   }
   // Puces : saisons ou nombre de versions, langues, qualités.
   const puces = [];
+  const nb = nombreVersions(g, vs);
   if (g.serie) {
     const saisons = unique(trierSaisons(vs).map((v) => v.saison));
     if (saisons.length) puces.push(element('span', 'puce nombre', saisons.length > 2 ? `${saisons.length} saisons` : saisons.join(' · ')));
-    if (vs.length > 1) puces.push(element('span', 'puce', `${vs.length} versions`));
-  } else if (vs.length > 1) puces.push(element('span', 'puce nombre', `${vs.length} versions`));
+    if (nb > 1) puces.push(element('span', 'puce', `${nb} versions`));
+  } else if (nb > 1) puces.push(element('span', 'puce nombre', `${nb} versions`));
   const langues = new Map();
   for (const v of vs) if (v.langue && !langues.has(v.langue)) langues.set(v.langue, v);
   puces.push(...[...langues.values()].slice(0, 4).map(puceLangue));
@@ -3618,6 +3910,7 @@ function retrouverPlace(p, racine = document) {
 function revenirA(p, el) {
   if (!p) return;
   if (!el?.isConnected) el = retrouverPlace(p);
+  arreterDefilements();
   if (Math.abs(scrollY - p.y) > 2) window.scrollTo(0, p.y);
   if (!el) return;
   el.focus({ preventScroll: true });
@@ -3638,6 +3931,7 @@ function reprendrePlace(p, racine) {
 function majEnteteDetail(g) {
   const vs = g.vs.length ? g.vs : g.versions;
   const v0 = vs[0];
+  const nb = nombreVersions(g, vs);
   const image = imageDe(g);
   $('#detailFond').style.backgroundImage = image ? `url("${image.replace(/"/g, '%22')}")` : '';
   $('#detailAffiche').hidden = !image;
@@ -3648,7 +3942,7 @@ function majEnteteDetail(g) {
   $('#detailMeta').textContent = [
     g.serie && g.annee,
     g.serie ? (saisons.length > 1 ? `${saisons.length} saisons` : saisons[0]) : '',
-    `${vs.length} version${vs.length > 1 ? 's' : ''}`,
+    `${nb} version${nb > 1 ? 's' : ''}`,
     genres,
     g.note != null && `★ ${g.note.toFixed(1)}`,
   ]
@@ -3663,7 +3957,9 @@ function majEnteteDetail(g) {
   );
   $('#detailLocal').hidden = !g.local;
   $('#detailLocal span').textContent = g.serie ? 'Reprendre la série' : 'Regarder ma version';
-  $('#detailFiche').href = (vs.find((v) => v.url === g.choisie) || v0).url;
+  const fiche = vs.find((v) => v.url === g.choisie && !v.deSource) || vs.find((v) => !v.deSource);
+  $('#detailFiche').hidden = !fiche;
+  if (fiche) $('#detailFiche').href = fiche.url;
 }
 
 function ouvrirDetail(g, depuis = document.activeElement) {
@@ -3683,16 +3979,19 @@ function ouvrirDetail(g, depuis = document.activeElement) {
   document.body.classList.add('detail-ouvert');
   $('#detailDefilement').scrollTop = 0;
   rendreVersions(g);
-  if (g.vs.length === 1 && !g.versions.some((v) => v.url === g.choisie)) g.choisie = g.vs[0].url;
-  const version = g.versions.find((v) => v.url === g.choisie);
+  // Les fiches du site ; ce que donnent les sources de recherche a son onglet (public/sources.js).
+  const duSite = g.vs.filter((v) => !v.deSource);
+  if (duSite.length === 1 && !g.versions.some((v) => v.url === g.choisie && !v.deSource)) g.choisie = duSite[0].url;
+  const version = g.versions.find((v) => v.url === g.choisie && !v.deSource);
   if (version) chargerSources(g, version);
-  else g.zoneSources.replaceChildren(element('p', 'aide', 'Choisis une version pour voir ses sources.'));
+  else g.zoneSources.replaceChildren(...(duSite.length ? [element('p', 'aide', 'Choisis une version pour voir ses sources.')] : []));
+  ongletsFiche(g);
   if (!dejaOuvert) history.pushState({ debrideur: 'detail' }, '');
   // Télécommande : on se place sur la première saison ou version, sinon sur « Retour ».
   // À la souris, la fiche prend le focus sans anneau (les flèches font défiler).
   requestAnimationFrame(() => {
     if (!modeClavier && !document.body.classList.contains('grand')) return $('#detailDefilement').focus({ preventScroll: true });
-    (g.zoneVersions.querySelector('.saison[aria-selected="true"], input') || $('#fermerDetail')).focus({ preventScroll: true });
+    (g.panneau.querySelector('.fiche-onglets:not([hidden]) .saison[aria-selected="true"]') || g.zoneVersions.querySelector('.saison[aria-selected="true"], input') || $('#fermerDetail')).focus({ preventScroll: true });
   });
 }
 
@@ -3722,7 +4021,7 @@ $('#detail').addEventListener('click', (e) => {
 // une tuile par fiche du site (langue, qualité, épisodes). Une version n'est vérifiée que
 // quand sa tuile apparaît à l'écran.
 function rendreVersions(g) {
-  const vs = g.vs;
+  const vs = g.vs.filter((v) => !v.deSource);
   (g.surveillances || []).forEach((arret) => arret());
   g.surveillances = [];
   g.tuiles.clear();
@@ -3913,6 +4212,7 @@ function pomperLiens() {
 // el._liens() → [liens prioritaires, autres liens] ; el._quitter() facultatif.
 const observateur = new IntersectionObserver(
   (entrees) => {
+    for (const e of entrees) e.target._vue = e.isIntersecting;
     for (const e of entrees) if (!e.isIntersecting) (e.target._quitter || (() => retirerLiens(e.target._liens?.().flat() || [])))();
     const visibles = entrees.filter((e) => e.isIntersecting).map((e) => e.target);
     visibles.sort((a, b) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1));
@@ -3921,6 +4221,28 @@ const observateur = new IntersectionObserver(
     for (const el of visibles) if (!el._entrer) demanderLiens(el._liens?.()[1] || []);
   },
   { rootMargin: '0px 0px 300px 0px' },
+);
+// Les cartes d'une rangée de l'accueil ne sont surveillées une par une que lorsque la rangée approche de l'écran :
+// des centaines de cartes surveillées en permanence, c'est autant de calculs à chaque image d'un défilement
+// (trop pour une télé). Une rangée qui s'éloigne rend les liens de ses cartes.
+const observateurRangees = new IntersectionObserver(
+  (entrees) => {
+    for (const e of entrees) {
+      const proche = e.isIntersecting && e.target.isConnected;
+      for (const b of e.target._cartes || []) {
+        if (proche) observateur.observe(b);
+        else {
+          observateur.unobserve(b);
+          if (b._vue) {
+            b._vue = false;
+            b._quitter();
+          }
+        }
+      }
+      if (!e.target.isConnected) observateurRangees.unobserve(e.target);
+    }
+  },
+  { rootMargin: '400px 0px 700px 0px' },
 );
 function surveiller(el) {
   observateur.observe(el);
@@ -4139,7 +4461,7 @@ function majDispo(el, r) {
     el.textContent = r.autres ? '✗ liens morts (reste torrent)' : '✗ liens morts';
     el.title = r.message || '';
   } else {
-    el.textContent = r.autres ? 'Torrent / magnet' : r.total ? '? à confirmer' : 'Aucun lien';
+    el.textContent = r.texte || (r.autres ? 'Torrent / magnet' : r.total ? '? à confirmer' : 'Aucun lien');
     el.title = r.message || '';
   }
 }
@@ -4218,6 +4540,8 @@ function majTuilesSources(bloc) {
 // ---------- sources d'une version ----------
 
 async function chargerSources(g, x) {
+  // Ce que donnent les sources de recherche n'a pas de page sur le site : c'est l'onglet « Sources » de la fiche.
+  if (x.deSource) return;
   // Un bloc neuf à chaque version choisie : les écouteurs de l'ancienne disparaissent avec lui,
   // et ses liens pas encore vérifiés sortent de la file.
   g.zoneSources.querySelector('.bloc-sources')?.arreter?.();

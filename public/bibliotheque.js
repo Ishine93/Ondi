@@ -5,6 +5,51 @@ let catalogueBiblio = null;
 let historiqueBiblio = {};
 let filtreBiblio = 'tout';
 let triBiblio = 'recent';
+let rechercheBiblio = '';
+
+// Les titres de la bibliothèque qui contiennent tous les mots cherchés (dans le titre, ses autres noms,
+// et, avec « large », les genres et l'année), les titres qui commencent par ces mots d'abord.
+function trouverDansBiblio(liste, texte, large = false) {
+  const propre = (s) => sansAccents(String(s || '')).toLowerCase();
+  const mots = propre(texte).split(/[^a-z0-9]+/).filter(Boolean);
+  if (!mots.length) return [];
+  const debut = mots.join(' ');
+  return liste
+    .map((x) => {
+      const titres = propre([x.titre, ...(x.autresTitres || [])].join(' | '));
+      const tout = large ? `${titres} ${propre([...(x.genres || []), x.annee || ''].join(' '))}` : titres;
+      return mots.every((m) => tout.includes(m)) ? { x, rang: titres.startsWith(debut) ? 0 : titres.includes(debut) ? 1 : 2 } : null;
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.rang - b.rang || b.x.ajoute - a.x.ajoute)
+    .map((r) => r.x);
+}
+
+// Recherche générale : les titres de la bibliothèque qui correspondent s'affichent en tête des résultats.
+async function montrerBiblioRecherche(q) {
+  let zone = $('#dansBiblio');
+  if (!zone) {
+    const apres = $('#versionsSources');
+    if (!apres) return;
+    zone = element('div', 'dans-biblio');
+    zone.id = 'dansBiblio';
+    apres.before(zone);
+  }
+  zone.dataset.q = q;
+  if (!q) return void zone.replaceChildren();
+  let cat = catalogueBiblio;
+  try {
+    cat ||= await chargerCatalogue();
+  } catch {
+    return;
+  }
+  if (zone.dataset.q !== q) return;
+  const trouves = trouverDansBiblio([...cat.films, ...cat.series], q).slice(0, 30);
+  if (!trouves.length) return void zone.replaceChildren();
+  const ligne = rangee(t('Dans ta bibliothèque'), trouves.map(carteBiblio), { info: t(trouves.length > 1 ? '{n} que tu as déjà' : '{n} que tu as déjà', { n: trouves.length }) });
+  ligne.classList.add('rangee-recherche');
+  zone.replaceChildren(ligne);
+}
 
 const ICONE_LECTURE = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12.5-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5Z"/></svg>';
 const ICONE_FERMER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>';
@@ -111,16 +156,22 @@ function vignetteReprendre(e) {
 // Rangées propres au profil, en haut de l'accueil : « Reprendre la lecture » et ta bibliothèque.
 async function rangeesPerso(rubrique) {
   const lignes = [];
+  // Liste d'envies (public/envies.js) : demandée en même temps que le reste.
+  const enviesPromis = !rubrique && typeof rangeeEnvies === 'function' ? rangeeEnvies().catch(() => null) : null;
   try {
     const [cat, reprise] = await Promise.all([chargerCatalogue(), reprendreListe(), chargerHistorique()]);
     const type = /film/i.test(rubrique || '') ? 'films' : /serie/i.test(rubrique || '') ? 'series' : /manga|anim/i.test(rubrique || '') ? 'mangas' : '';
     if (!rubrique && reprise.length) lignes.push(rangee(t('Reprendre la lecture'), reprise.map(vignetteReprendre), { info: profilActif ? profilActif.nom : '' }));
+    const ligneEnvies = await enviesPromis;
+    if (ligneEnvies) lignes.push(ligneEnvies);
     if (!rubrique) {
       const recents = [...cat.films, ...cat.series].sort((a, b) => b.ajoute - a.ajoute).slice(0, 24);
       if (recents.length) lignes.push(rangee(t('Dans ta bibliothèque'), recents.map(carteBiblio), { info: t('Ajoutés récemment') }));
     } else if (type === 'films' && cat.films.length) lignes.push(rangee(t('Tes films'), cat.films.map(carteBiblio), { info: t('Dans ta bibliothèque') }));
     else if (type === 'series' && cat.series.length) lignes.push(rangee(t('Tes séries'), cat.series.map(carteBiblio), { info: t('Dans ta bibliothèque') }));
   } catch {}
+  // Dernières sorties des sources de recherche (public/sources.js).
+  if (typeof rangeesSources === 'function') lignes.push(...(await rangeesSources(rubrique).catch(() => [])));
   for (const l of lignes) l.classList.add('rangee-perso');
   return lignes;
 }
@@ -220,6 +271,31 @@ async function construireBibliotheque({ place = null } = {}) {
     });
     tete.append(tri);
   }
+  // Recherche dans la bibliothèque : par titre, genre ou année ; les résultats remplacent les rangées.
+  const champ = element('input', 'biblio-recherche');
+  champ.type = 'search';
+  champ.placeholder = t('Chercher dans ma bibliothèque…');
+  champ.setAttribute('aria-label', t('Chercher dans ma bibliothèque'));
+  champ.autocomplete = 'off';
+  champ.spellcheck = false;
+  champ.value = rechercheBiblio;
+  const zoneTrouves = element('div', 'biblio-trouves');
+  const appliquerRecherche = () => {
+    const actif = rechercheBiblio.trim().length > 0;
+    for (const m of morceaux) if (m !== tete && m !== zoneTrouves) m.hidden = actif;
+    zoneTrouves.hidden = !actif;
+    if (!actif) return void zoneTrouves.replaceChildren();
+    const base = filtreBiblio === 'films' ? cat.films : filtreBiblio === 'series' ? cat.series : tout;
+    const trouves = trouverDansBiblio(base, rechercheBiblio, true);
+    const grille = element('div', 'biblio-grille');
+    grille.append(...trouves.map(carteBiblio));
+    zoneTrouves.replaceChildren(element('p', 'biblio-compte', trouves.length ? t(trouves.length > 1 ? '{n} titres trouvés dans ta bibliothèque' : '{n} titre trouvé dans ta bibliothèque', { n: trouves.length }) : t('Rien de ce nom dans ta bibliothèque. La recherche générale (la loupe, en haut) cherche aussi sur le site et tes sources.')), grille);
+  };
+  champ.addEventListener('input', () => {
+    rechercheBiblio = champ.value;
+    appliquerRecherche();
+  });
+  tete.append(champ);
   tete.append(element('span', 'espace'));
   const etat = element('span', 'biblio-etat', cat.scan.enCours ? t('Lecture des dossiers…') : `${t(cat.films.length > 1 ? '{n} films' : '{n} film', { n: cat.films.length })} · ${t(cat.series.length > 1 ? '{m} séries' : '{m} série', { m: cat.series.length })}`);
   const actualiser = element('button', 'bouton', t('Actualiser'));
@@ -232,7 +308,7 @@ async function construireBibliotheque({ place = null } = {}) {
     setTimeout(() => construireBibliotheque(), 2500);
   });
   tete.append(etat, actualiser);
-  morceaux.push(tete);
+  morceaux.push(tete, zoneTrouves);
 
   if (!tout.length) {
     const vide = element('div', 'biblio-vide');
@@ -275,7 +351,10 @@ async function construireBibliotheque({ place = null } = {}) {
   }
   // Reconstruite sous les pieds (retour d'une fiche, relecture des dossiers) : on garde la même place.
   const garder = place || (vue.contains(document.activeElement) ? notePlace(document.activeElement) : null);
+  const dansLeChamp = document.activeElement?.classList?.contains('biblio-recherche');
+  appliquerRecherche();
   vue.replaceChildren(...morceaux);
+  if (dansLeChamp) return void champ.focus({ preventScroll: true });
   if (cat.scan.enCours) setTimeout(() => vueActive === 'bibliotheque' && construireBibliotheque(), 4000);
   if (reprendrePlace(garder, vue)) return;
   if (document.body.classList.contains('grand') && (!document.activeElement || document.activeElement === document.body)) vue.querySelector('.hero .principal, .affiche, .vignette')?.focus({ preventScroll: true });
