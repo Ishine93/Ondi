@@ -1,6 +1,6 @@
 {
   "name": "debrideur",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "description": "Home media hub: search, AllDebrid downloads, a Prime-Video-like library and player for PC, phone and TV.",
   "type": "module",
   "private": true,

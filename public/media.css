@@ -205,6 +205,9 @@ body.grand .lecteur.controles-visibles .lc-st { bottom: calc(7% + 150px); }
 .lc-titre { min-width: 0; }
 .lc-titre strong { display: block; font-size: clamp(18px, 2vw, 26px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .lc-titre span { color: #c3ccd6; font-size: 15px; }
+.lc-heure { flex: none; margin-left: auto; display: grid; justify-items: end; gap: 2px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.lc-heure strong { font-size: clamp(20px, 2vw, 28px); font-weight: 700; }
+.lc-heure span { color: #c3ccd6; font-size: 15px; }
 .lc-milieu { display: grid; place-items: center; }
 .lc-bas { padding: 60px clamp(16px, 3vw, 44px) 26px; background: linear-gradient(#0000, #000d); display: grid; gap: 14px; }
 .lc-temps { display: flex; align-items: center; gap: 14px; font-variant-numeric: tabular-nums; font-size: 15px; color: #dfe6ee; }
@@ -218,6 +221,7 @@ body.grand .lecteur.controles-visibles .lc-st { bottom: calc(7% + 150px); }
 .lc-barre:hover .lc-curseur, .lc-barre:focus-visible .lc-curseur, .lecteur.saut .lc-curseur { transform: scale(1); }
 .lc-bulle { position: absolute; bottom: 30px; transform: translateX(-50%); background: #000d; padding: 3px 9px; border-radius: 6px; font-size: 14px; display: none; white-space: nowrap; }
 .lc-barre:hover .lc-bulle, .lecteur.saut .lc-bulle { display: block; }
+.lc-bulle small { margin-left: 8px; color: #8ccaff; font-weight: 700; font-size: 13px; }
 .lc-boutons { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .lc-boutons .espace { flex: 1; }
 .lc-bouton {

@@ -146,6 +146,7 @@ window.DICO_EN_MEDIA = {
     "Plus d'infos": 'More info',
     'Épisode suivant': 'Next episode',
     'Reste {temps}': '{temps} left',
+    'Fin à {heure}': 'Ends at {heure}',
     '{n} saisons': '{n} seasons',
     '{n} épisodes': '{n} episodes',
     '{h} h {m} min': '{h} h {m} min',

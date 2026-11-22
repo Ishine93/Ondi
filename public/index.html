@@ -32,6 +32,13 @@
   }
   * { box-sizing: border-box; }
   [hidden] { display: none !important; }
+  /* L'accueil et la bibliothèque cachés (pendant une recherche…) gardent leur mise en page au lieu d'être défaits :
+     les retrouver demandait 370 ms de calcul sur une télé, avant même de dessiner. Rien n'y est dessiné, ni
+     sélectionnable, ni chargé pendant ce temps, comme pour un élément caché. (Les navigateurs qui ne connaissent pas
+     content-visibility, sur les télés d'avant 2022, gardent le display: none habituel.) */
+  @supports (content-visibility: hidden) {
+    #vueAccueil[hidden], #vueBibliotheque[hidden] { display: block !important; content-visibility: hidden; }
+  }
   html, body { margin: 0; }
   html { scrollbar-color: #2b3a49 var(--fond); }
   body {
@@ -748,24 +755,64 @@
   body.grand .hero { min-height: clamp(380px, 58vh, 640px); }
   body.grand .affiche { gap: 16px; }
   body.grand .rangee-piste { padding-top: 18px; padding-bottom: 18px; }
-  body.grand .affiche:focus-visible .affiche-image { transform: scale(1.09); box-shadow: 0 0 0 4px #fff, 0 18px 40px #000e; }
   /* Un champ ou une liste choisi à la télécommande porte le même cadre blanc que les boutons (une bordure bleue
      ne se voit pas depuis le canapé) ; le champ de recherche l'a sur toute sa largeur. */
   body.grand input:focus-visible, body.grand select:focus-visible, body.grand textarea:focus-visible { outline: 3px solid #fff !important; outline-offset: 2px; }
   body.grand .source input:focus-visible, body.grand #q:focus-visible { outline: none !important; }
   body.grand .champ-recherche.choisi { outline: 3px solid #fff; outline-offset: 2px; }
-  /* Le cadre s'allume d'un coup : une ombre qui s'anime est redessinée à chaque image, la sélection traînait
-     derrière les appuis. Seul l'agrandissement reste animé (la télé le fait sans redessiner). */
-  body.grand .affiche-image, body.grand .vignette-image, body.grand .resultats.grille .r-image { transition: transform .16s ease; }
   /* Les rangées ne s'aimantent pas : la télécommande amène déjà chaque affiche à sa place, et l'aimant ferait
      sauter notre défilement quand les appuis s'enchaînent. */
   body.grand .rangee-piste { scroll-snap-type: none; }
-  /* Télé : rien qui se recalcule à chaque image pendant un défilement. Le flou d'arrière-plan (barre du haut,
-     boutons sur la fiche, menus) se refait à chaque image. Les fiches et fenêtres (une seule à la fois) ont leur
-     propre calque : la télé les fait défiler sans tout redessiner. Pas les rangées de l'accueil : une vingtaine de
-     calques à recréer à chaque changement de rubrique, c'est trop pour une télé. */
+
+  /* ---------- télé : ne rien redessiner quand on appuie ----------
+     Une télé dessine la page au processeur et ne garde pas les affiches décodées : chaque morceau d'écran redessiné
+     coûte un décodage (15 ms environ) par affiche qu'il touche, et la page attend la fin du dessin avant de montrer
+     quoi que ce soit. Mesuré sur une Samsung récente : 150 à 450 ms entre l'appui et l'image, une télé figée
+     0,8 s par image pendant un changement de rubrique. Sur la télé, donc :
+     - le cadre de sélection d'une affiche est un élément à part, sur son propre calque : il s'allume sans que
+       l'affiche soit redessinée, et l'affiche choisie ne grossit pas (65 ms au lieu de 160) ;
+     - pas d'ombre floue sous les affiches (60 % du temps de dessin d'une rangée), ni sous les grandes images ;
+     - chaque rangée a son calque : elle glisse de côté sans être redessinée (une image par affiche et par pas,
+       sinon) ; les fiches et les fenêtres aussi ;
+     - pas de filtre : ni flou d'arrière-plan (barre du haut, menus), ni flou derrière l'affiche à la une et les
+       fiches (voir poserFondFlou), ni gris sur les contenus aux liens morts (un voile sombre à la place) ;
+     - rien qui s'anime tout seul en redessinant : rangées d'attente, apparition du texte de l'affiche à la une. */
   body.grand *, body.grand *::backdrop { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
-  body.grand .detail-defilement, body.grand .fm-defilement, body.grand .dlg-corps { will-change: scroll-position; }
+  body.grand .detail-defilement, body.grand .fm-defilement, body.grand .dlg-corps, body.grand .rangee-piste { will-change: scroll-position; }
+  body.grand .affiche-image, body.grand .vignette-image, body.grand .resultats.grille .r-image { box-shadow: none; transition: none; }
+  body.grand .affiche:focus-visible .affiche-image, body.grand .vignette:focus-visible .vignette-image, body.grand .resultats.grille .r-bouton:focus-visible .r-image { transform: none; box-shadow: none; }
+  body.grand .affiche, body.grand .vignette { position: relative; }
+  body.grand .affiche:focus-visible::before, body.grand .vignette:focus-visible::before, body.grand .resultats.grille .r-bouton:focus-visible::before {
+    content: ""; position: absolute; z-index: 4; top: 0; left: 0; right: 0; aspect-ratio: 2 / 3; border-radius: 10px;
+    outline: 4px solid #fff; outline-offset: 2px; pointer-events: none; will-change: transform;
+  }
+  body.grand .vignette:focus-visible::before { aspect-ratio: 16 / 9; }
+  /* Navigateur de télé qui ne sait pas donner une hauteur par proportion : le cadre entoure toute la carte. */
+  @supports not (aspect-ratio: 1) {
+    body.grand .affiche:focus-visible::before, body.grand .vignette:focus-visible::before, body.grand .resultats.grille .r-bouton:focus-visible::before { bottom: 0; }
+  }
+  body.grand .rangee-fleche { display: none; }
+  body.grand .affiche-rang { text-shadow: none; }
+  body.grand .affiche.ko .affiche-image img, body.grand .affiche.ko .affiche-vide, body.grand .resultat.ko .r-image { filter: none; }
+  body.grand .affiche.ko .badge-ko, body.grand .resultat.ko .badge-ko { background: #0b1118b8; border-radius: 10px; }
+  body.grand .affiche.squelette, body.grand .rangee.attente .rangee-tete h2 { animation: none; }
+  body.grand .nav { transition: none; }
+  body.grand .hero-fond, body.grand .hero.avec-fond .hero-fond { filter: none; transform: none; transition: none; }
+  /* Fond flou : ses voiles sombres sont déjà dans la petite copie (voir VOILES_HERO). */
+  body.grand .hero:not(.avec-fond)::after { display: none; }
+  /* Fond net (bibliothèque, TMDB) : assombri par un voile, comme le faisait le filtre. */
+  body.grand .hero.avec-fond::after {
+    background:
+      linear-gradient(#00000038, #00000038),
+      linear-gradient(0deg, var(--fond) 0%, #0b111800 42%),
+      linear-gradient(90deg, #0b1118f2 0%, #0b1118a6 34%, #0b111800 64%);
+  }
+  body.grand .hero.anime .hero-contenu, body.grand .hero.anime .hero-affiche { animation: none; }
+  body.grand .hero-affiche, body.grand .detail-affiche { box-shadow: 0 0 0 1px #ffffff1a; }
+  body.grand .detail-fond { filter: none; opacity: 1; -webkit-mask-image: none; mask-image: none; }
+  body.grand .fm-fond.flou { filter: none; transform: none; }
+  body.grand .fm-logo { filter: none; }
+  .fond-flou { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
   /* ---------- tri (bouton + puces, comme les filtres) ---------- */
   #btnTri[aria-expanded="true"] { border-color: var(--bleu); background: #1a98ff24; }
   .tri-actuel { color: #8ccaff; font-weight: 600; }
@@ -1862,6 +1909,8 @@ appliquerGrand(lirePreference('grandAffichage', estTele()));
 // Dernière action au clavier (ou à la télécommande) ? Sert à placer la sélection sans gêner la souris.
 let modeClavier = false;
 addEventListener('keydown', (e) => !e.ctrlKey && !e.metaKey && (modeClavier = true), true);
+let derniereTouche = 0; // moment du dernier appui (clavier ou télécommande)
+addEventListener('keydown', () => (derniereTouche = performance.now()), true);
 addEventListener('pointerdown', () => (modeClavier = false), true);
 
 // ---------- compte et réglages ----------
@@ -1958,7 +2007,9 @@ $('#sauverReglages').addEventListener('click', async () => {
     });
     dernier.config = r.config;
     ecrirePreference('grandAffichage', $('#cGrand').checked);
+    const grandAvant = grandAffichage();
     appliquerGrand($('#cGrand').checked);
+    if (grandAvant !== grandAffichage() && heroItems.length) montrerHero(heroIndex); // le fond de l'affiche à la une n'est pas fait pareil
     majClavier();
     // Nouveau site de recherche : on montre ses nouveautés (sauf si une recherche est affichée).
     // Autre site : on refait l'accueil avec ses nouveautés.
@@ -2456,6 +2507,8 @@ function afficherVue(vue, { historique = true } = {}) {
     if (vue === 'recherche') focusRecherche();
     return;
   }
+  // En quittant l'accueil, on note où on en était (hauteur de la page, élément choisi) pour y revenir tel quel.
+  if (vueActive === 'accueil') placeAccueil = { el: document.activeElement, place: notePlace(document.activeElement) };
   vueActive = vue;
   $('#vueAccueil').hidden = vue !== 'accueil';
   $('#vueRecherche').hidden = vue !== 'recherche';
@@ -2479,8 +2532,15 @@ function afficherVue(vue, { historique = true } = {}) {
       history.back();
     }
     if (rubriqueAccueil === null) construireAccueil('');
+    // Retour de la recherche ou de la bibliothèque : la sélection était dans la vue qui vient de disparaître. On
+    // retrouve l'accueil comme on l'avait laissé, au lieu d'une page en haut sans rien de choisi (le premier appui
+    // ne servait qu'à retrouver une sélection). Pas si on vient de choisir un onglet : la sélection y reste.
+    const actif = document.activeElement;
+    if (placeAccueil && (!actif || actif === document.body || actif.closest('[hidden]'))) revenirA(placeAccueil.place, placeAccueil.el);
+    placeAccueil = null;
   }
 }
+let placeAccueil = null; // { el, place } : où l'on était sur l'accueil avant de passer à la recherche ou à la bibliothèque
 // Avec le clavier à l'écran (télé), on se place sur ses touches : le champ ouvrirait le clavier de la télé.
 // Sur un écran tactile, on ne donne pas le focus au champ d'office (le clavier du téléphone cacherait tout).
 function focusRecherche() {
@@ -2577,12 +2637,19 @@ function cadreAffiche(image, titre, rang) {
     img.decoding = 'async';
     img.referrerPolicy = 'no-referrer';
     img.addEventListener('error', () => img.replaceWith(vide));
-    img.src = image;
+    img.src = imageTele(image, 'affiche');
     cadre.append(img);
   } else cadre.append(vide);
   if (rang) cadre.append(element('span', 'affiche-rang', String(rang)));
   return cadre;
 }
+// Télé : une image TMDB à la taille de l'écran, pas plus. La télé redécode une image chaque fois qu'elle la
+// redessine : 110 ms pour une vignette de 1280 points de large, 40 ms à 780 ; 15 ms pour une affiche de 500, 8 à 342.
+const TAILLES_TELE = { affiche: [/(\/\/image\.tmdb\.org\/t\/p\/)(?:w500|w780|original)\//, 'w342'], vignette: [/(\/\/image\.tmdb\.org\/t\/p\/)(?:w1280|original)\//, 'w780'] };
+const imageTele = (url, genre) => (url && grandAffichage() ? url.replace(TAILLES_TELE[genre][0], `$1${TAILLES_TELE[genre][1]}/`) : url);
+// Deux morceaux de page qui s'afficheraient pareil ? (Reconstruits à l'identique : inutile de remplacer l'ancien,
+// tout serait redessiné pour rien. Les flèches des rangées, cachées ou non selon le défilement, ne comptent pas.)
+const memeAffichage = (a, b) => a.outerHTML.replace(/ hidden=""/g, '') === b.outerHTML.replace(/ hidden=""/g, '');
 
 function carteContenu(g, rang) {
   majGroupe(g);
@@ -2668,6 +2735,7 @@ function rangee(titre, cartes, { numerote = false, info = '' } = {}) {
   const gauche = fleche('gauche', ICONE_GAUCHE, 'Précédents');
   const droite = fleche('droite', ICONE_DROITE, 'Suivants');
   const majFleches = () => {
+    if (grandAffichage()) return; // télé : pas de flèches à la souris, et rien à mesurer pendant qu'une rangée glisse
     gauche.hidden = piste.scrollLeft < 8;
     droite.hidden = piste.scrollLeft + piste.clientWidth >= piste.scrollWidth - 8;
   };
@@ -2684,6 +2752,65 @@ const rangeeAttente = () => {
   r.classList.add('attente');
   return r;
 };
+
+// ---------- télé : fond flou d'une affiche (à la une, fiches) ----------
+// Sur ordinateur et téléphone, un filtre de flou suffit : la carte graphique s'en charge. Une télé dessine au
+// processeur : flouter une image large comme l'écran lui prend plus d'une seconde, pendant laquelle elle ne répond
+// plus à la télécommande (mesuré : 1,8 s figée à chaque changement de l'affiche à la une, toutes les 9 s). On floute
+// donc une seule fois une copie minuscule de l'image, que la télé n'a plus qu'à étirer.
+//   flou : rayon voulu, en points de la page · teinte : filtres de couleur · zoom, haut : cadrage (comme
+//   background-size: cover et background-position) · fondu : part de la hauteur à partir de laquelle le fond s'efface
+//   · voiles : dégradés à poser dessus, [['haut' ou 'droite', [[place de 0 à 1, couleur]…]]…] (deux dégradés sur
+//   toute la largeur de l'écran, c'était encore 300 ms de dessin pour la télé à chaque retour sur l'accueil).
+const grandAffichage = () => document.body.classList.contains('grand'); // télé (ou grand affichage choisi dans les Réglages)
+// Les voiles de l'affiche à la une, les mêmes que .hero::after dans les styles.
+const VOILES_HERO = [
+  ['haut', [[0, '#0b1118'], [0.38, '#0b111800']]],
+  ['droite', [[0, '#0b1118f5'], [0.38, '#0b1118b8'], [0.7, '#0b111833'], [1, '#0b111800']]],
+];
+function poserFondFlou(fond, image, { flou = 34, teinte = 'saturate(1.25) brightness(.62)', zoom = 1.25, haut = 0.3, fondu = 0, voiles = [] } = {}) {
+  if (!image) {
+    fond._flou = '';
+    fond.querySelector(':scope > .fond-flou')?.remove();
+    return;
+  }
+  if (fond._flou === image) return;
+  fond._flou = image;
+  const img = new Image();
+  img.referrerPolicy = 'no-referrer';
+  img.onload = async () => {
+    const LARGEUR = 128;
+    const hauteur = Math.max(16, Math.round((LARGEUR * (fond.offsetHeight || 1)) / (fond.offsetWidth || 3)));
+    let source = img;
+    try {
+      source = await createImageBitmap(img, { resizeWidth: LARGEUR * 2, resizeQuality: 'low' }); // décodée hors du fil de la page
+    } catch {}
+    if (fond._flou !== image) return; // une autre image a été demandée entre-temps
+    const toile = fond.querySelector(':scope > .fond-flou') || fond.insertBefore(element('canvas', 'fond-flou'), fond.firstChild);
+    toile.width = LARGEUR;
+    toile.height = hauteur;
+    const c = toile.getContext('2d');
+    const k = Math.max(LARGEUR / source.width, hauteur / source.height) * zoom;
+    c.filter = `blur(${((flou * LARGEUR) / (fond.offsetWidth || 1500)).toFixed(2)}px) ${teinte}`;
+    c.drawImage(source, (LARGEUR - source.width * k) / 2, (hauteur - source.height * k) * haut, source.width * k, source.height * k);
+    c.filter = 'none';
+    const peindre = (degrade, arrets) => {
+      for (const [place, couleur] of arrets) degrade.addColorStop(place, couleur);
+      c.fillStyle = degrade;
+      c.fillRect(0, 0, LARGEUR, hauteur);
+    };
+    // Les voiles sombres posés d'habitude par-dessus (dégradés) : dessinés ici, ils ne coûtent plus rien ensuite.
+    for (const [vers, arrets] of voiles) peindre(vers === 'haut' ? c.createLinearGradient(0, hauteur, 0, 0) : c.createLinearGradient(0, 0, LARGEUR, 0), arrets);
+    if (fondu) {
+      c.globalCompositeOperation = 'destination-in';
+      peindre(c.createLinearGradient(0, 0, 0, hauteur), [[fondu, '#000'], [1, '#0000']]);
+      c.globalCompositeOperation = 'source-over';
+    }
+    source.close?.();
+  };
+  img.onerror = () => fond._flou === image && poserFondFlou(fond, '');
+  img.src = image;
+}
 
 // Affiche à la une : défile toute seule (sauf si on la survole ou si on est dessus à la télécommande).
 let heroItems = [];
@@ -2715,7 +2842,10 @@ function montrerHero(i) {
   heroIndex = (i + heroItems.length) % heroItems.length;
   const h = heroItems[heroIndex];
   // Image de fond nette (bibliothèque, TMDB) si on l'a ; sinon l'affiche floutée en fond et l'affiche à droite.
-  $('#heroFond').style.backgroundImage = `url("${(h.fond || h.image).replace(/"/g, '%22')}")`;
+  // Télé : le flou est fait une fois pour toutes sur une petite copie (voir poserFondFlou).
+  const flouTele = grandAffichage() && !h.fond;
+  $('#heroFond').style.backgroundImage = flouTele ? '' : `url("${(h.fond || h.image).replace(/"/g, '%22')}")`;
+  poserFondFlou($('#heroFond'), flouTele ? h.image : '', { voiles: VOILES_HERO });
   $('#hero').classList.toggle('avec-fond', !!h.fond);
   $('#heroAffiche').hidden = !!h.fond;
   if (!h.fond) $('#heroAffiche').src = h.image;
@@ -2783,6 +2913,7 @@ async function construireAccueil(rubrique) {
   $('#rangees').replaceChildren(rangeeAttente(), rangeeAttente(), rangeeAttente());
   $('#etatAccueil').textContent = '';
 
+  const profilAuDepart = jetonProfil;
   const persoPromis = rangeesPerso(rubrique);
   const [sites, tendancesListes] = await Promise.all([
     site ? Promise.all(rubriques.map(async (v) => ({ v, nom: nomDe(v), groupes: await nouveautesRubrique(v).catch(() => []) }))) : Promise.resolve([]),
@@ -2833,13 +2964,21 @@ async function construireAccueil(rubrique) {
     else lignes.push(...tendancesFilms.filter((r) => r.id !== 'top').map((r) => ligneTendance(r)));
   }
   const recettes = lignes.filter(Boolean);
-  const perso = await persoPromis;
+  let perso = await persoPromis;
+  // Profil reconnu pendant qu'on attendait (au lancement, les deux partent en même temps) : les rangées du profil
+  // demandées avant lui n'ont ni « Reprendre la lecture » ni les coches « vu ». On les redemande.
+  if (jeton === accueilEnCours && profilAuDepart !== jetonProfil) perso = await rangeesPerso(rubrique);
   if (jeton !== accueilEnCours) return;
   // Les premières rangées tout de suite (ce qu'on voit), les suivantes par petits paquets : fabriquer d'un coup
   // des centaines d'affiches figeait la télé à chaque changement de rubrique.
   $('#rangees').replaceChildren(...perso, ...recettes.splice(0, 3).map((recette) => recette()));
   const suite = () => {
     if (jeton !== accueilEnCours || !recettes.length) return;
+    // On appuie en ce moment : la suite attend une accalmie. Fabriquer deux rangées occupe une télé 100 ms, pendant
+    // lesquels l'appui en cours ne montre rien. Sauf si la sélection arrive au bout de ce qui est déjà là.
+    const rangeeChoisie = document.activeElement?.closest?.('#rangees > .rangee');
+    const presDuBout = rangeeChoisie && !rangeeChoisie.nextElementSibling?.nextElementSibling;
+    if (performance.now() - derniereTouche < 300 && !presDuBout) return void setTimeout(suite, 100);
     $('#rangees').append(...recettes.splice(0, 2).map((recette) => recette()));
     setTimeout(suite, 40);
   };
@@ -3239,17 +3378,16 @@ function figer(c) {
   c.scrollLeft = x;
   c.scrollTop = y;
 }
-function amenerALaVue(el, vertical, enchaine = false) {
+function amenerALaVue(el, vertical) {
   if (el.closest('#clavier, #formRecherche, .lecteur')) return; // toujours à l'écran
   const grand = document.body.classList.contains('grand');
   const zone = zoneDe(el);
-  // Défilement du navigateur ou le nôtre ? À la télé, le nôtre dans les fiches et fenêtres (listes d'épisodes) :
-  // il y reste fluide. Sur les pages (accueil, rubriques, bibliothèque), celui du navigateur tourne à part et ne
-  // saccade pas quand la page travaille (affiches qui arrivent, liens vérifiés)… mais il repart de l'arrêt à
-  // chaque appui : en appuyant vite, la sélection filait plusieurs rangées plus loin pendant que la page restait
-  // sur place. Quand les appuis s'enchaînent, c'est donc le nôtre qui prend le relais : il repart d'où il en est.
-  const dansFenetre = zone.closest('.detail-defilement, .fm-defilement, dialog, .modal-plein, .tiroir-corps');
-  const leNotre = grand && (dansFenetre || enchaine);
+  // Défilement du navigateur ou le nôtre ? À la télé, toujours le nôtre : il part vite et ralentit à l'arrivée
+  // (les deux tiers du chemin en 100 ms), et repart d'où il en est quand les appuis s'enchaînent. Celui du
+  // navigateur démarre lentement (rien ne bouge pendant 150 ms, une rangée met une demi-seconde à arriver) et
+  // repart de l'arrêt à chaque appui. Le nôtre ne saccade plus depuis que rien n'est redessiné quand la page ou
+  // une rangée glisse (voir « télé : ne rien redessiner » dans les styles).
+  const leNotre = grand;
   // En haut de l'accueil (affiche, barre du haut), on remonte tout en haut ; sinon la ligne choisie vient au centre.
   if (el.closest('.hero, #nav') && !detailOuvert && !el.closest('.modal-plein')) {
     if (leNotre) {
@@ -3331,12 +3469,10 @@ document.addEventListener('keydown', (e) => {
     return;
   }
   e.preventDefault();
-  // Appuis qui s'enchaînent (touche tenue, ou avant la fin du défilement précédent) : la page suit sans attendre.
-  const enchaine = e.repeat || maintenant - dernierDeplacement < 400;
   dernierDeplacement = maintenant;
   noterPas(actif, suivant, e.key);
   suivant.focus({ preventScroll: true });
-  amenerALaVue(suivant, vertical, enchaine);
+  amenerALaVue(suivant, vertical);
 });
 let dernierDeplacement = 0; // moment du dernier déplacement aux flèches
 
@@ -3933,7 +4069,8 @@ function majEnteteDetail(g) {
   const v0 = vs[0];
   const nb = nombreVersions(g, vs);
   const image = imageDe(g);
-  $('#detailFond').style.backgroundImage = image ? `url("${image.replace(/"/g, '%22')}")` : '';
+  $('#detailFond').style.backgroundImage = image && !grandAffichage() ? `url("${image.replace(/"/g, '%22')}")` : '';
+  poserFondFlou($('#detailFond'), grandAffichage() ? image : '', { flou: 44, teinte: 'saturate(1.3) brightness(.55)', zoom: 1, haut: 0.25, fondu: 0.35 });
   $('#detailAffiche').hidden = !image;
   if (image && $('#detailAffiche').src !== image) $('#detailAffiche').src = image;
   $('#detailTitre').textContent = v0.titre;
@@ -5070,6 +5207,12 @@ $('#btnProfil').addEventListener('click', () => ouvrirMenuProfil());
 let majVerifiee = false;
 function quandProfilChange() {
   majRangeesPerso();
+  // Télé : l'écran « Qui regarde ? » vient de se fermer avec la sélection dessus. On la pose sur la page, sinon le
+  // premier appui ne sert qu'à la retrouver. (Au lancement avec un profil gardé, l'accueil s'en charge.)
+  const actif = document.activeElement;
+  if (grandAffichage() && !$('#hero').hidden && (!actif || actif === document.body || actif.closest('[hidden]'))) {
+    (vueActive === 'accueil' && !detailOuvert ? $('#heroPrincipal') : retrouverSelection())?.focus({ preventScroll: true });
+  }
   if (!majVerifiee && profilActif) {
     majVerifiee = true;
     setTimeout(() => verifierMisesAJour(), 1500);

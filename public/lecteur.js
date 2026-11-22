@@ -4,7 +4,7 @@
 // Le serveur choisit le mode (direct, image recopiée + son converti, conversion par la carte graphique) selon
 // ce que l'appareil sait lire et la qualité demandée ; pour avancer dans un flux converti, on relance le flux
 // à la bonne position (le serveur renvoie où il commence : « debut »).
-/* global t, element, api, $, jetonProfil, profilActif, lirePreference, ecrirePreference, horloge, dureeMinutes, estTele, rechargerFiche, majRangeesPerso, modeClavier */
+/* global t, element, api, $, jetonProfil, profilActif, lirePreference, ecrirePreference, horloge, dureeMinutes, estTele, rechargerFiche, majRangeesPerso, modeClavier, heureDans, texteFin */
 
 const ICONES_LC = {
   lecture: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12.5-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5Z"/></svg>',
@@ -182,7 +182,12 @@ function construireLecteur() {
   const haut = element('div', 'lc-haut');
   const titre = element('div', 'lc-titre');
   titre.append(element('strong', '', L.titre), element('span', '', L.sousTitre || ''));
-  haut.append(btn('fermer', ICONES_LC.retour, t('Retour'), () => fermerLecteur()), titre);
+  // En haut à droite : l'heure, et celle de la fin de la vidéo à ce rythme.
+  const heure = element('div', 'lc-heure');
+  const maintenant = element('strong', '', '');
+  const fin = element('span', '', '');
+  heure.append(maintenant, fin);
+  haut.append(btn('fermer', ICONES_LC.retour, t('Retour'), () => fermerLecteur()), titre, heure);
 
   const milieu = element('div', 'lc-milieu');
   const bas = element('div', 'lc-bas');
@@ -226,7 +231,9 @@ function construireLecteur() {
   el.append(video, st, attente, couche);
   document.body.append(el);
   document.body.classList.add('lecture-ouverte');
-  Object.assign(L, { el, video, stEl: st, attente, barre, fait, tampon, curseur, bulle, actuel, total, lecture });
+  Object.assign(L, { el, video, stEl: st, attente, barre, fait, tampon, curseur, bulle, actuel, total, lecture, heureMaintenant: maintenant, heureFin: fin });
+  // En pause, l'heure de fin recule avec l'horloge : on la remet à jour même sans « timeupdate ».
+  L.minuterieHeure = setInterval(majHeure, 5000);
 
   // Souris et doigt.
   el.addEventListener('pointermove', () => montrerControles());
@@ -441,6 +448,25 @@ function sauter(delta) {
   const base = L.cible ?? tempsActuel();
   allerA(Math.min(Math.max(0, base + delta), Math.max(0, L.duree - 2)), { differe: true });
 }
+
+// À la télécommande : un appui = 10 s. En restant appuyé (ou en enchaînant les appuis), le pas grandit :
+// 30 s au bout de 3 s, 1 min au bout de 6 s, 2 min au bout de 10 s. Une heure se parcourt en une quinzaine de secondes.
+const PALIERS_SAUT = [[10_000, 120], [6_000, 60], [3_000, 30]];
+let rafale = null; // { sens, debut, dernier, traite }
+function sauterEnRafale(sens, base = 10) {
+  if (!L) return;
+  const maintenant = performance.now();
+  if (!rafale || rafale.sens !== sens || maintenant - rafale.dernier > 700) rafale = { sens, debut: maintenant, dernier: 0, traite: 0 };
+  rafale.dernier = maintenant;
+  // Touche tenue : la télé répète la touche à sa vitesse ; 6 sauts par seconde au plus, pour que l'avance
+  // ne dépende pas de l'appareil (et reste lisible).
+  if (rafale.traite && maintenant - rafale.traite < 150) return;
+  rafale.traite = maintenant;
+  const pas = Math.max(base, PALIERS_SAUT.find(([ms]) => maintenant - rafale.debut >= ms)?.[1] || 0);
+  L.pasSaut = pas > 10 ? sens * pas : 0;
+  sauter(sens * pas);
+}
+const textePas = (s) => `${s > 0 ? '+' : '−'}${Math.abs(s) >= 60 ? `${Math.abs(s) / 60} min` : `${Math.abs(s)} s`}`;
 function allerA(position, { differe = false } = {}) {
   if (!L) return;
   clearTimeout(L.attenteSaut);
@@ -451,6 +477,7 @@ function allerA(position, { differe = false } = {}) {
   const agir = () => {
     if (!L) return;
     L.el.classList.remove('saut');
+    L.pasSaut = 0;
     if (L.session?.mode === 'direct') {
       L.video.currentTime = position;
       L.cible = null;
@@ -497,6 +524,7 @@ function majTemps() {
   L.barre.setAttribute('aria-valuetext', `${horloge(p)} / ${horloge(L.duree)}`);
   if (L.cible != null) {
     L.bulle.textContent = horloge(p);
+    if (L.pasSaut) L.bulle.append(element('small', '', textePas(L.pasSaut)));
     L.bulle.style.left = `${r * 100}%`;
   }
   const b = L.video.buffered;
@@ -504,6 +532,16 @@ function majTemps() {
     const fin = (L.session?.mode === 'direct' ? 0 : L.debut) + b.end(b.length - 1);
     L.tampon.style.width = `${Math.min(100, (fin / L.duree) * 100)}%`;
   }
+  majHeure();
+}
+
+// Heure actuelle et heure de fin (texte touché seulement quand la minute change).
+function majHeure() {
+  if (!L) return;
+  const maintenant = heureDans(0);
+  const fin = L.duree ? texteFin((L.duree - tempsActuel()) / (L.video.playbackRate || 1)) : '';
+  if (L.heureMaintenant.textContent !== maintenant) L.heureMaintenant.textContent = maintenant;
+  if (L.heureFin.textContent !== fin) L.heureFin.textContent = fin;
 }
 
 let minuterieControles = null;
@@ -758,6 +796,7 @@ function fermerLecteur({ historique = true, sauver = true, garderEtat = false } 
   clearTimeout(L.surveillance);
   clearTimeout(L.gardeImage);
   clearInterval(L.surveillancePosition);
+  clearInterval(L.minuterieHeure);
   clearTimeout(minuterieControles);
   video.pause();
   video.removeAttribute('src');
@@ -799,8 +838,8 @@ document.addEventListener(
       else if (media === 'lecture') L.video.play().catch(() => {});
       else if (media === 'pause') L.video.pause();
       else if (media === 'stop') fermerLecteur();
-      else if (media === 'avance') sauter(30);
-      else if (media === 'recul') sauter(-30);
+      else if (media === 'avance') sauterEnRafale(1, 30);
+      else if (media === 'recul') sauterEnRafale(-1, 30);
       else if (media === 'suivant') lireSuivant();
       return;
     }
@@ -836,9 +875,26 @@ document.addEventListener(
     const rienDeChoisi = !L.el.contains(actif) || actif === L.el || !visibles;
     if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && (surBarre || rienDeChoisi)) {
       stop();
-      sauter(e.key === 'ArrowRight' ? 10 : -10);
+      sauterEnRafale(e.key === 'ArrowRight' ? 1 : -1);
       if (rienDeChoisi && !surBarre) L.barre.focus({ preventScroll: true });
       return;
+    }
+    // Boutons affichés : haut / bas passe par la barre de lecture (elle n'est pas un bouton, la navigation
+    // générale de la page ne la voit pas) : boutons du bas ↔ barre ↔ Retour en haut.
+    if (visibles && !rienDeChoisi && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+      const enBas = L.el.querySelector('.lc-boutons')?.contains(actif);
+      const enHaut = L.el.querySelector('.lc-haut')?.contains(actif);
+      let vers = null;
+      if (enBas && e.key === 'ArrowUp') vers = L.barre;
+      else if (enHaut && e.key === 'ArrowDown') vers = L.barre;
+      else if (surBarre) vers = e.key === 'ArrowUp' ? L.el.querySelector('.lc-haut .lc-bouton') : L.dernierBouton?.isConnected ? L.dernierBouton : L.lecture;
+      if (vers) {
+        stop();
+        if (enBas) L.dernierBouton = actif;
+        montrerControles();
+        vers.focus({ preventScroll: true });
+        return;
+      }
     }
     if (e.key === 'Enter' && rienDeChoisi) {
       stop();

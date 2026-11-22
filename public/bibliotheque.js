@@ -71,6 +71,22 @@ function horloge(s) {
   return h ? `${h}:${String(m).padStart(2, '0')}:${x}` : `${m}:${x}`;
 }
 const resteTexte = (pos, duree) => t('Reste {temps}', { temps: dureeMinutes(Math.max(1, (duree - pos) / 60)) });
+// Heure qu'il sera dans « secondes » (24 h en français, 12 h en anglais) : « Fin à 23:12 » sur la fiche et dans le lecteur.
+const formatHeure = new Intl.DateTimeFormat(LANGUE === 'en' ? 'en-US' : 'fr-FR', { hour: 'numeric', minute: '2-digit' });
+const heureDans = (secondes) => formatHeure.format(new Date(Date.now() + Math.max(0, secondes || 0) * 1000));
+const texteFin = (secondes) => t('Fin à {heure}', { heure: heureDans(secondes) });
+function finA(secondes) {
+  const el = element('span', 'heure-fin', texteFin(secondes));
+  el.dataset.reste = String(Math.round(secondes));
+  return el;
+}
+// Une fiche peut rester ouverte longtemps : son heure de fin suit l'horloge (texte touché seulement s'il change).
+setInterval(() => {
+  for (const el of document.querySelectorAll('.heure-fin[data-reste]')) {
+    const texte = texteFin(Number(el.dataset.reste));
+    if (el.textContent !== texte) el.textContent = texte;
+  }
+}, 15_000);
 const pourcent = (h) => (h?.duree ? Math.min(100, Math.max(2, (h.position / h.duree) * 100)) : 0);
 function barreLecture(p) {
   const b = element('span', 'barre-lecture');
@@ -136,7 +152,7 @@ function vignetteReprendre(e) {
     img.alt = '';
     img.loading = 'lazy';
     img.referrerPolicy = 'no-referrer';
-    img.src = e.image;
+    img.src = imageTele(e.image, 'vignette');
     image.append(img);
   }
   if (e.aSuivre) image.append(element('span', 'vignette-etiquette', t('Épisode suivant')));
@@ -181,9 +197,21 @@ async function majRangeesPerso(place = null) {
   const conteneur = $('#rangees');
   if (!conteneur) return;
   const lignes = await rangeesPerso(rubriqueAccueil ?? '');
-  conteneur.querySelectorAll('.rangee-perso').forEach((x) => x.remove());
-  conteneur.prepend(...lignes);
-  reprendrePlace(place, conteneur);
+  // On ne remplace que les rangées qui ont changé : à la fermeture d'une fiche, le plus souvent aucune. Les
+  // reconstruire toutes faisait redessiner l'écran entier (un tiers de seconde sur une télé) pour la même image.
+  const anciennes = [...conteneur.querySelectorAll(':scope > .rangee-perso')];
+  const changees = anciennes.length !== lignes.length ? null : lignes.map((l, i) => !memeAffichage(anciennes[i], l));
+  if (changees && !changees.includes(true)) return;
+  // La sélection est peut-être sur une de ces rangées (retour du lecteur lancé depuis « Reprendre la lecture ») :
+  // on note sa place avant de les remplacer, sinon elle se perd et l'appui suivant ne fait que la retrouver.
+  const actif = document.activeElement;
+  const garder = place || (actif?.closest?.('.rangee-perso') && conteneur.contains(actif) ? notePlace(actif) : null);
+  if (changees) lignes.forEach((l, i) => changees[i] && anciennes[i].replaceWith(l));
+  else {
+    anciennes.forEach((x) => x.remove());
+    conteneur.prepend(...lignes);
+  }
+  reprendrePlace(garder, conteneur);
 }
 
 // ---------- onglet Bibliothèque ----------
@@ -353,6 +381,12 @@ async function construireBibliotheque({ place = null } = {}) {
   const garder = place || (vue.contains(document.activeElement) ? notePlace(document.activeElement) : null);
   const dansLeChamp = document.activeElement?.classList?.contains('biblio-recherche');
   appliquerRecherche();
+  // Reconstruite à l'identique (retour d'une fiche où rien n'a changé) : on garde l'ancienne, rien n'est redessiné.
+  const actuels = [...vue.children];
+  if (actuels.length === morceaux.length && actuels.every((a, i) => memeAffichage(a, morceaux[i]))) {
+    if (cat.scan.enCours) setTimeout(() => vueActive === 'bibliotheque' && construireBibliotheque(), 4000);
+    return void reprendrePlace(garder, vue);
+  }
   vue.replaceChildren(...morceaux);
   if (dansLeChamp) return void champ.focus({ preventScroll: true });
   if (cat.scan.enCours) setTimeout(() => vueActive === 'bibliotheque' && construireBibliotheque(), 4000);
@@ -436,7 +470,9 @@ function rendreFiche({ focus = false } = {}) {
   const defil = element('div', 'fm-defilement');
   defil.tabIndex = -1;
   const fond = element('div', `fm-fond${f.fond ? '' : ' flou'}`);
-  if (f.fond || f.affiche) fond.style.backgroundImage = `url("${(f.fond || f.affiche).replace(/"/g, '%22')}")`;
+  // Télé : pas de filtre de flou (elle se figerait plus d'une seconde), une petite copie floutée une fois pour toutes.
+  if (!f.fond && f.affiche && grandAffichage()) poserFondFlou(fond, f.affiche, { flou: 40, teinte: 'brightness(.55) saturate(1.2)', zoom: 1.2, haut: 0.2 });
+  else if (f.fond || f.affiche) fond.style.backgroundImage = `url("${(f.fond || f.affiche).replace(/"/g, '%22')}")`;
   const fermer = element('button', 'icone fm-fermer');
   fermer.type = 'button';
   fermer.title = t('Retour (Échap)');
@@ -456,7 +492,12 @@ function rendreFiche({ focus = false } = {}) {
   } else haut.append(element('h1', 'fm-titre', f.titre));
   const meta = element('p', 'fm-meta');
   if (f.annee) meta.append(element('span', '', String(f.annee)));
-  if (f.type === 'film' && f.duree) meta.append(element('span', '', dureeMinutes(f.duree)));
+  if (f.type === 'film' && f.duree) {
+    meta.append(element('span', '', dureeMinutes(f.duree)));
+    // Heure de fin en lançant maintenant depuis le début (en reprise, elle est sous la barre de progression).
+    const hf = h[f.cleLecture];
+    if (!(hf?.position && !hf.vu)) meta.append(finA(f.duree * 60));
+  }
   if (f.type === 'serie') meta.append(element('span', '', f.saisons.length > 1 ? t('{n} saisons', { n: f.saisons.length }) : t('{n} épisodes', { n: f.saisons[0]?.episodes.length || 0 })));
   if (f.age) meta.append(element('span', 'age', t(AGES[f.age] || f.age)));
   if (f.note) meta.append(element('span', 'note', `★ ${f.note.toFixed(1)}`));
@@ -481,7 +522,9 @@ function rendreFiche({ focus = false } = {}) {
     if (hf?.position && !hf.vu) {
       actions.append(bouton(t('Reprendre'), 'principal', () => lireFilm(f, v, hf.position), ICONE_LECTURE), bouton(t('Depuis le début'), 'verre', () => lireFilm(f, v, 0)));
       progres = element('div', 'fm-progres');
-      progres.append(barreLecture(pourcent(hf)), element('span', '', resteTexte(hf.position, hf.duree)));
+      const reste = element('span', '', `${resteTexte(hf.position, hf.duree)} · `);
+      reste.append(finA(hf.duree - hf.position));
+      progres.append(barreLecture(pourcent(hf)), reste);
     } else actions.append(bouton(t('Lecture'), 'principal', () => lireFilm(f, v, 0), ICONE_LECTURE));
     actions.append(
       bouton(hf?.vu ? t('Vu') : t('Marquer comme vu'), 'verre', async () => {
@@ -496,7 +539,9 @@ function rendreFiche({ focus = false } = {}) {
     actions.append(bouton(he?.position && !he.vu ? t('Reprendre {ep}', { ep: nomEp }) : t('Lecture {ep}', { ep: nomEp }), 'principal', () => lireEpisode(f, e.cleLecture, he?.vu ? 0 : he?.position || 0), ICONE_LECTURE));
     if (he?.position && !he.vu) {
       progres = element('div', 'fm-progres');
-      progres.append(barreLecture(pourcent(he)), element('span', '', `${nomEp} · ${resteTexte(he.position, he.duree)}`));
+      const reste = element('span', '', `${nomEp} · ${resteTexte(he.position, he.duree)} · `);
+      reste.append(finA(he.duree - he.position));
+      progres.append(barreLecture(pourcent(he)), reste);
     }
   }
   haut.append(actions);
