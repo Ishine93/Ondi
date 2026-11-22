@@ -27,8 +27,30 @@ export async function enLigne() {
   }
 }
 
+// L'appli de bureau Claude (Windows) est une appli « empaquetée » (MSIX) : les programmes qu'elle lance
+// voient une copie privée de %APPDATA%. Un serveur lancé de là n'aurait donc pas les mêmes profils que
+// celui lancé au démarrage de Windows (deux « Ondi » différents sur la télé). Dans ce cas, on fait
+// lancer Ondi par l'Explorateur (outils/demarrer-ondi.vbs), qui le démarre hors de cette bulle.
+// Pas pour les essais ni la copie de tournage : ils ont leurs propres dossiers (variables DEBRIDEUR_*).
+function lanceDepuisClaude() {
+  const e = process.env;
+  if (process.platform !== 'win32' || e.DEBRIDEUR_HORS_BULLE) return false;
+  if (e.DEBRIDEUR_PORT || e.DEBRIDEUR_DONNEES || e.DEBRIDEUR_PROFILS) return false;
+  return !!(e.CLAUDECODE || e.CLAUDE_CODE_DESKTOP_APP_VERSION);
+}
+
 export async function demarrer() {
   if (await enLigne()) return true;
+  if (lanceDepuisClaude()) {
+    try {
+      spawn('explorer.exe', [path.join(RACINE, 'outils', 'demarrer-ondi.vbs')], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
+      for (let i = 0; i < 60; i++) {
+        await pause(250);
+        if (await enLigne()) return true;
+      }
+    } catch {}
+    // L'Explorateur n'a rien lancé : démarrage direct, comme avant.
+  }
   fs.mkdirSync(DONNEES, { recursive: true });
   const fichierJournal = path.join(DONNEES, 'debrideur.log');
   try {

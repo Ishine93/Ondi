@@ -865,6 +865,12 @@ serveur.listen(config.port, () => {
   journal(`Ondi prêt : http://localhost:${config.port}`);
   for (const a of adressesReseau()) journal(`  sur le réseau : http://${a}:${config.port}`);
   journal(`Films → ${config.dossiers.films} | Séries → ${config.dossiers.series} | temporaire → ${config.dossierTemp}`);
+  // Lancé tel quel depuis l'appli de bureau Claude (pas par lancer.mjs) : %APPDATA% y est une copie
+  // privée, donc ces profils ne sont pas ceux du serveur lancé au démarrage de Windows.
+  const e = process.env;
+  if (process.platform === 'win32' && !e.DEBRIDEUR_PROFILS && !e.DEBRIDEUR_HORS_BULLE && (e.CLAUDECODE || e.CLAUDE_CODE_DESKTOP_APP_VERSION)) {
+    journal(`Attention : Ondi tourne dans l'appli Claude, qui voit une copie privée de ${profils.dossier} : les profils peuvent différer. Relance-le avec « node lancer.mjs ».`);
+  }
 });
 
 const arreter = () => {
