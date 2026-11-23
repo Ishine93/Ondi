@@ -11,7 +11,7 @@
 
 - **Search & download**: searches the site you set, groups every version (language, quality, season), checks which links are alive and downloads through your AllDebrid account, several files at once.
 - **Library**: movies, TV shows and anime sorted automatically, with posters, summaries, cast and episode titles (TMDB), in English or French.
-- **Player for every screen**: audio tracks, subtitles, quality, resume where you stopped, next episode. When a device cannot read a file (4K HDR, DTS, Dolby…), the server converts it on the fly with your graphics card (NVIDIA, Intel, AMD, Apple).
+- **Player for every screen**: audio tracks, subtitles, quality, resume where you stopped, skip intro, next episode. When a device cannot read a file (4K HDR, DTS, Dolby…), the server converts it on the fly with your graphics card (NVIDIA, Intel, AMD, Apple).
 - **Profiles**: "Who's watching?" screen, avatars, optional password, separate history for everyone.
 - **TV apps**: Samsung, LG, Android TV / Google TV and Fire TV, all made for the remote.
 - **Automatic updates**: Ondi tells you when a new version is out and installs it in one click.
@@ -136,7 +136,7 @@ Read the [README](https://github.com/{{DEPOT}}#readme), or paste the `PROMPT-IA.
 
 - **Recherche et téléchargement** : cherche sur le site de ton choix, regroupe toutes les versions (langue, qualité, saison), vérifie quels liens sont en ligne et télécharge avec ton compte AllDebrid, plusieurs fichiers à la fois.
 - **Bibliothèque** : films, séries et mangas rangés tout seuls, avec affiches, résumés, casting et titres d'épisodes (TMDB), en français ou en anglais.
-- **Lecteur pour tous les écrans** : pistes audio, sous-titres, qualité, reprise là où tu t'es arrêté, épisode suivant. Quand un appareil ne sait pas lire un fichier (4K HDR, DTS, Dolby…), le serveur le convertit à la volée avec ta carte graphique (NVIDIA, Intel, AMD, Apple).
+- **Lecteur pour tous les écrans** : pistes audio, sous-titres, qualité, reprise là où tu t'es arrêté, saut de l'intro, épisode suivant. Quand un appareil ne sait pas lire un fichier (4K HDR, DTS, Dolby…), le serveur le convertit à la volée avec ta carte graphique (NVIDIA, Intel, AMD, Apple).
 - **Profils** : écran « Qui regarde ? », avatars, mot de passe facultatif, historique séparé pour chacun.
 - **Applis télé** : Samsung, LG, Android TV / Google TV et Fire TV, toutes pensées pour la télécommande.
 - **Mises à jour automatiques** : Ondi te prévient quand une nouvelle version sort et l'installe en un clic.

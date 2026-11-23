@@ -255,16 +255,37 @@ body.grand .lecteur.controles-visibles .lc-st { bottom: calc(7% + 150px); }
 .lc-menu button:focus-visible { box-shadow: inset 0 0 0 2px #fff; }
 .lc-menu .sep { height: 1px; background: #ffffff17; margin: 8px 6px; }
 .lc-infos { font-size: 13px; color: var(--doux); padding: 4px 12px 8px; }
-.lc-suivant {
-  position: absolute; z-index: 3; right: clamp(16px, 3vw, 44px); bottom: 130px; width: min(420px, 90vw); background: #0f1720f2; border: 1px solid #ffffff26;
-  border-radius: 14px; padding: 14px; display: grid; gap: 10px; box-shadow: 0 20px 50px #000c;
+/* « Passer l'intro » / « Épisode suivant » : en bas à droite, au-dessus de la barre de lecture, un peu transparent.
+   Présélectionné (bord blanc franc) tant qu'aucun autre bouton du lecteur n'est choisi : OK le déclenche.
+   Sur son propre calque, sans flou ni ombre : la télé n'a rien à redessiner derrière. */
+.lc-saut {
+  position: absolute; z-index: 3; right: clamp(16px, 3vw, 44px); bottom: 130px; will-change: transform;
+  display: inline-flex; align-items: center; gap: 10px; height: 52px; padding: 0 22px; border-radius: 10px;
+  border: 2px solid #ffffff59; background: #0b1118a6; color: #fff; font: inherit; font-size: 17px; font-weight: 700; cursor: pointer;
 }
-.lc-suivant img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 8px; }
-.lc-suivant .ep-pied { justify-content: stretch; }
-.lc-suivant .ep-pied .bouton { flex: 1; }
+.lc-saut svg { width: 22px; height: 22px; }
+.lc-saut:hover { background: #0b1118d9; border-color: #ffffffb3; }
+.lecteur:not(.controles-visibles) .lc-saut, .lc-saut:focus { outline: none; border-color: #fff; background: #0b1118bf; }
+/* « Voulez-vous continuer à regarder ? » */
+.lc-presence { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; background: #000000b8; }
+.lc-presence-boite {
+  width: min(560px, 90vw); background: #0f1720; border: 1px solid #ffffff26; border-radius: 16px; padding: 30px 28px 22px;
+  display: grid; gap: 10px; text-align: center;
+}
+.lc-presence-boite strong { font-size: 26px; }
+.lc-presence-detail { color: #c3ccd6; font-size: 16px; }
+.lc-presence-pied { display: flex; gap: 12px; justify-content: center; margin-top: 12px; }
+.lc-presence-pied .bouton { min-width: 150px; justify-content: center; }
+.lc-presence-compte { color: var(--doux); font-size: 14px; font-variant-numeric: tabular-nums; }
+/* Veille : écran noir après « Non » ou sans réponse (le texte s'efface au bout de 10 s). */
+.veille { position: fixed; inset: 0; z-index: 200; background: #000; display: grid; place-content: center; gap: 10px; text-align: center; cursor: none; }
+.veille strong { font-size: 28px; color: #c3ccd6; }
+.veille span { font-size: 17px; color: #8a96a3; }
+.veille > * { transition: opacity 2s; }
+.veille.noir > * { opacity: 0; }
 
 /* ---------- télé : plus grand ---------- */
-body.grand .ecran-profils .ep-boite, body.grand .fm-defilement, body.grand .lc-couche, body.grand .lc-menu, body.grand .lc-suivant, body.grand .menu-profil, body.grand .lc-message { zoom: 1.3; }
+body.grand .ecran-profils .ep-boite, body.grand .fm-defilement, body.grand .lc-couche, body.grand .lc-menu, body.grand .lc-saut, body.grand .lc-presence-boite, body.grand .menu-profil, body.grand .lc-message, body.grand .veille > * { zoom: 1.3; }
 
 /* ---------- téléphone ---------- */
 @media (max-width: 760px) {

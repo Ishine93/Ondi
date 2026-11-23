@@ -12,7 +12,7 @@
 
 - **Search & download** — searches the site you set, groups every version (language, quality, season), checks which links are alive (titles whose links are all dead are greyed out, or hidden if you prefer), and downloads through your AllDebrid account, many files at once.
 - **Library** — your movies and shows sorted automatically, with posters, summaries, cast and episode titles (TMDB), in English or French.
-- **Player** — plays everything on any screen: the server converts on the fly when a device cannot read a file (4K HDR, DTS, Dolby…) using your graphics card (NVIDIA, Intel, AMD, Apple) when there is one. Audio tracks, subtitles, quality, resume, next episode.
+- **Player** — plays everything on any screen: the server converts on the fly when a device cannot read a file (4K HDR, DTS, Dolby…) using your graphics card (NVIDIA, Intel, AMD, Apple) when there is one. Audio tracks, subtitles, quality, resume, next episode. **Skip intro** and **Next episode** buttons during the credits: Ondi finds them itself on the PC when an episode arrives (it compares the sound of the episodes of a season, and looks for the credits on screen), with no AI and no online service, and only offers them when it is sure. If nobody touches the remote for a whole episode, it asks *Are you still watching?* before playing the next one, and goes to standby otherwise.
 - **Profiles** — "Who's watching?" screen, avatars, optional password, separate history for everyone.
 - **TV apps** — Samsung, LG, Android TV / Google TV, Fire TV; remote-control friendly everywhere.
 - **Automatic updates** — Ondi tells you when a new version is out and installs it in one click.
@@ -95,7 +95,7 @@ Node.js 22+ and no dependencies. `node lancer.mjs` starts the server (port 8097)
 
 - **Recherche et téléchargement** — cherche sur le site que tu as choisi, regroupe toutes les versions (langue, qualité, saison), vérifie les liens encore en ligne (un contenu dont tous les liens sont morts est grisé, ou caché si tu préfères) et télécharge avec ton compte AllDebrid, plusieurs fichiers à la fois.
 - **Bibliothèque** — tes films et séries rangés tout seuls, avec affiches, résumés, casting et titres d'épisodes (TMDB), en français ou en anglais.
-- **Lecteur** — lit tout sur n'importe quel écran : le serveur convertit à la volée quand un appareil ne sait pas lire un fichier (4K HDR, DTS, Dolby…), avec ta carte graphique (NVIDIA, Intel, AMD, Apple) s'il y en a une. Pistes audio, sous-titres, qualité, reprise, épisode suivant.
+- **Lecteur** — lit tout sur n'importe quel écran : le serveur convertit à la volée quand un appareil ne sait pas lire un fichier (4K HDR, DTS, Dolby…), avec ta carte graphique (NVIDIA, Intel, AMD, Apple) s'il y en a une. Pistes audio, sous-titres, qualité, reprise, épisode suivant. Boutons **Passer l'intro** et **Épisode suivant** pendant le générique : Ondi les repère lui-même sur le PC à l'arrivée d'un épisode (il compare le son des épisodes d'une saison et cherche le générique à l'image), sans IA ni service en ligne, et ne les propose que quand il en est sûr. Si personne ne touche la télécommande de tout un épisode, il demande *Voulez-vous continuer à regarder ?* avant d'enchaîner, et se met en veille sinon.
 - **Profils** — écran « Qui regarde ? », avatars, mot de passe facultatif, historique séparé pour chacun.
 - **Applis télé** — Samsung, LG, Android TV / Google TV, Fire TV ; tout se pilote à la télécommande.
 - **Mises à jour automatiques** — Ondi te prévient quand une nouvelle version sort et l'installe en un clic.

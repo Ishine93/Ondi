@@ -61,6 +61,7 @@ export class Bibliotheque {
     this.meta = c.meta || {}; // `${langue}:${cle}` → { t, infos } ; `${langue}:${cle}:s${n}` → { t, episodes }
     this.scan = { enCours: false, fini: c.fini || 0, erreurs: 0, etape: '' };
     this.surChangement = () => {};
+    this.reperes = () => null; // id → intro et générique de fin repérés (src/generiques.mjs)
     this.vue = null;
   }
 
@@ -277,6 +278,7 @@ export class Bibliotheque {
       ]),
       debit: s?.debit || 0,
       ajoute: f.ajoute,
+      generiques: this.reperes(id),
     };
   }
 

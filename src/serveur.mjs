@@ -14,6 +14,7 @@ import { verifierCleTmdb, chercherTitres, saisonsSerie, afficheDe, ficheTmdb, Er
 import { Profils, ErreurProfil } from './profils.mjs';
 import { Bibliotheque } from './bibliotheque.mjs';
 import { Lecture } from './lecture.mjs';
+import { Generiques } from './generiques.mjs';
 import { Avatars } from './avatars.mjs';
 import { encodeurMateriel, OUTILS } from './video.mjs';
 import * as miseAJour from './miseajour.mjs';
@@ -111,6 +112,25 @@ const bibliotheque = new Bibliotheque({ config, dossierDonnees: DONNEES, journal
 const profils = new Profils({ journal });
 const lecture = new Lecture({ bibliotheque, dossierCache: path.join(DONNEES, 'cache'), journal });
 const avatars = new Avatars({ dossier: path.join(DONNEES, 'avatars'), journal });
+
+// Intro et générique de fin des épisodes : repérés sur le PC juste après l'arrivée d'un épisode (chaque relecture
+// de la bibliothèque relance l'analyse des saisons qui ont changé). Pendant une lecture, le disque est lu plus
+// doucement pour ne pas la gêner.
+let derniereLecture = 0;
+const generiques = new Generiques({
+  bibliotheque,
+  dossierDonnees: DONNEES,
+  journal,
+  occupe: () => Date.now() - derniereLecture < 90_000 || [...lecture.sessions.values()].some((s) => s.processus),
+});
+bibliotheque.reperes = (id) => generiques.reperes(id);
+bibliotheque.surChangement = () => {
+  try {
+    generiques.planifier();
+  } catch (e) {
+    journal('Génériques : analyse non lancée', e);
+  }
+};
 
 const scanner = (options) => bibliotheque.scanner(options).catch((e) => journal('Bibliothèque : scan raté', e));
 // Après un téléchargement terminé, la bibliothèque est relue presque tout de suite (2 s après le dernier :
@@ -389,9 +409,15 @@ const serveur = http.createServer(async (req, res) => {
     if (avatar) return avatars.envoyer(avatar[1], res);
     // Vidéo : flux converti, fichier direct (avec avance rapide), sous-titres.
     const flux = req.method === 'GET' && p.match(/^\/api\/flux\/([\w-]+)\.mp4$/);
-    if (flux) return lecture.flux(flux[1], req, res);
+    if (flux) {
+      derniereLecture = Date.now();
+      return lecture.flux(flux[1], req, res);
+    }
     const direct = (req.method === 'GET' || req.method === 'HEAD') && p.match(/^\/api\/direct\/([a-f0-9]+)$/);
-    if (direct) return lecture.direct(direct[1], req, res);
+    if (direct) {
+      derniereLecture = Date.now();
+      return lecture.direct(direct[1], req, res);
+    }
     const vtt = req.method === 'GET' && p.match(/^\/api\/soustitres\/([a-f0-9]+)\/(\d+|ext\d+)\.vtt$/);
     if (vtt) return lecture.sousTitres(vtt[1], vtt[2], res);
     if (!p.startsWith('/api/')) {
@@ -880,6 +906,7 @@ const arreter = () => {
   try {
     profils.sauverTout();
     lecture.arreterTout();
+    generiques.arreter();
   } catch {}
   process.exit(0);
 };

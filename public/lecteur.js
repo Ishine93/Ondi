@@ -143,7 +143,10 @@ function ouvrirLecteur(o) {
     cible: null,
     derniereSauvegarde: 0,
     essais: 0,
-    suivantPropose: false,
+    // Intro et générique de fin repérés sur le PC (src/generiques.mjs), seulement quand ils sont sûrs.
+    reperes: version.generiques || null,
+    saut: null, // bouton « Passer l'intro » / « Épisode suivant » affiché : { type, el }
+    touches: 0, // appuis (télécommande, clavier, clic) depuis le début de cet épisode
     depuis: document.activeElement,
   };
   construireLecteur();
@@ -236,6 +239,7 @@ function construireLecteur() {
   L.minuterieHeure = setInterval(majHeure, 5000);
 
   // Souris et doigt.
+  el.addEventListener('pointerdown', () => L && L.touches++, true);
   el.addEventListener('pointermove', () => montrerControles());
   el.addEventListener('click', (e) => {
     if (e.target === video || e.target === couche || e.target === milieu) {
@@ -305,8 +309,11 @@ function construireLecteur() {
     }
     sauverPosition(true, true);
     const s = L.suivant?.();
-    if (s) lireSuivant();
-    else fermerLecteur();
+    if (!s) return fermerLecteur();
+    // Personne n'a touché la télécommande de tout l'épisode, ou l'intro et le générique sont passés sans être
+    // sautés : on demande avant d'enchaîner, pour ne pas jouer des épisodes devant quelqu'un qui dort.
+    if (presenceDouteuse()) return demanderPresence(s);
+    lireSuivant();
   });
   video.addEventListener('error', () => erreurVideo());
   L.surveillancePosition = setInterval(echantillonner, 250);
@@ -319,7 +326,7 @@ function avancer() {
   majTemps();
   majSousTitres();
   if (Date.now() - L.derniereSauvegarde > 10_000) sauverPosition();
-  verifierFin();
+  majSaut();
 }
 
 function tempsActuel() {
@@ -469,6 +476,13 @@ function sauterEnRafale(sens, base = 10) {
 const textePas = (s) => `${s > 0 ? '+' : '−'}${Math.abs(s) >= 60 ? `${Math.abs(s) / 60} min` : `${Math.abs(s)} s`}`;
 function allerA(position, { differe = false } = {}) {
   if (!L) return;
+  // Avancer pendant l'intro ou le générique, c'est les sauter (ils ne comptent pas comme regardés en entier).
+  const { intro, fin } = L.reperes || {};
+  const avant = tempsActuel();
+  if (position > avant) {
+    if (intro && avant < intro.fin) L.introSautee = true;
+    if (fin && position > fin.debut) L.finSautee = true;
+  }
   clearTimeout(L.attenteSaut);
   L.cible = position;
   L.el.classList.add('saut');
@@ -554,7 +568,7 @@ function montrerControles(garder = false) {
 function planifierMasquage() {
   clearTimeout(minuterieControles);
   minuterieControles = setTimeout(() => {
-    if (!L || L.video.paused || L.menu || L.el.querySelector('.lc-suivant')) return;
+    if (!L || L.video.paused || L.menu || L.presence) return;
     L.el.classList.remove('controles-visibles');
     if (L.el.contains(document.activeElement) && document.activeElement !== L.el) document.activeElement.blur();
   }, document.body.classList.contains('grand') ? 6000 : 3500);
@@ -654,6 +668,7 @@ function ouvrirMenu(nom, bouton) {
           choix([v.resume, v.langue].filter(Boolean).join(' · '), v.id === L.version.id, () => {
             const p = position();
             L.version = v;
+            L.reperes = v.generiques || null;
             L.audio = choisirAudio(v, lirePrefs());
             L.st = choisirSousTitres(v, L.audio, lirePrefs());
             L.duree = v.duree || L.duree;
@@ -734,37 +749,159 @@ function afficherSousTitres(texte) {
   if (texte) L.stEl.append(element('span', '', texte));
 }
 
-// ---------- fin, épisode suivant, historique ----------
+// ---------- intro, générique de fin, épisode suivant ----------
+// Un petit bouton en bas à droite, présélectionné : OK le déclenche tant qu'aucun autre bouton du lecteur n'est
+// choisi (les boutons du lecteur cachés, OK ne met donc plus en pause pendant ce temps : touche Lecture/Pause).
+//   pendant l'intro : « Passer l'intro » ;
+//   pendant le générique de fin (ou les 25 dernières secondes s'il n'a pas été repéré) : « Épisode suivant »,
+//   ou « Passer le générique » quand il n'y a pas d'épisode après.
 
-function verifierFin() {
-  if (!L || L.suivantPropose || !L.duree) return;
-  const reste = L.duree - tempsActuel();
+function sautVoulu() {
+  if (!L?.duree || L.presence) return null;
+  const p = tempsActuel();
+  const { intro, fin } = L.reperes || {};
+  if (intro && p >= intro.debut && p < intro.fin - 1) return 'intro';
   const s = L.suivant?.();
-  if (!s || reste > 25 || reste < 0) return;
-  L.suivantPropose = true;
-  const carte = element('div', 'lc-suivant');
-  if (s.image) {
-    const img = new Image();
-    img.alt = '';
-    img.src = s.image;
-    carte.append(img);
+  const debutFin = fin ? fin.debut : s ? L.duree - 25 : null;
+  if (debutFin != null && p >= debutFin && p < L.duree - 0.5) return s ? 'suivant' : 'generique';
+  return null;
+}
+
+function majSaut() {
+  if (!L) return;
+  // Ce qui est regardé sans être sauté (pour « Voulez-vous continuer à regarder ? »).
+  const { intro, fin } = L.reperes || {};
+  const p = tempsActuel();
+  if (L.cible == null && !L.video.paused) {
+    if (intro && p >= intro.debut - 1 && p <= intro.debut + 5) L.introCommencee = true;
+    if (intro && !L.introFinie && p >= intro.fin - 1.5) {
+      L.introFinie = true;
+      L.introVue = !!L.introCommencee && !L.introSautee;
+    }
+    if (fin && p >= fin.debut - 1 && p <= fin.debut + 5) L.finCommencee = true;
   }
-  carte.append(element('strong', '', `${t('Épisode suivant')} · ${t('S{s} É{e}', { s: s.saison, e: s.numero })}`), element('span', 'aide', s.titre));
-  const pied = element('div', 'ep-pied');
-  const go = element('button', 'bouton principal', t('Lire maintenant'));
-  go.type = 'button';
-  go.addEventListener('click', () => lireSuivant());
-  const non = element('button', 'bouton', t('Masquer'));
-  non.type = 'button';
-  non.addEventListener('click', () => {
-    carte.remove();
-    planifierMasquage();
+  const voulu = sautVoulu();
+  if ((L.saut?.type || null) === voulu) return;
+  const avaitLaMain = L.saut && document.activeElement === L.saut.el;
+  L.saut?.el.remove();
+  L.saut = null;
+  if (!voulu) {
+    if (avaitLaMain) L.el.focus?.({ preventScroll: true });
+    return;
+  }
+  const b = element('button', 'lc-saut');
+  b.type = 'button';
+  b.append(element('span', '', { intro: t("Passer l'intro"), suivant: t('Épisode suivant'), generique: t('Passer le générique') }[voulu]));
+  if (voulu !== 'intro') b.insertAdjacentHTML('beforeend', ICONES_LC.suivant);
+  b.addEventListener('click', (e) => {
+    e.stopPropagation();
+    declencherSaut();
   });
-  pied.append(non, go);
-  carte.append(pied);
-  L.el.append(carte);
-  montrerControles(true);
-  requestAnimationFrame(() => go.focus({ preventScroll: true }));
+  L.el.append(b);
+  L.saut = { type: voulu, el: b };
+  // Présélectionné, sauf si on est justement en train de se servir des boutons du lecteur.
+  const actif = document.activeElement;
+  if (!L.el.classList.contains('controles-visibles') || !L.el.contains(actif) || actif === L.el) b.focus({ preventScroll: true });
+}
+
+function declencherSaut() {
+  if (!L?.saut) return;
+  const { type } = L.saut;
+  if (type === 'intro') {
+    L.introSautee = true;
+    allerA(L.reperes.intro.fin);
+    majSaut();
+  } else if (type === 'suivant') {
+    L.finSautee = true;
+    lireSuivant();
+  } else {
+    L.finSautee = true;
+    sauverPosition(true, true);
+    fermerLecteur();
+  }
+}
+
+// Fin d'un épisode : quelqu'un regarde-t-il encore ? Douteux si personne n'a touché la télécommande de tout
+// l'épisode (marche aussi sans intro ni générique repérés), ou si l'intro et le générique de fin ont été
+// regardés en entier sans être sautés.
+function presenceDouteuse() {
+  if (!L) return false;
+  if (!L.touches) return true;
+  return !!(L.introVue && L.reperes?.fin && L.finCommencee && !L.finSautee);
+}
+
+const ATTENTE_PRESENCE = 60; // s avant l'arrêt si personne ne répond
+function demanderPresence(s) {
+  if (!L) return;
+  L.saut?.el.remove();
+  L.saut = null;
+  L.el.classList.remove('controles-visibles');
+  const fond = element('div', 'lc-presence');
+  fond.setAttribute('role', 'alertdialog');
+  fond.setAttribute('aria-modal', 'true');
+  const boite = element('div', 'lc-presence-boite');
+  const titre = element('strong', '', t('Voulez-vous continuer à regarder ?'));
+  titre.id = 'lc-presence-titre';
+  fond.setAttribute('aria-labelledby', titre.id);
+  const detail = element('span', 'lc-presence-detail', [`${t('Épisode suivant')} · ${t('S{s} É{e}', { s: s.saison, e: s.numero })}`, s.titre].filter(Boolean).join(' · '));
+  const compte = element('span', 'lc-presence-compte', '');
+  const pied = element('div', 'lc-presence-pied');
+  const oui = element('button', 'bouton principal', t('Oui'));
+  const non = element('button', 'bouton', t('Non'));
+  oui.type = non.type = 'button';
+  oui.addEventListener('click', (e) => {
+    e.stopPropagation();
+    lireSuivant();
+  });
+  non.addEventListener('click', (e) => {
+    e.stopPropagation();
+    mettreEnVeille();
+  });
+  pied.append(oui, non);
+  boite.append(titre, detail, pied, compte);
+  fond.append(boite);
+  L.el.append(fond);
+  const etat = L;
+  let reste = ATTENTE_PRESENCE;
+  const majCompte = () => (compte.textContent = t('Arrêt dans {n} s', { n: reste }));
+  majCompte();
+  L.presence = {
+    el: fond,
+    oui,
+    non,
+    minuterie: setInterval(() => {
+      if (L !== etat) return;
+      reste--;
+      if (reste <= 0) return mettreEnVeille();
+      majCompte();
+    }, 1000),
+  };
+  oui.focus({ preventScroll: true });
+}
+
+// Personne (ou « Non ») : on arrête tout et l'écran devient noir, au lieu d'enchaîner dans le vide.
+// La télé s'éteindra d'elle-même avec sa mise en veille automatique ; une touche ramène à Ondi.
+function mettreEnVeille() {
+  if (L) fermerLecteur();
+  document.getElementById('veille')?.remove();
+  const v = element('div', 'veille');
+  v.id = 'veille';
+  v.setAttribute('role', 'dialog');
+  v.setAttribute('aria-label', t('Ondi est en veille'));
+  v.append(element('strong', '', t('Ondi est en veille')), element('span', '', t('Appuie sur une touche pour revenir.')));
+  document.body.append(v);
+  // Le texte s'efface au bout de 10 s : écran entièrement noir (rien ne marque un écran OLED).
+  const minuterie = setTimeout(() => v.classList.add('noir'), 10_000);
+  const reveiller = (e) => {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    clearTimeout(minuterie);
+    v.remove();
+    removeEventListener('keydown', reveiller, true);
+    removeEventListener('pointerdown', reveiller, true);
+  };
+  addEventListener('keydown', reveiller, true);
+  addEventListener('pointerdown', reveiller, true);
 }
 
 function lireSuivant() {
@@ -797,6 +934,7 @@ function fermerLecteur({ historique = true, sauver = true, garderEtat = false } 
   clearTimeout(L.gardeImage);
   clearInterval(L.surveillancePosition);
   clearInterval(L.minuterieHeure);
+  clearInterval(L.presence?.minuterie);
   clearTimeout(minuterieControles);
   video.pause();
   video.removeAttribute('src');
@@ -825,12 +963,23 @@ document.addEventListener(
   'keydown',
   (e) => {
     if (!L) return;
+    L.touches++;
     const actif = document.activeElement;
     const media = TOUCHES_MEDIA[e.keyCode] || { MediaPlayPause: 'pp', MediaPlay: 'lecture', MediaPause: 'pause', MediaStop: 'stop', MediaFastForward: 'avance', MediaRewind: 'recul', MediaTrackNext: 'suivant' }[e.key];
     const stop = () => {
       e.preventDefault();
       e.stopPropagation();
     };
+    const retourTouche = e.key === 'Escape' || e.key === 'GoBack' || e.key === 'BrowserBack' || e.keyCode === 461 || e.keyCode === 10009 || e.key === 'Backspace';
+    // « Voulez-vous continuer à regarder ? » : Oui / Non aux flèches, OK, Retour = Non.
+    if (L.presence) {
+      stop();
+      const { oui, non } = L.presence;
+      if (retourTouche || media === 'stop') return mettreEnVeille();
+      if (/^Arrow/.test(e.key)) return (actif === oui ? non : oui).focus({ preventScroll: true });
+      if (e.key === 'Enter' || media === 'lecture' || media === 'pp') return (actif === non ? non : oui).click();
+      return;
+    }
     if (media) {
       stop();
       montrerControles();
@@ -843,8 +992,7 @@ document.addEventListener(
       else if (media === 'suivant') lireSuivant();
       return;
     }
-    const retour = e.key === 'Escape' || e.key === 'GoBack' || e.key === 'BrowserBack' || e.keyCode === 461 || e.keyCode === 10009 || e.key === 'Backspace';
-    if (retour) {
+    if (retourTouche) {
       stop();
       if (L.menu) return fermerMenu();
       if (document.fullscreenElement && e.key === 'Escape') return;
@@ -872,7 +1020,13 @@ document.addEventListener(
       return;
     }
     const surBarre = actif === L.barre;
+    const surSaut = !!L.saut && actif === L.saut.el;
     const rienDeChoisi = !L.el.contains(actif) || actif === L.el || !visibles;
+    // OK alors que le bouton « Passer l'intro » / « Épisode suivant » est là et qu'aucun autre n'est choisi.
+    if (e.key === 'Enter' && L.saut && (rienDeChoisi || surSaut)) {
+      stop();
+      return declencherSaut();
+    }
     if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && (surBarre || rienDeChoisi)) {
       stop();
       sauterEnRafale(e.key === 'ArrowRight' ? 1 : -1);
@@ -885,9 +1039,11 @@ document.addEventListener(
       const enBas = L.el.querySelector('.lc-boutons')?.contains(actif);
       const enHaut = L.el.querySelector('.lc-haut')?.contains(actif);
       let vers = null;
+      // Le bouton de saut est au-dessus de la barre, à droite : barre ↔ bouton de saut ↔ Retour en haut.
       if (enBas && e.key === 'ArrowUp') vers = L.barre;
-      else if (enHaut && e.key === 'ArrowDown') vers = L.barre;
-      else if (surBarre) vers = e.key === 'ArrowUp' ? L.el.querySelector('.lc-haut .lc-bouton') : L.dernierBouton?.isConnected ? L.dernierBouton : L.lecture;
+      else if (enHaut && e.key === 'ArrowDown') vers = L.saut?.el || L.barre;
+      else if (surSaut) vers = e.key === 'ArrowUp' ? L.el.querySelector('.lc-haut .lc-bouton') : L.barre;
+      else if (surBarre) vers = e.key === 'ArrowUp' ? L.saut?.el || L.el.querySelector('.lc-haut .lc-bouton') : L.dernierBouton?.isConnected ? L.dernierBouton : L.lecture;
       if (vers) {
         stop();
         if (enBas) L.dernierBouton = actif;
